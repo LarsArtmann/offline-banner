@@ -115,11 +115,30 @@
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
+                # The FULL sandbox contract: every hardening directive the
+                # unit must carry (a refactor dropping one line fails this).
+                # List options render one line per item in unit text.
                 sandboxInUnit = toString (
                   nixpkgs.lib.all (line: nixpkgs.lib.hasInfix line unit.text) [
                     "ProtectSystem=strict"
-                    "RestrictAddressFamilies="
+                    "ProtectHome=read-only"
+                    "PrivateTmp=true"
+                    "RestrictAddressFamilies=AF_UNIX"
+                    "RestrictAddressFamilies=AF_INET"
+                    "RestrictAddressFamilies=AF_INET6"
+                    "RestrictAddressFamilies=AF_NETLINK"
+                    "RestrictNamespaces=true"
+                    "LockPersonality=true"
+                    "RestrictRealtime=true"
+                    "RestrictSUIDSGID=true"
+                    "ProtectClock=true"
+                    "ProtectHostname=true"
+                    "ProtectKernelLogs=true"
+                    "ProtectKernelModules=true"
                     "ProtectKernelTunables=true"
+                    "ProtectControlGroups=true"
+                    "ProtectProc=invisible"
+                    "SystemCallArchitectures=native"
                   ]
                 );
                 # Deliberate absence: NoNewPrivileges would strip ping's
