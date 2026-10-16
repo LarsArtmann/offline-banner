@@ -13,12 +13,15 @@
 #      resolver would blackhole it then.
 # `ping` needs no wrapper on NixOS (nixpkgs iputils ships cap_net_raw).
 #
-# Rendering follows the second-Quickshell-instance pattern (DMS plugins
-# cannot render layer-shell surfaces), with ONE owner-requested difference
-# (2026-10-16): the strip lives on the TOP layer with ExclusionMode.Auto
-# and an ANIMATED height, so instead of floating over the bar it CLAIMS
-# the top edge and the bar slides down beneath it (slow InOutCubic push,
-# slides back up on recovery). DISMISSABLE: clicking anywhere on the strip
+# Rendering follows the second-Quickshell-instance pattern, with ONE
+# owner-requested difference (2026-10-16): the strip lives on the TOP layer
+# with ExclusionMode.Auto and an ANIMATED height, so instead of floating
+# over the bar it CLAIMS the top edge and the bar slides down beneath it
+# (slow InOutCubic push, slides back up on recovery).
+# Rendered as a second Quickshell instance by deliberate choice (2026-10-16):
+# zero dependence on any shell/bar plugin API. The stronger claim once
+# considered — that DMS plugins cannot render layer-shell surfaces — was
+# reasoned, never tested; the pattern stands on independence, not on it. DISMISSABLE: clicking anywhere on the strip
 # slides it up for the rest of the outage; the next clean probe re-arms
 # it, so a fresh outage shows again. The strip therefore takes pointer
 # input (no click-through mask) — the bar has been pushed below it, so
@@ -32,7 +35,9 @@
 # visible, never fail silent.
 #
 # Extracted from SystemNix (modules/nixos/desktop/offline-banner.nix,
-# deployed there as gen 904 v1; v2/v3 behavior included) 2026-10-16.
+# deployed there as gen 904 v1 — verified: SystemNix live-session report
+# anchors /run/current-system == 904; v2/v3 were demo-proven, not deployed)
+# 2026-10-16.
 {
   config,
   lib,

@@ -5,7 +5,7 @@ Yellow top-strip offline banner for NixOS desktops — `github:LarsArtmann/offli
 ## Identity
 
 - One NixOS module, one file: `module.nix` (`services.offline-banner`, systemd **user** service, second-Quickshell-instance pattern — Quickshell runs the inline `shell.qml`; no dependency on any bar/shell plugin).
-- Extracted from SystemNix 2026-10-16 (`modules/nixos/desktop/offline-banner.nix`, deployed there as gen 904 — provenance number unverified, see FEATURES). SystemNix is the origin of every behavior doctrine (non-flashing yellow, debounce, fail-visible probe, push-down animation) — the rationale comments in `module.nix` are the contract; do not silently drop them when refactoring.
+- Extracted from SystemNix 2026-10-16 (`modules/nixos/desktop/offline-banner.nix`, deployed there as gen 904 v1 — verified 2026-10-17: SystemNix live-session report anchors `/run/current-system == 904` + `system-904-link`; gen 904 shipped v1, v2/v3 were demo-proven only and ride SystemNix's next switch). SystemNix is the origin of every behavior doctrine (non-flashing yellow, debounce, fail-visible probe, push-down animation) — the rationale comments in `module.nix` are the contract; do not silently drop them when refactoring.
 
 ## Hard rules
 
