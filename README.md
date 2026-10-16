@@ -38,6 +38,8 @@ inputs.offline-banner.inputs.nixpkgs.follows = "nixpkgs"; # one nixpkgs in your 
 }
 ```
 
+Channel policy: this flake tracks `nixos-unstable` (the NixOS-test-gated channel); consumers should keep the `follows` line above so only one nixpkgs lands in their lock — the module only needs `quickshell` from it, no channel-specific behavior.
+
 The unit is a `systemd.user` service bound to `graphical-session.target` — it starts with the graphical session, one banner surface per connected monitor.
 
 ## Options

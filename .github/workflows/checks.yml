@@ -33,6 +33,10 @@ jobs:
           extra-conf: |
             experimental-features = nix-command flakes pipe-operators
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            # Let the daemon accept aarch64-linux builds (executed through
+            # the qemu-user-static binfmt handlers registered above);
+            # read at daemon start, hence set via the installer.
+            extra-platforms = aarch64-linux
 
       - name: Run flake checks
         run: nix flake check --all-systems
