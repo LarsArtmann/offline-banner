@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Keep the two SHA-pinned actions current (SHA + comment bump together).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -4,9 +4,10 @@
 # Features
 
 > Honest inventory of what this project does, by status. Built from the code,
-> not the marketing. Audited 2026-10-16 against `module.nix`, `flake.nix`, and
-> `.github/workflows/checks.yml` at HEAD `a6950e0`; the CI-pin failure was
-> verified live against the GitHub API that day.
+> not the marketing. Audited 2026-10-16 at HEAD `a6950e0`; re-verified 2026-10-17
+> against the tagged v0.1.0 tree with new evidence: first green CI runs, the
+> probe-transitions machine test, and a live sandbox smoke test on evo-x2
+> (which found and fixed the /run/user write blocker).
 
 ## Status legend
 
@@ -18,53 +19,56 @@
 | 🔵 `DISABLED`             | Code exists and is correct, but execution is externally switched off. A switch, not a fix — never fold into BROKEN.                    |
 | ⚪ `PLANNED`              | No code yet; genuinely next on the build path.                                                                                         |
 
-> The runtime banner features below are `PARTIALLY_FUNCTIONAL` across the board
-> for one reason, not many: the behavior is live-proven from its SystemNix
-> origin (deployed there as gen 904, v3), but nothing has been runtime-verified
-> since extraction — and the systemd sandbox added afterwards is eval-checked
-> only. The pending live smoke test (TODO_LIST) is the single gate that flips
-> this whole block.
+> Detection and unit behavior are now machine-verified (probe-transitions) and
+> live-smoke-verified on evo-x2. The remaining PARTIALLY_FUNCTIONAL rows share
+> one narrow cause: the 2026-10-17 session had zero active outputs, so pixel
+> visibility on a real monitor is unproven — the QML ran on Qt's placeholder
+> screen. First real render proof rides the SystemNix switch (or any
+> monitor-on session).
 
 ## Detection
 
 | Feature                                        | Status                    | Evidence                                | Notes                                                                                          |
 | ---------------------------------------------- | ------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Two-leg connectivity probe                     | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:152-162`                    | Carrier glob (`/sys/class/net`, virtual ifaces excluded) → "link"; ICMP echo → "net". NOT `nmcli` — see README. |
-| Fail-visible probe semantics                   | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:133-147`                    | A probe that cannot even run counts as failure ("net"), never as success.                      |
-| Debounced show/hide                            | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:105-107`, `module.nix:133-147` | `failuresToShow` consecutive failures to appear (default 2 ≈ 10 s); hides on the first clean probe. |
-| IPv4-only internet leg                         | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:162`                        | Known blind spot: v6-up/v4-down shows "offline" while browsing works. Fix or documented tradeoff is planned. |
+| Two-leg connectivity probe                     | 🟢 `FULLY_FUNCTIONAL`     | `module.nix` probe Process; `probe-transitions` check | Carrier glob (`/sys/class/net`, virtual ifaces excluded) → "link"; ICMP echo → "net". Live-verified: ping under sandbox → ok; blackhole → net. NOT `nmcli` — see README. |
+| Fail-visible probe semantics                   | 🟢 `FULLY_FUNCTIONAL`     | `probe-transitions` check               | A probe that cannot even run counts as failure ("net"), never as success; transition-tested.   |
+| Debounced show/hide                            | 🟢 `FULLY_FUNCTIONAL`     | `probe-transitions` check; live smoke   | `failuresToShow` consecutive failures to appear; hides on first clean probe; re-arms for fresh outages. Machine-asserted and live-counted. |
+| IPv4-only internet leg (documented tradeoff)   | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix` probeHost option           | v6-up/v4-down shows "offline" while v6 browsing works — accepted tradeoff, documented in the option description + README; point probeHost at a v6 literal on v6-primary hosts. |
 
 ## Presentation
 
 | Feature                                        | Status                    | Evidence                                | Notes                                                                                          |
 | ---------------------------------------------- | ------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Yellow top-strip on every monitor              | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:198-206`                    | One `PanelWindow` per screen via `Variants`; static `#f2f9e2af`, never flashing. Only DP-1 proven on the origin host. |
-| Push-down animation                            | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:207-235`                    | `WlrLayer.Top` + `ExclusionMode.Auto` + animated height (InOutCubic, 450 ms): the bar is pushed down, nothing covered. |
-| Last-online caption                            | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:111-131`, `module.nix:189-196` | "last online 4m 12s ago" re-evaluated every second while visible; `unknown` before the first clean probe. |
-| Click-to-dismiss with re-arm                   | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:115-118`, `module.nix:242-247` | Dismisses for the rest of THIS outage; the next clean probe re-arms it. Never machine-verified. |
+| Yellow top-strip on every monitor              | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix` Variants                   | One `PanelWindow` per screen via `Variants`; static `#f2f9e2af`, never flashing. DP-1 proven on the origin host; the 2026-10-17 smoke session had zero active outputs, so pixel visibility awaits a monitor-on session. |
+| Push-down animation                            | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix` Behavior on animHeight     | `WlrLayer.Top` + `ExclusionMode.Auto` + animated height (InOutCubic, 450 ms). Logic transition-verified; pixels captured in the README demo (headless sway) — live-monitor proof pending as above. |
+| Last-online caption                            | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix` fmtAgo + tick Timer        | "last online 4m 12s ago" re-evaluated every second while visible; `unknown` before the first clean probe. Pixel proof pending as above. |
+| Click-to-dismiss with re-arm                   | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix` MouseArea + dismissed      | Re-arm logic transition-verified (recovery → fresh outage shows again). The physical click itself awaits a pointer harness or first real outage. |
 
 ## Operations
 
 | Feature                                        | Status                    | Evidence                                | Notes                                                                                          |
 | ---------------------------------------------- | ------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| systemd user unit on graphical-session.target  | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:285-289`                    | Auto-start with the graphical session. The origin host's first start was manual; reboot/re-login unproven. |
-| systemd sandbox hardening                      | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:310-346`                    | `ProtectSystem=strict`, restricted address families, kernel/clock/hostname protections. Eval-checked only; live smoke pending. `NoNewPrivileges` deliberately absent (it strips ping's `cap_net_raw`). |
-| Live tuning via `OFFLINE_BANNER_*` drop-in     | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:291-306`                    | Env contract mirrors the options; retune without rebuild (unit restart required — env is read at start). Contract asserted by `module-contract`. |
-| Probe-overlap eval assertion                   | 🟢 `FULLY_FUNCTIONAL`     | `module.nix:278-283`, `flake.nix:88-99` | `module-contract` proves it fires on a bad config and stays silent on a good one; green locally. |
-| Flake checks (formatting + module-contract)    | 🟢 `FULLY_FUNCTIONAL`     | `flake.nix:101-143`                     | `nix flake check` green on x86_64-linux (run twice, 2026-10-16). aarch64 leg unexercised locally. |
-| CI (GitHub Actions flake check)                | 🔴 `BROKEN`               | `.github/workflows/checks.yml:16`       | `nix-installer-action` pin does not resolve (GitHub API 422, verified 2026-10-16); both master runs red in ~6 s. No nix check has ever executed in CI. Fix tracked in TODO_LIST. |
+| systemd user unit on graphical-session.target  | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix` unit wiring                | Auto-start with the graphical session. The origin host's first start was manual; reboot/re-login unproven (TODO_LIST). |
+| systemd sandbox hardening                      | 🟢 `FULLY_FUNCTIONAL`     | live smoke 2026-10-17; `unit-verify`    | Full directive set contract-checked line-by-line, `systemd-analyze verify` clean, and live-proven on evo-x2: unit active, ping cap_net_raw intact, runtime dirs writable via RuntimeDirectory+ReadWritePaths (the smoke FOUND the /run/user blocker — fixed). GPU render path unverified (zero outputs that session). |
+| Live tuning via `OFFLINE_BANNER_*` drop-in     | 🟢 `FULLY_FUNCTIONAL`     | live smoke (env-driven runs)            | Env contract mirrors the options; retune without rebuild (unit restart required — env is read at start). Asserted by `module-contract`; exercised live with PROBE_HOST/INTERVAL/FAILURES overrides. |
+| State-transition observability                 | 🟢 `FULLY_FUNCTIONAL`     | live smoke journal + state file         | Journal lines on failed probes, show/hide, recovery, dismiss; `$XDG_RUNTIME_DIR/offline-banner/state` rewritten every probe — stale file = dead unit (fail closed). Live-verified. |
+| Demo mode (`OFFLINE_BANNER_DEMO=1`)            | 🟢 `FULLY_FUNCTIONAL`     | `module.nix` demo property; live run    | Force-show with probes skipped (Process never starts); live-verified (state shows `demo:true`, active:true). |
+| Probe-overlap eval assertion                   | 🟢 `FULLY_FUNCTIONAL`     | `module-contract` check                 | Proven to fire on a bad config and stay silent on a good one. |
+| `failuresToShow` sanity bound                  | 🟢 `FULLY_FUNCTIONAL`     | `module.nix` assertions                 | Eval-time bound (≤ 10) with a clear message; negative-tested. |
+| Flake checks (4 gates, both systems)           | 🟢 `FULLY_FUNCTIONAL`     | `flake.nix` checks                      | formatting, module-contract (full sandbox + restartTriggers), unit-verify, docs-drift, probe-transitions — green locally on x86_64+aarch64 (qemu binfmt) and in CI. |
+| CI (GitHub Actions flake check)                | 🟢 `FULLY_FUNCTIONAL`     | `.github/workflows/checks.yml`          | First green run 2026-10-17 after re-pinning the installer action (single-char SHA typo 422'd every run); read-only token, no persisted credentials; aarch64 via qemu binfmt; branch protection requires it; dependabot keeps the pins current; actionlint + zizmor clean. |
+| Release (v0.1.0)                               | 🟢 `FULLY_FUNCTIONAL`     | git tag + GitHub Release                | Tagged on a green pipeline; CHANGELOG body; MIT license; repo topics set; CI badge live. |
 
 ## Integration
 
 | Feature                                        | Status                    | Evidence                                | Notes                                                                                          |
 | ---------------------------------------------- | ------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| NixOS module `services.offline-banner`         | 🟡 `PARTIALLY_FUNCTIONAL` | `module.nix:43-77`                      | 7 options (`enable`, `package`, `checkIntervalSeconds`, `probeHost`, `probeTimeoutSeconds`, `failuresToShow`, `layerNamespace`); evaluates on x86_64- and aarch64-linux. Runtime debt as above. |
+| NixOS module `services.offline-banner`         | 🟢 `FULLY_FUNCTIONAL`     | `module.nix` options                    | 7 options: `enable`, `package`, `checkIntervalSeconds`, `probeHost`, `probeTimeoutSeconds`, `failuresToShow`, `layerNamespace` (drift-gated against this file + README); evaluates + checks on x86_64- and aarch64-linux. Consumed by SystemNix (evo-x2). |
 
 ## Planned
 
 | Feature                                        | Status       | Evidence                                | Notes                                                                                          |
 | ---------------------------------------------- | ------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| VM/negative test harness                       | ⚪ `PLANNED`  | No code; TODO_LIST Quality              | `OFFLINE_BANNER_SYSROOT` + probe injection; link/net/ok/debounce transition assertions. Completes the verification family. |
-| State-transition observability                 | ⚪ `PLANNED`  | No code; TODO_LIST Quality              | Journal line on show/hide + fail-closed `offline_banner_active` gauge — a dead banner is currently silent. |
-| Demo mode (`OFFLINE_BANNER_DEMO=1`)            | ⚪ `PLANNED`  | No code; TODO_LIST Quality              | Force-show without probes; retires the unroutable-IP drop-in hack. |
-| IPv6 probe leg or documented v4-only tradeoff  | ⚪ `PLANNED`  | No code; TODO_LIST Quality              | Closes the Detection blind spot above. |
+| Live render proof on a real monitor            | ⚪ `PLANNED`  | TODO_LIST (rides SystemNix switch)      | Pixel visibility: banner visible on every active output; closes the PARTIALLY rows above. |
+| Click-dismiss physical harness                 | ⚪ `PLANNED`  | TODO_LIST (T18)                         | Virtual-pointer harness or first live outage retires the last unverified interaction. |
+| Reboot/re-login auto-start proof               | ⚪ `PLANNED`  | TODO_LIST (T18)                         | graphical-session.target wiring proven at reboot. |

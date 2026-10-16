@@ -28,7 +28,16 @@ Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direc
 
 ## Checks
 
-`flake.nix` `module-contract` asserts: unit present when enabled / absent when disabled, quickshell in ExecStart, env contract in unit text, MemoryMax set, sandbox hardening present with `NoNewPrivileges` absent (it would strip ping's cap_net_raw), and the probe-overlap assertion fires on a bad config. Rendering itself is NOT tested here (needs a live compositor) — see TODO_LIST for the VM-test debt and the standalone `quickshell -p` demo recipe.
+Five flake checks (green on both systems, CI-enforced via branch protection):
+- `module-contract`: unit present/absent, quickshell ExecStart, env contract, MemoryMax, ALL 22 sandbox directive lines, NoNewPrivileges absent (it strips ping's cap_net_raw), restartTriggers references the store QML, probe-overlap assertion fires on a bad config.
+- `unit-verify`: systemd-analyze verify on the rendered unit (sandbox recipe: LD_PRELOAD mkdir/mkdirat shim redirects /run; --user --recursive-errors=no; graphical-session.target stubbed).
+- `docs-drift`: option list derived from the module eval must appear in README + FEATURES; env-contract mention + quickstart pointers pinned.
+- `probe-transitions`: drives the REAL store QML through ok/net/link (OFFLINE_BANNER_PROBE_CMD injection, headless sway, software rendering) and asserts debounce/reason/recovery/re-arm via the state file.
+- `formatting`: treefmt (nixfmt + statix).
+
+Live evidence on record (2026-10-17, evo-x2 smoke): sandbox live-proven (ping cap_net_raw, runtime dirs, state file, ~23 MB RSS), journal + state file verified. Pixel visibility on a real monitor is NOT yet proven (session had zero active outputs) — it rides the SystemNix switch. Demo capture: `scripts/capture-demo.sh` (headless sway, ground-truth store QML); assets in `docs/assets/`.
+
+Decision records: docs surface = README table + option descriptions + docs-drift gate (no optionDoc/manual render check — cost over value for 7 options, 2026-10-17). CI: branch protection requires the Checks workflow with admin bypass (direct pushes stay possible); dependabot weekly on the action pins; actionlint + zizmor clean (run on demand, not wired — 3-step workflow, both green).
 
 ## Consumers
 
