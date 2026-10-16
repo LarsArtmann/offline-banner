@@ -67,7 +67,7 @@ The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environ
 A dead banner must never be silent:
 
 - **Journal**: every failed probe (reason + consecutive count), every banner show/hide, recovery, and click-dismiss is logged — `journalctl --user -u offline-banner -f`.
-- **State file**: `$XDG_RUNTIME_DIR/offline-banner.state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`.
+- **State file**: `$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`.
 - **v6 note**: `probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken v4 route the banner shows offline while v6 browsing works — an accepted tradeoff; point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials it directly).
 
 ## Provenance

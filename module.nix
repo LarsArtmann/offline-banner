@@ -180,7 +180,7 @@
                     "sh", "-c",
                     "printf '%s' \"$2\" > \"$1\"",
                     "offline-banner-state",
-                    (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/offline-banner.state",
+                    (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/offline-banner/state",
                     JSON.stringify({
                         active: root.offline && !root.dismissed,
                         demo: root.demo,
@@ -400,6 +400,19 @@
           ProtectSystem = "strict";
           ProtectHome = "read-only";
           PrivateTmp = true;
+          # strict makes /run/user read-only; the unit needs exactly two
+          # dirs there: quickshell's own runtime layout and the banner
+          # state dir (live-verified 2026-10-17 — without this the unit
+          # runs but quickshell cannot create its runtime dirs).
+          RuntimeDirectory = [
+            "offline-banner"
+            "quickshell"
+          ];
+          RuntimeDirectoryMode = "0700";
+          ReadWritePaths = [
+            "%t/quickshell"
+            "%t/offline-banner"
+          ];
           RestrictAddressFamilies = [
             "AF_UNIX"
             "AF_INET"

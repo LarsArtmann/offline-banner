@@ -139,6 +139,11 @@
                     "ProtectControlGroups=true"
                     "ProtectProc=invisible"
                     "SystemCallArchitectures=native"
+                    "RuntimeDirectory=offline-banner"
+                    "RuntimeDirectory=quickshell"
+                    "RuntimeDirectoryMode=0700"
+                    "ReadWritePaths=%t/quickshell"
+                    "ReadWritePaths=%t/offline-banner"
                   ]
                 );
                 # Deliberate absence: NoNewPrivileges would strip ping's
@@ -314,6 +319,7 @@
                 export WAYLAND_DISPLAY="$sock"
                 sleep 0.5
 
+                mkdir -p "$XDG_RUNTIME_DIR/offline-banner"   # the real unit gets this via RuntimeDirectory=
                 echo ok > control
                 export OFFLINE_BANNER_INTERVAL=600
                 export OFFLINE_BANNER_FAILURES=2
@@ -321,7 +327,7 @@
                 quickshell -p "$qmlDir" >qs.log 2>&1 &
                 qs_pid=$!
 
-                state="$XDG_RUNTIME_DIR/offline-banner.state"
+                state="$XDG_RUNTIME_DIR/offline-banner/state"
                 # assert_state EXPECTED_ACTIVE [EXPECTED_REASON] POLL_ROUNDS
                 assert_state() {
                   local want="$1" want_reason="''${2:-}" rounds="''${3:-20}" i got json
@@ -350,6 +356,7 @@
                 assert_state true net            # failure 2 of 2: shows
                 echo link > control              # reason switches
                 assert_state true link
+                mkdir -p "$XDG_RUNTIME_DIR/offline-banner"   # the real unit gets this via RuntimeDirectory=
                 echo ok > control                # recovery: hides + re-arms
                 assert_state false
                 echo net > control               # failure 1 of 2 again
