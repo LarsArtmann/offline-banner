@@ -30,15 +30,10 @@ ShellRoot {
             anchors.right: parent.right
             anchors.rightMargin: 14
             anchors.verticalCenter: parent.verticalCenter
-            text: Qt.formatDateTime(clock.time, "HH:mm")
+            text: "12:47"
             color: "#cdd6f4"
             font.pixelSize: 13
             font.weight: Font.DemiBold
-        }
-
-        SystemClock {
-            id: clock
-            precision: SystemClock.Minutes
         }
     }
 }
