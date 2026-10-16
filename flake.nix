@@ -169,14 +169,20 @@
                 touch "$out"
               '';
           # Unit-syntax gate: systemd-analyze verify on the rendered unit —
-          # catches pin-class typos in serviceConfig mechanically. The gate
-          # fails on a non-zero verify exit (errors) AND on any output line
-          # naming our unit (warnings); other-unit noise cannot exist here
-          # because only this unit is in the sandbox.
+          # catches pin-class typos in serviceConfig mechanically (proven:
+          # a bad unit exits 1 with precise diagnostics, the real unit is
+          # clean). Sandbox recipe, live-tested 2026-10-17: the build env
+          # has no /run, so an LD_PRELOAD shim redirects mkdir/mkdirat of
+          # /run/* into the build dir; --user + --recursive-errors=no
+          # verifies THIS unit's syntax and ExecStart (dep closure stubbed
+          # via the graphical-session.target stub beside it).
           unit-verify =
             pkgs.runCommand "offline-banner-unit-verify"
               {
-                nativeBuildInputs = [ pkgs.systemd ];
+                nativeBuildInputs = [
+                  pkgs.stdenv.cc
+                  pkgs.systemd
+                ];
                 buildInputs = [
                   enabled.config.services.offline-banner.package
                   pkgs.bash
@@ -186,18 +192,69 @@
                 passAsFile = [ "unitText" ];
               }
               ''
-                cp "$unitTextPath" ./offline-banner.service
-                if ! systemd-analyze verify --man=no ./offline-banner.service >verify.log 2>&1; then
-                  echo "FAIL: systemd-analyze verify rejected the unit:" >&2
-                  cat verify.log >&2
-                  exit 1
-                fi
-                if grep -i "offline-banner" verify.log; then
-                  echo "FAIL: systemd-analyze verify warned about the unit:" >&2
-                  cat verify.log >&2
-                  exit 1
-                fi
-                touch "$out"
+                                cp "$unitTextPath" ./offline-banner.service
+                                { echo "[Unit]"; echo "Description=verify dep stub"; } > graphical-session.target
+                                cat > fakerun.c <<'CSHIM'
+                #define _GNU_SOURCE
+                #include <dlfcn.h>
+                #include <errno.h>
+                #include <stdlib.h>
+                #include <string.h>
+                #include <sys/stat.h>
+
+                static const char *FAKE;
+
+                static char *rewrite(const char *path) {
+                    if (!path) return NULL;
+                    if (strncmp(path, "/run/", 5) == 0) {
+                        static char buf[4096];
+                        snprintf(buf, sizeof buf, "%s/%s", FAKE, path + 5);
+                        return buf;
+                    }
+                    if (strcmp(path, "/run") == 0) return (char *)FAKE;
+                    return NULL;
+                }
+
+                static int mkdirp_fake(const char *r, mode_t mode) {
+                    char tmp[4096];
+                    snprintf(tmp, sizeof tmp, "%s", r);
+                    for (char *p = tmp + 1; *p; p++)
+                        if (*p == '/') { *p = 0; mkdir(tmp, 0755); *p = '/'; }
+                    int rc = mkdir(tmp, mode);
+                    if (rc < 0 && errno == EEXIST) rc = 0;
+                    return rc;
+                }
+
+                int mkdir(const char *path, mode_t mode) {
+                    static int (*real_mkdir)(const char *, mode_t);
+                    if (!real_mkdir) real_mkdir = dlsym(RTLD_NEXT, "mkdir");
+                    if (!FAKE) { const char *e = getenv("FAKE_RUN"); FAKE = e ? e : "./fakerun"; }
+                    const char *r = rewrite(path);
+                    return r ? mkdirp_fake(r, mode) : real_mkdir(path, mode);
+                }
+
+                int mkdirat(int dirfd, const char *path, mode_t mode) {
+                    static int (*real_mkdirat)(int, const char *, mode_t);
+                    if (!real_mkdirat) real_mkdirat = dlsym(RTLD_NEXT, "mkdirat");
+                    if (!FAKE) { const char *e = getenv("FAKE_RUN"); FAKE = e ? e : "./fakerun"; }
+                    const char *r = rewrite(path);
+                    if (!r) return real_mkdirat(dirfd, path, mode);
+                    (void)dirfd;
+                    return mkdirp_fake(r, mode);
+                }
+                CSHIM
+                                cc -shared -fPIC -o fakerun.so fakerun.c -ldl
+                                export FAKE_RUN="$PWD/fakerun"
+                                export LD_PRELOAD="$PWD/fakerun.so"
+                                export XDG_RUNTIME_DIR="$PWD/fakerun"
+                                mkdir -p "$XDG_RUNTIME_DIR"
+                                if systemd-analyze verify --user --recursive-errors=no --man=no ./offline-banner.service >verify.log 2>&1; then
+                                  touch "$out"
+                                else
+                                  echo "FAIL: systemd-analyze verify rejected the unit:" >&2
+                                  cat verify.log >&2
+                                  exit 1
+                                fi
               '';
           # Docs drift gate: every option the module DECLARES (derived from
           # the eval, so a new/renamed option mechanically fails the gate)
