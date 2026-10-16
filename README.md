@@ -4,6 +4,8 @@ A yellow top-strip banner for NixOS desktops that appears on **every monitor** w
 
 Connectivity loss is a **warning, not a page**: the banner is a static, non-flashing yellow strip (no blinking, no urgency colors) that shows up ~10 seconds after the network is actually gone, tells you *why* ("Network link is down" vs "No internet connection") and *when* you were last online, and dismisses on click if you've seen it.
 
+![The offline banner pushing a bar down](docs/assets/offline-banner-demo.webp)
+
 ## Why not `nmcli networking connectivity`?
 
 Because NetworkManager lies on servers and hybrid hosts: a static-IP ethernet uplink is NM-unmanaged, so NM's connectivity state reads `none` while the internet is perfectly reachable (live-verified on the origin host). The probe is a two-leg shell check instead:
@@ -19,7 +21,9 @@ A probe that cannot even run counts as a failure — fail visible, never fail si
 - **Push-down, not cover**: the strip is a `WlrLayer.Top` layer-shell surface with `ExclusionMode.Auto` and an **animated height** (InOutCubic, 450 ms) — a top-anchored bar gets pushed down beneath it frame by frame and slides back up on recovery. Nothing is covered; nothing underneath is unreachable.
 - **Last-online caption**: "last online 4m 12s ago" (or `unknown` early in the session), re-evaluated every second while visible.
 - **Click to dismiss**: hides for the rest of *this* outage; the next clean probe re-arms it so a fresh outage shows again.
-- **Own Quickshell instance**: renders as a second [Quickshell](https://quickshell.outfoxxed.me/) process — no plugin into your existing shell/bar required; targets any layer-shell compositor (proven on niri; others expected but untested here).
+- **Observable**: every probe failure, banner show/hide, and dismissal is logged to the journal, and the current state is mirrored to `offline-banner.state` in `XDG_RUNTIME_DIR` (rewritten every probe — a stale file means the unit is dead). See [Observability](#observability).
+- **Demo mode**: `OFFLINE_BANNER_DEMO=1` forces the banner visible with no probes at all — safe demos and post-deploy checks, no unroutable-IP drop-in hack.
+- **Own Quickshell instance**: renders as a second [Quickshell](https://quickshell.outfoxxed.me/) process — no plugin into your existing shell/bar required (zero dependence on any shell plugin API); targets any layer-shell compositor (proven on niri; others expected but untested here).
 - **Hardened unit**: the service runs under a strict systemd sandbox (`ProtectSystem=strict`, restricted address families, kernel/clock/hostname protections) — it reads `/sys`, pings, and talks Wayland; nothing else.
 
 ## Quickstart
@@ -49,14 +53,22 @@ The unit is a `systemd.user` service bound to `graphical-session.target` — it 
 | `enable`               | bool    | `false`         | Enable the banner                                                             |
 | `package`              | package | `pkgs.quickshell` | Quickshell package to run                                                     |
 | `checkIntervalSeconds` | int > 0 | `5`             | Seconds between connectivity probes                                           |
-| `probeHost`            | string  | `"9.9.9.9"`     | IP pinged for the internet leg (keep it an IP, not a name)                    |
+| `probeHost`            | string  | `"9.9.9.9"`     | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                    |
 | `probeTimeoutSeconds`  | int > 0 | `3`             | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)  |
 | `failuresToShow`       | int > 0 | `2`             | Consecutive failed probes before the banner appears (debounce)                |
 | `layerNamespace`       | string  | `"offline-banner"` | WlrLayershell namespace (find the surface via e.g. `niri msg layers`)       |
 
 ## Runtime tuning & demos
 
-The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environment variables mirror the options — a drop-in override (`systemctl --user edit offline-banner`, then restart the unit: env is read at start) retunes a live system without a rebuild, and forcing `PROBE_HOST` to an unroutable IP forces the banner visible for demos. The env contract is asserted by the `module-contract` flake check, so it cannot silently drift from the options.
+The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environment variables mirror the options — a drop-in override (`systemctl --user edit offline-banner`, then restart the unit: env is read at start) retunes a live system without a rebuild, and `OFFLINE_BANNER_DEMO=1` forces the banner visible without touching the probe at all. The env contract is asserted by the `module-contract` flake check, so it cannot silently drift from the options.
+
+## Observability
+
+A dead banner must never be silent:
+
+- **Journal**: every failed probe (reason + consecutive count), every banner show/hide, recovery, and click-dismiss is logged — `journalctl --user -u offline-banner -f`.
+- **State file**: `$XDG_RUNTIME_DIR/offline-banner.state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`.
+- **v6 note**: `probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken v4 route the banner shows offline while v6 browsing works — an accepted tradeoff; point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials it directly).
 
 ## Provenance
 
