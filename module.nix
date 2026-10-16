@@ -313,6 +313,36 @@
           Restart = "always";
           RestartSec = "5s";
           MemoryMax = "256M";
+
+          # Sandbox (2026-10-16): the banner reads /sys, pings, and talks
+          # Wayland — nothing else. NoNewPrivileges is deliberately ABSENT:
+          # it ignores iputils' cap_net_raw file capability (the design the
+          # probe relies on, see header) and turns every ping into a silent
+          # permission failure → permanent "net" state. The same live-only
+          # risk withholds PrivateDevices (GPU /dev/dri), MemoryDenyWrite
+          # Execute (QML JIT) and SystemCallFilter; rendering is not CI-
+          # testable (see AGENTS.md) — extend only with live-verified options.
+          ProtectSystem = "strict";
+          ProtectHome = "read-only";
+          PrivateTmp = true;
+          RestrictAddressFamilies = [
+            "AF_UNIX"
+            "AF_INET"
+            "AF_INET6"
+            "AF_NETLINK"
+          ];
+          RestrictNamespaces = true;
+          LockPersonality = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          ProtectClock = true;
+          ProtectHostname = true;
+          ProtectKernelLogs = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectControlGroups = true;
+          ProtectProc = "invisible";
+          SystemCallArchitectures = "native";
         };
 
         unitConfig = {

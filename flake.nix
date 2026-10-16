@@ -3,7 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -17,11 +20,10 @@
         "x86_64-linux"
         "aarch64-linux"
       ];
-      forAllSystems =
-        function: nixpkgs.lib.genAttrs systems (system: function nixpkgs.legacyPackages.${system});
+      forAllSystems = nixpkgs.lib.genAttrs systems;
       treefmtEval = forAllSystems (
-        pkgs:
-        treefmt-nix.lib.evalModule pkgs (_: {
+        system:
+        treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} (_: {
           programs = {
             nixfmt.enable = true;
             statix.enable = true;
@@ -29,7 +31,6 @@
           projectRootFile = "flake.nix";
         })
       );
-      getPlatform = p: p.stdenv.hostPlatform.system;
 
       offlineBannerModule = import ./module.nix;
 
@@ -41,14 +42,14 @@
         };
     in
     {
-      formatter = forAllSystems (pkgs: treefmtEval.${getPlatform pkgs}.config.build.wrapper);
+      formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
       checks = forAllSystems (
-        pkgs:
+        system:
         let
-          sys = getPlatform pkgs;
-          enabled = evalModule sys [ { services.offline-banner.enable = true; } ];
-          disabled = evalModule sys [ ];
+          pkgs = nixpkgs.legacyPackages.${system};
+          enabled = evalModule system [ { services.offline-banner.enable = true; } ];
+          disabled = evalModule system [ ];
           unit = enabled.config.systemd.user.units."offline-banner.service";
           # Assertions are tested in ISOLATION (lib.evalModules with only our
           # module): a full nixosSystem eval carries ~1.4k base assertions,
@@ -98,7 +99,7 @@
           );
         in
         {
-          formatting = treefmtEval.${sys}.config.build.check self;
+          formatting = treefmtEval.${system}.config.build.check self;
           module-contract =
             pkgs.runCommand "offline-banner-module-contract"
               {
@@ -114,6 +115,16 @@
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
+                sandboxInUnit = toString (
+                  nixpkgs.lib.all (line: nixpkgs.lib.hasInfix line unit.text) [
+                    "ProtectSystem=strict"
+                    "RestrictAddressFamilies="
+                    "ProtectKernelTunables=true"
+                  ]
+                );
+                # Deliberate absence: NoNewPrivileges would strip ping's
+                # cap_net_raw file capability (see module.nix serviceConfig).
+                noNoNewPrivileges = toString (!(nixpkgs.lib.hasInfix "NoNewPrivileges" unit.text));
                 badProbeOverlapAsserts = toString badStandaloneAsserts;
                 goodProbeOverlapAsserts = toString goodStandaloneAsserts;
               }
@@ -123,6 +134,8 @@
                 [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
                 [ "$envContractInUnit" = "1" ] || { echo "FAIL: OFFLINE_BANNER_* env contract missing from the unit"; exit 1; }
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
+                [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
+                [ "$noNoNewPrivileges" = "1" ] || { echo "FAIL: NoNewPrivileges must stay unset (it strips cap_net_raw from ping)"; exit 1; }
                 [ "$badProbeOverlapAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
                 [ "$goodProbeOverlapAsserts" = "0" ] || { echo "FAIL: probe-overlap assertion fires on a valid config"; exit 1; }
                 touch "$out"

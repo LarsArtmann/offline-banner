@@ -12,6 +12,8 @@ Dispatch queue. Lifecycle tags: `[ready]` `[blocked:user]` `[blocked:push]` `[bl
 
 ## Verification debts (carried from the origin host)
 
+- [ ] [watch] **hardened-unit live verification** — the systemd sandbox added 2026-10-16 (`ProtectSystem=strict`, `RestrictAddressFamilies`, kernel/clock/hostname protections; `NoNewPrivileges` deliberately absent, see module.nix) is eval-checked only (`module-contract` asserts the unit text). Quickshell must still render + ping under it in a live session before the SystemNix cutover; expected-benign: Qt cache-write warnings under the read-only filesystem. **Source:** nix-review pass 2026-10-16
+
 - [ ] [watch] **live-verification debts** — reboot/re-login auto-start via graphical-session.target (origin host's first start was manual); multi-monitor proof (only DP-1 proven on origin); click-to-dismiss never machine-verified (virtual-pointer harness or first live outage). **Source:** ../SystemNix/docs/status/2026-10-16_02-26_offline-banner-live-session-status.md §f.4/§f.8/§f.9
 
 ## Project plumbing
