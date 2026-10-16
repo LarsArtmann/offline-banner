@@ -1,6 +1,6 @@
 # offline-banner: Agent Guide
 
-Yellow top-strip offline banner for NixOS desktops — `github:LarsArtmann/offline-banner` (remote not yet created 2026-10-16).
+Yellow top-strip offline banner for NixOS desktops — `github:LarsArtmann/offline-banner` (public repo created and pushed 2026-10-16).
 
 ## Identity
 
@@ -28,4 +28,4 @@ nix fmt           # treefmt wrapper (flake formatter)
 
 ## Consumers
 
-- SystemNix (evo-x2) — cutover from the in-tree module to this input is queued there (docs/todo/desktop.md) and blocked on this repo being pushed.
+- SystemNix (evo-x2) — cutover from the in-tree module to this input is queued there (docs/todo/desktop.md); this repo is pushed as of 2026-10-16, so the cutover is unblocked.
