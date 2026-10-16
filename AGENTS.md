@@ -24,7 +24,7 @@ nix fmt           # treefmt wrapper (flake formatter)
 
 ## Checks
 
-`flake.nix` `module-contract` asserts: unit present when enabled / absent when disabled, quickshell in ExecStart, env contract in unit text, MemoryMax set, and the probe-overlap assertion fires on a bad config. Rendering itself is NOT tested here (needs a live compositor) — see TODO_LIST for the VM-test debt and the standalone `quickshell -p` demo recipe.
+`flake.nix` `module-contract` asserts: unit present when enabled / absent when disabled, quickshell in ExecStart, env contract in unit text, MemoryMax set, sandbox hardening present with `NoNewPrivileges` absent (it would strip ping's cap_net_raw), and the probe-overlap assertion fires on a bad config. Rendering itself is NOT tested here (needs a live compositor) — see TODO_LIST for the VM-test debt and the standalone `quickshell -p` demo recipe.
 
 ## Consumers
 
