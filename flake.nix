@@ -266,8 +266,11 @@
           # itself stays out of scope (no pixel assertions).
           probe-transitions =
             let
-              execStart = enabled.config.systemd.user.services.offline-banner.serviceConfig.ExecStart;
-              qmlDir = builtins.elemAt (builtins.split " " execStart) 4;
+              # The store QML, via restartTriggers (same derivation the unit
+              # runs) — as a build input it is REALIZED in-sandbox (an
+              # ExecStart path parse alone would reference an unrealized
+              # store path and quickshell would refuse it).
+              qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
             in
             pkgs.runCommand "offline-banner-probe-transitions"
               {
@@ -285,6 +288,9 @@
               }
               ''
                 export XDG_RUNTIME_DIR="$PWD/runtime"
+                export HOME="$PWD/home"
+                export XDG_CACHE_HOME="$HOME/cache"
+                mkdir -p "$XDG_CACHE_HOME"
                 export QT_QUICK_BACKEND=software
                 export QT_QPA_PLATFORM=wayland
                 # sway's wrapper would start a session bus via
@@ -309,7 +315,7 @@
                 sleep 0.5
 
                 echo ok > control
-                export OFFLINE_BANNER_INTERVAL=300
+                export OFFLINE_BANNER_INTERVAL=600
                 export OFFLINE_BANNER_FAILURES=2
                 export OFFLINE_BANNER_PROBE_CMD="cat $PWD/control"
                 quickshell -p "$qmlDir" >qs.log 2>&1 &
@@ -318,14 +324,14 @@
                 state="$XDG_RUNTIME_DIR/offline-banner.state"
                 # assert_state EXPECTED_ACTIVE [EXPECTED_REASON] POLL_ROUNDS
                 assert_state() {
-                  local want="$1" want_reason="''${2:-}" rounds="''${3:-10}" i got json
+                  local want="$1" want_reason="''${2:-}" rounds="''${3:-20}" i got json
                   for i in $(seq 1 "$rounds"); do
                     if [ -f "$state" ]; then
                       json=$(cat "$state" 2>/dev/null || echo "{}")
-                      got=$(echo "$json" | jq -r '.active // empty' 2>/dev/null || true)
+                      got=$(echo "$json" | jq -r '.active | tostring' 2>/dev/null || true)
                       if [ "$got" = "$want" ]; then
                         if [ -n "$want_reason" ]; then
-                          if [ "$(echo "$json" | jq -r '.reason // empty')" = "$want_reason" ]; then return 0; fi
+                          if [ "$(echo "$json" | jq -r '.reason | if . == null then "" else . end')" = "$want_reason" ]; then return 0; fi
                         else
                           return 0
                         fi
@@ -338,17 +344,17 @@
                   exit 1
                 }
 
-                assert_state false 10            # clean ok probes: stays hidden
+                assert_state false               # clean ok probes: stays hidden
                 echo net > control               # failure 1 of 2
-                assert_state false 10            # debounce holds
-                assert_state true 10 net         # failure 2 of 2: shows
+                assert_state false               # debounce holds
+                assert_state true net            # failure 2 of 2: shows
                 echo link > control              # reason switches
-                assert_state true 10 link
+                assert_state true link
                 echo ok > control                # recovery: hides + re-arms
-                assert_state false 10
+                assert_state false
                 echo net > control               # failure 1 of 2 again
-                assert_state false 10            # debounce holds again
-                assert_state true 10 net         # fresh outage shows again
+                assert_state false               # debounce holds again
+                assert_state true net            # fresh outage shows again
 
                 kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                 echo "probe-transitions: all assertions passed" > "$out"
