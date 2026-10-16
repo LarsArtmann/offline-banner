@@ -168,6 +168,37 @@
                 [ "$goodProbeOverlapAsserts" = "0" ] || { echo "FAIL: probe-overlap assertion fires on a valid config"; exit 1; }
                 touch "$out"
               '';
+          # Unit-syntax gate: systemd-analyze verify on the rendered unit —
+          # catches pin-class typos in serviceConfig mechanically. The gate
+          # fails on a non-zero verify exit (errors) AND on any output line
+          # naming our unit (warnings); other-unit noise cannot exist here
+          # because only this unit is in the sandbox.
+          unit-verify =
+            pkgs.runCommand "offline-banner-unit-verify"
+              {
+                nativeBuildInputs = [ pkgs.systemd ];
+                buildInputs = [
+                  enabled.config.services.offline-banner.package
+                  pkgs.bash
+                  pkgs.iputils
+                ];
+                unitText = enabled.config.systemd.user.units."offline-banner.service".text;
+                passAsFile = [ "unitText" ];
+              }
+              ''
+                cp "$unitTextPath" ./offline-banner.service
+                if ! systemd-analyze verify --man=no ./offline-banner.service >verify.log 2>&1; then
+                  echo "FAIL: systemd-analyze verify rejected the unit:" >&2
+                  cat verify.log >&2
+                  exit 1
+                fi
+                if grep -i "offline-banner" verify.log; then
+                  echo "FAIL: systemd-analyze verify warned about the unit:" >&2
+                  cat verify.log >&2
+                  exit 1
+                fi
+                touch "$out"
+              '';
           # Docs drift gate: every option the module DECLARES (derived from
           # the eval, so a new/renamed option mechanically fails the gate)
           # must appear in README.md and FEATURES.md, and the README must
