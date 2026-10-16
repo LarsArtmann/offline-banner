@@ -46,15 +46,25 @@
         let
           sys = getPlatform pkgs;
           enabled = evalModule sys [ { services.offline-banner.enable = true; } ];
-          disabled = evalModule sys { };
-          bad = evalModule sys {
-            services.offline-banner = {
-              enable = true;
-              checkIntervalSeconds = 2;
-              probeTimeoutSeconds = 5;
-            };
-          };
+          disabled = evalModule sys [ ];
+          bad = evalModule sys [
+            {
+              services.offline-banner = {
+                enable = true;
+                checkIntervalSeconds = 2;
+                probeTimeoutSeconds = 5;
+              };
+            }
+          ];
           unit = enabled.config.systemd.user.units."offline-banner.service";
+          # Lazy-safe: base NixOS assertion messages can THROW when forced
+          # (e.g. the fileSystems' .cycle interpolation) — tryEval each so
+          # only well-defined messages are matched.
+          probeOverlapMessages =
+            eval:
+            nixpkgs.lib.filter (m: m.success && nixpkgs.lib.hasInfix "probeTimeoutSeconds" m.value) (
+              map (a: builtins.tryEval (builtins.toString a.message)) eval.config.assertions
+            );
         in
         {
           formatting = treefmtEval.${sys}.config.build.check self;
@@ -73,8 +83,11 @@
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
-                badConfigAsserts = toString (nixpkgs.lib.length bad.config.assertions);
-                toplevelRef = toString enabled.config.system.build.toplevel;
+                # Count-matching, not count-total: a minimal nixosSystem eval
+                # carries ~1.4k base assertions, so `length assertions >= 1`
+                # would stay green even if OUR assertion vanished.
+                badProbeOverlapAsserts = toString (nixpkgs.lib.length (probeOverlapMessages bad));
+                goodProbeOverlapAsserts = toString (nixpkgs.lib.length (probeOverlapMessages enabled));
               }
               ''
                 [ "$unitPresent" = "1" ] || { echo "FAIL: unit missing when enabled"; exit 1; }
@@ -82,8 +95,8 @@
                 [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
                 [ "$envContractInUnit" = "1" ] || { echo "FAIL: OFFLINE_BANNER_* env contract missing from the unit"; exit 1; }
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
-                [ "$badConfigAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
-                echo "$toplevelRef"
+                [ "$badProbeOverlapAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
+                [ "$goodProbeOverlapAsserts" = "0" ] || { echo "FAIL: probe-overlap assertion fires on a valid config"; exit 1; }
                 touch "$out"
               '';
         }
