@@ -1,5 +1,7 @@
 # offline-banner
 
+[![Checks](https://github.com/LarsArtmann/offline-banner/actions/workflows/checks.yml/badge.svg)](https://github.com/LarsArtmann/offline-banner/actions/workflows/checks.yml)
+
 A yellow top-strip banner for NixOS desktops that appears on **every monitor** while your network is offline — and slides away the moment it's back.
 
 Connectivity loss is a **warning, not a page**: the banner is a static, non-flashing yellow strip (no blinking, no urgency colors) that shows up ~10 seconds after the network is actually gone, tells you *why* ("Network link is down" vs "No internet connection") and *when* you were last online, and dismisses on click if you've seen it.
