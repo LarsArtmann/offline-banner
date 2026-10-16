@@ -28,10 +28,11 @@ Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direc
 
 ## Checks
 
-Five flake checks (green on both systems, CI-enforced via branch protection):
+Six flake checks (green on both systems, CI-enforced via branch protection):
 - `module-contract`: unit present/absent, quickshell ExecStart, env contract, MemoryMax, ALL 22 sandbox directive lines, NoNewPrivileges absent (it strips ping's cap_net_raw), restartTriggers references the store QML, probe-overlap assertion fires on a bad config.
 - `unit-verify`: systemd-analyze verify on the rendered unit (sandbox recipe: LD_PRELOAD mkdir/mkdirat shim redirects /run; --user --recursive-errors=no; graphical-session.target stubbed).
 - `docs-drift`: option list derived from the module eval must appear in README + FEATURES; env-contract mention + quickstart pointers pinned.
+- `shell-content`: the BUILT shell.qml must contain the namespace interpolation and the probe env markers (the unit-text contract cannot see inside the QML; negative-tested).
 - `probe-transitions`: drives the REAL store QML through ok/net/link (OFFLINE_BANNER_PROBE_CMD injection, headless sway, software rendering) and asserts debounce/reason/recovery/re-arm via the state file.
 - `formatting`: treefmt (nixfmt + statix).
 

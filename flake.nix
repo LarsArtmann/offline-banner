@@ -366,6 +366,31 @@
                 kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                 echo "probe-transitions: all assertions passed" > "$out"
               '';
+          # Shell-content gate: the BUILT shell.qml must actually contain
+          # the namespace interpolation and the env-var probe markers —
+          # the unit-text contract alone cannot see inside the QML (the
+          # cutover session hit exactly this gap). Build-time greps, no
+          # IFD: the store QML arrives as a plain build input via
+          # restartTriggers.
+          shell-content =
+            let
+              qmlDrv = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
+              ns = enabled.config.services.offline-banner.layerNamespace;
+            in
+            pkgs.runCommand "offline-banner-shell-content"
+              {
+                nativeBuildInputs = [ pkgs.gnugrep ];
+                inherit qmlDrv ns;
+              }
+              ''
+                grep -q "WlrLayershell.namespace: \"$ns\"" "$qmlDrv/shell.qml" \
+                  || { echo "FAIL: built QML lost the layerNamespace interpolation"; exit 1; }
+                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD; do
+                  grep -q "$marker" "$qmlDrv/shell.qml" \
+                    || { echo "FAIL: built QML lost $marker"; exit 1; }
+                done
+                touch "$out"
+              '';
           # Docs drift gate: every option the module DECLARES (derived from
           # the eval, so a new/renamed option mechanically fails the gate)
           # must appear in README.md and FEATURES.md, and the README must
