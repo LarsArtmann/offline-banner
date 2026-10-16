@@ -5,14 +5,14 @@ Yellow top-strip offline banner for NixOS desktops — `github:LarsArtmann/offli
 ## Identity
 
 - One NixOS module, one file: `module.nix` (`services.offline-banner`, systemd **user** service, second-Quickshell-instance pattern — Quickshell runs the inline `shell.qml`; no dependency on any bar/shell plugin).
-- Extracted from SystemNix 2026-10-16 (`modules/nixos/desktop/offline-banner.nix`, deployed there as gen 904). SystemNix is the origin of every behavior doctrine (non-flashing yellow, debounce, fail-visible probe, push-down animation) — the rationale comments in `module.nix` are the contract; do not silently drop them when refactoring.
+- Extracted from SystemNix 2026-10-16 (`modules/nixos/desktop/offline-banner.nix`, deployed there as gen 904 — provenance number unverified, see FEATURES). SystemNix is the origin of every behavior doctrine (non-flashing yellow, debounce, fail-visible probe, push-down animation) — the rationale comments in `module.nix` are the contract; do not silently drop them when refactoring.
 
 ## Hard rules
 
 - **The module stays single-file and self-contained** (QML inlined via `pkgs.writeTextDir`). Extracting the QML into a store file is allowed only if the env-var contract below survives unchanged.
 - **The `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` env vars are a public surface** (live-tuning via drop-in, demos, the pending VM test's probe injection). Renaming them breaks live systems.
 - **Nix '' string escaping**: the QML lives inside a Nix indented string — `\"` sequences in the probe JS are literal and required; there must be no `${` in QML/JS except intended Nix interpolations (`${cfg.layerNamespace}`).
-- 2-space indentation, `nix fmt` (treefmt: nixfmt + statix) is the only style arbiter (a root `dprint.json` for non-Nix files is invoked by nothing in-repo; its fate is a TODO_LIST decision).
+- 2-space indentation; `nix fmt` (treefmt: nixfmt + statix) is the ONLY style arbiter and covers `.nix` only. Markdown is hand-formatted by deliberate decision (2026-10-17): status/planning docs are point-in-time snapshots, never machine-reflowed; no dprint.json in this repo (dropped as an uninvoked split brain — readopt only via a real BuildFlow `.buildflow.yml`, which regenerates its own config).
 - `probeTimeoutSeconds < checkIntervalSeconds` is an eval-time assertion — keep it.
 
 ## Commands
@@ -21,6 +21,10 @@ Yellow top-strip offline banner for NixOS desktops — `github:LarsArtmann/offli
 nix flake check   # formatting + module-contract checks (eval + trivial builds)
 nix fmt           # treefmt wrapper (flake formatter)
 ```
+
+## Inventory
+
+Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direction + non-goals in `ROADMAP.md`, dispatch queue in `TODO_LIST.md`, history in `CHANGELOG.md` (append-only), status snapshots under `docs/status/` (indexed by `docs/status/README.md`), plans under `docs/planning/`.
 
 ## Checks
 
