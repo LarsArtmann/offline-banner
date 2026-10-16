@@ -7,13 +7,28 @@ on:
     branches: ["main", "master"]
   workflow_dispatch:
 
+# Read-only token: the workflow only checks out the repo and runs nix —
+# nothing needs write access to any scope.
+permissions:
+  contents: read
+
 jobs:
   nix-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be24236d7ffc686fa525866aa # v23
+      # aarch64-linux is a real fleet platform (SystemNix rpi3-dns); its
+      # check builds must run on this x86_64 runner via qemu-user-static,
+      # whose F-flagged binfmt handlers work inside nix's sandboxed builds.
+      - name: Register aarch64 binfmt handlers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-user-static binfmt-support
+
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
         with:
           extra-conf: |
             experimental-features = nix-command flakes pipe-operators
