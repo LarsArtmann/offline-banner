@@ -21,7 +21,10 @@ work="${TMPDIR:-/tmp}/offline-banner-demo"
 mkdir -p "$work" "$outdir"
 
 for tool in nix sway quickshell foot wf-recorder grim ffmpeg; do
-  command -v "$tool" >/dev/null 2>&1 || { echo "missing tool: $tool" >&2; exit 1; }
+	command -v "$tool" >/dev/null 2>&1 || {
+		echo "missing tool: $tool" >&2
+		exit 1
+	}
 done
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
@@ -29,7 +32,8 @@ export DEMO_REPO="$repo"
 
 # --- ground-truth QML: realize the module's writeTextDir store file -------
 if [ ! -f "$work/shell.qml" ]; then
-  out="$(nix build --impure --no-link --print-out-paths --expr "$(cat <<'EXPR'
+	out="$(nix build --impure --no-link --print-out-paths --expr "$(
+		cat <<'EXPR'
 let
   repo = toString (builtins.getEnv "DEMO_REPO");
   flake = builtins.getFlake repo;
@@ -50,17 +54,17 @@ pkgs.runCommandLocal "shell-qml-ground-truth" { } ''
   cp "$qmldir/shell.qml" "$out"
 ''
 EXPR
-)")"
-  cp "$out" "$work/shell.qml"
+	)")"
+	cp "$out" "$work/shell.qml"
 fi
 
 # --- headless compositor ---------------------------------------------------
 sway_pid="" bar_pid="" foot_pid="" rec_pid="" banner_pid=""
 cleanup() {
-  for p in "$rec_pid" "$banner_pid" "$foot_pid" "$bar_pid" "$sway_pid"; do
-    [ -n "$p" ] && kill "$p" 2>/dev/null || true
-  done
-  wait 2>/dev/null || true
+	for p in "$rec_pid" "$banner_pid" "$foot_pid" "$bar_pid" "$sway_pid"; do
+		[ -n "$p" ] && kill "$p" 2>/dev/null || true
+	done
+	wait 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -68,18 +72,22 @@ snapshot() { LC_ALL=C ls "$XDG_RUNTIME_DIR" | sort; }
 before="$(snapshot)"
 
 WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
-  sway --unsupported-gpu -c "$repo/scripts/demo/sway.conf" >"$work/sway.log" 2>&1 &
+	sway --unsupported-gpu -c "$repo/scripts/demo/sway.conf" >"$work/sway.log" 2>&1 &
 sway_pid=$!
 
 wayland_sock="" sway_sock=""
 for _ in $(seq 1 100); do
-  new="$(comm -13 <(echo "$before") <(snapshot) || true)"
-  wayland_sock="$(echo "$new" | grep -E '^wayland-[0-9]+$' | head -1 || true)"
-  sway_sock="$(echo "$new" | grep -E '^sway-ipc\.[0-9]+\.sock$' | head -1 || true)"
-  [ -n "$wayland_sock" ] && [ -n "$sway_sock" ] && break
-  sleep 0.1
+	new="$(comm -13 <(echo "$before") <(snapshot) || true)"
+	wayland_sock="$(echo "$new" | grep -E '^wayland-[0-9]+$' | head -1 || true)"
+	sway_sock="$(echo "$new" | grep -E '^sway-ipc\.[0-9]+\.sock$' | head -1 || true)"
+	[ -n "$wayland_sock" ] && [ -n "$sway_sock" ] && break
+	sleep 0.1
 done
-[ -n "$wayland_sock" ] || { echo "sway did not start:" >&2; cat "$work/sway.log" >&2; exit 1; }
+[ -n "$wayland_sock" ] || {
+	echo "sway did not start:" >&2
+	cat "$work/sway.log" >&2
+	exit 1
+}
 export WAYLAND_DISPLAY="$wayland_sock"
 export SWAYSOCK="$XDG_RUNTIME_DIR/$sway_sock"
 sleep 0.5
@@ -88,8 +96,8 @@ sleep 0.5
 QT_QUICK_BACKEND=software quickshell -p "$repo/scripts/demo/bar" >"$work/bar.log" 2>&1 &
 bar_pid=$!
 QT_QUICK_BACKEND=software foot -c /dev/null -e sh -c \
-  "printf 'lars@nixos ~ » systemctl --user status offline-banner\n● offline-banner.service - Yellow offline banner on all monitors\n   Active: active (running)\n\nlars@nixos ~ » '; sleep infinity" \
-  >/dev/null 2>&1 &
+	"printf 'lars@nixos ~ » systemctl --user status offline-banner\n● offline-banner.service - Yellow offline banner on all monitors\n   Active: active (running)\n\nlars@nixos ~ » '; sleep infinity" \
+	>/dev/null 2>&1 &
 foot_pid=$!
 sleep 1.5
 
@@ -101,12 +109,12 @@ sleep 0.7
 # Banner run, inside a private mount ns: carrier 1 -> 0 at t=2.5 (banner
 # appears within one probe interval) -> back to 1 at t=6.0 (recovery).
 env \
-  OFFLINE_BANNER_INTERVAL=1000 \
-  OFFLINE_BANNER_FAILURES=1 \
-  OFFLINE_BANNER_PROBE_TIMEOUT=2 \
-  OFFLINE_BANNER_PROBE_HOST=9.9.9.9 \
-  QT_QUICK_BACKEND=software \
-  unshare -rm sh -c '
+	OFFLINE_BANNER_INTERVAL=1000 \
+	OFFLINE_BANNER_FAILURES=1 \
+	OFFLINE_BANNER_PROBE_TIMEOUT=2 \
+	OFFLINE_BANNER_PROBE_HOST=9.9.9.9 \
+	QT_QUICK_BACKEND=software \
+	unshare -rm sh -c '
     mount -t tmpfs tmpfs /sys/class/net || exit 3
     mkdir -p /sys/class/net/eth0
     echo 1 > /sys/class/net/eth0/carrier
@@ -130,9 +138,9 @@ rec_pid=""
 
 # --- encode -----------------------------------------------------------------
 ffmpeg -y -loglevel error -i "$work/raw.mp4" \
-  -vf "fps=25,scale=1600:-2:flags=lanczos" -loop 0 -an \
-  -compression_level 6 -q:v 70 \
-  "$outdir/offline-banner-demo.webp"
+	-vf "fps=25,scale=1600:-2:flags=lanczos" -loop 0 -an \
+	-compression_level 6 -q:v 70 \
+	"$outdir/offline-banner-demo.webp"
 
 echo "wrote:"
 ls -lh "$outdir"/offline-banner-demo.webp "$outdir"/offline-banner-demo.png

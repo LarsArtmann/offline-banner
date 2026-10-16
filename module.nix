@@ -112,6 +112,15 @@
             // no unroutable-IP drop-in hack required.
             readonly property bool demo: Quickshell.env("OFFLINE_BANNER_DEMO") === "1"
 
+            // OFFLINE_BANNER_PROBE_CMD (internal, test-only — NOT part of
+            // the public env contract): replaces the whole probe script.
+            // The probe-transition check drives ok/net/link with a stub
+            // this way, in-sandbox and network-free.
+            readonly property var probeOverride: {
+                const raw = Quickshell.env("OFFLINE_BANNER_PROBE_CMD");
+                return raw ? ["sh", "-c", raw] : [];
+            }
+
             property int failures: 0
             property string reason: ""
             readonly property bool offline: root.demo || root.failures >= root.failuresToShow
@@ -200,11 +209,11 @@
                 // The virtual-interface exclusion list below is mirrored in
                 // SystemNix's wifi-failover QML (SystemNix/modules/nixos/
                 // services/wifi-failover.nix) — keep the two lists in sync.
-                command: ["sh", "-c",
+                // OFFLINE_BANNER_SYSROOT (internal, test-only): redirects
+                // the carrier glob — the probe-transition test injects a
+                // synthetic sysroot instead of needing a real NIC.
+                command: root.probeOverride.length > 0 ? root.probeOverride : ["sh", "-c",
                     "link=0; " +
-                    // OFFLINE_BANNER_SYSROOT (internal, test-only): redirects
-                    // the carrier glob — the probe-transition test injects a
-                    // synthetic sysroot instead of needing a real NIC.
                     "for c in ''${OFFLINE_BANNER_SYSROOT:-/sys}/class/net/*/carrier; do " +
                     "  case \"$c\" in " +
                     "    */lo/*|*/docker*/*|*/br-*/*|*/veth*/*|*/virbr*/*|*/tailscale*/*|*/zt*/*|*/wg*/*|*/tun*/*|*/tap*/*) continue ;; " +

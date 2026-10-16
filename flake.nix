@@ -197,6 +197,7 @@
                                 cat > fakerun.c <<'CSHIM'
                 #define _GNU_SOURCE
                 #include <dlfcn.h>
+                #include <stdio.h>
                 #include <errno.h>
                 #include <stdlib.h>
                 #include <string.h>
@@ -255,6 +256,96 @@
                                   cat verify.log >&2
                                   exit 1
                                 fi
+              '';
+          # Probe-transition test (T13): drives the REAL store QML's probe
+          # state machine through ok/net/link transitions via
+          # OFFLINE_BANNER_PROBE_CMD injection, inside a headless sway
+          # compositor (software rendering, no GPU, no network). Asserts,
+          # through the journal-fed state file: debounce (failuresToShow),
+          # reason semantics (net vs link), recovery, re-arm. Rendering
+          # itself stays out of scope (no pixel assertions).
+          probe-transitions =
+            let
+              execStart = enabled.config.systemd.user.services.offline-banner.serviceConfig.ExecStart;
+              qmlDir = builtins.elemAt (builtins.split " " execStart) 2;
+            in
+            pkgs.runCommand "offline-banner-probe-transitions"
+              {
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.jq
+                  pkgs.quickshell
+                  pkgs.sway
+                  pkgs.coreutils
+                  pkgs.gnugrep
+                  pkgs.gnused
+                ];
+                inherit qmlDir;
+              }
+              ''
+                export XDG_RUNTIME_DIR="$PWD/runtime"
+                export QT_QUICK_BACKEND=software
+                export QT_QPA_PLATFORM=wayland
+                mkdir -p "$XDG_RUNTIME_DIR"
+
+                echo "output HEADLESS-1 mode 1280x800 position 0,0" > sway-config
+                WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+                  sway --unsupported-gpu -c sway-config >sway.log 2>&1 &
+                sway_pid=$!
+                sock=""
+                for i in $(seq 1 100); do
+                  sock=$(ls "$XDG_RUNTIME_DIR" 2>/dev/null | grep -E '^wayland-[0-9]+$' | head -1 || true)
+                  [ -n "$sock" ] && break
+                  sleep 0.1
+                done
+                [ -n "$sock" ] || { echo "FAIL: headless sway did not start"; cat sway.log; exit 1; }
+                export WAYLAND_DISPLAY="$sock"
+                sleep 0.5
+
+                echo ok > control
+                export OFFLINE_BANNER_INTERVAL=300
+                export OFFLINE_BANNER_FAILURES=2
+                export OFFLINE_BANNER_PROBE_CMD="cat $PWD/control"
+                quickshell -p "$qmlDir" >qs.log 2>&1 &
+                qs_pid=$!
+
+                state="$XDG_RUNTIME_DIR/offline-banner.state"
+                # assert_state EXPECTED_ACTIVE [EXPECTED_REASON] POLL_ROUNDS
+                assert_state() {
+                  local want="$1" want_reason="''${2:-}" rounds="''${3:-10}" i got json
+                  for i in $(seq 1 "$rounds"); do
+                    if [ -f "$state" ]; then
+                      json=$(cat "$state" 2>/dev/null || echo "{}")
+                      got=$(echo "$json" | jq -r '.active // empty' 2>/dev/null || true)
+                      if [ "$got" = "$want" ]; then
+                        if [ -n "$want_reason" ]; then
+                          if [ "$(echo "$json" | jq -r '.reason // empty')" = "$want_reason" ]; then return 0; fi
+                        else
+                          return 0
+                        fi
+                      fi
+                    fi
+                    sleep 0.3
+                  done
+                  echo "FAIL: expected active=$want''${want_reason:+ reason=$want_reason}, last state: $(cat "$state" 2>/dev/null || echo MISSING)" >&2
+                  echo "--- qs.log ---" >&2; tail -20 qs.log >&2
+                  exit 1
+                }
+
+                assert_state false 10            # clean ok probes: stays hidden
+                echo net > control               # failure 1 of 2
+                assert_state false 10            # debounce holds
+                assert_state true 10 net         # failure 2 of 2: shows
+                echo link > control              # reason switches
+                assert_state true 10 link
+                echo ok > control                # recovery: hides + re-arms
+                assert_state false 10
+                echo net > control               # failure 1 of 2 again
+                assert_state false 10            # debounce holds again
+                assert_state true 10 net         # fresh outage shows again
+
+                kill "$qs_pid" "$sway_pid" 2>/dev/null || true
+                echo "probe-transitions: all assertions passed" > "$out"
               '';
           # Docs drift gate: every option the module DECLARES (derived from
           # the eval, so a new/renamed option mechanically fails the gate)
