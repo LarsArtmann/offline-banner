@@ -37,54 +37,55 @@
           inherit system;
           modules = [ self.nixosModules.offline-banner ] ++ extraModules;
         };
-
-      enabledEval = evalModule "x86_64-linux" [ { services.offline-banner.enable = true; } ];
-      disabledEval = evalModule "x86_64-linux" { };
-      badEval = evalModule "x86_64-linux" {
-        services.offline-banner = {
-          enable = true;
-          checkIntervalSeconds = 2;
-          probeTimeoutSeconds = 5;
-        };
-      };
-
-      enabledUnit = enabledEval.config.systemd.user.units."offline-banner.service";
-      flags = {
-        unitPresent = toString (enabledEval.config.systemd.user.units ? "offline-banner.service");
-        unitAbsent = toString (!(disabledEval.config.systemd.user.units ? "offline-banner.service"));
-        quickshellInExecStart = toString (nixpkgs.lib.hasInfix "quickshell" enabledUnit.text);
-        namespaceInQml = toString (
-          nixpkgs.lib.hasInfix ''namespace: "offline-banner"'' enabledUnit.text
-        );
-        badConfigAsserts = toString (nixpkgs.lib.length badEval.config.assertions);
-      };
     in
     {
       formatter = forAllSystems (pkgs: treefmtEval.${getPlatform pkgs}.config.build.wrapper);
 
-      checks = forAllSystems (pkgs:
+      checks = forAllSystems (
+        pkgs:
+        let
+          sys = getPlatform pkgs;
+          enabled = evalModule sys [ { services.offline-banner.enable = true; } ];
+          disabled = evalModule sys { };
+          bad = evalModule sys {
+            services.offline-banner = {
+              enable = true;
+              checkIntervalSeconds = 2;
+              probeTimeoutSeconds = 5;
+            };
+          };
+          unit = enabled.config.systemd.user.units."offline-banner.service";
+        in
         {
-          formatting = treefmtEval.${getPlatform pkgs}.config.build.check self;
-          module-contract = pkgs.runCommand "offline-banner-module-contract"
-            {
-              inherit (flags)
-                unitPresent
-                unitAbsent
-                quickshellInExecStart
-                namespaceInQml
-                badConfigAsserts
-                ;
-              toplevelRef = toString enabledEval.config.system.build.toplevel;
-            }
-            ''
-              [ "$unitPresent" = "1" ] || { echo "FAIL: unit missing when enabled"; exit 1; }
-              [ "$unitAbsent" = "1" ] || { echo "FAIL: unit present when disabled"; exit 1; }
-              [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
-              [ "$namespaceInQml" = "1" ] || { echo "FAIL: layer namespace not wired into the QML"; exit 1; }
-              [ "$badConfigAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
-              echo "$toplevelRef"
-              touch "$out"
-            '';
+          formatting = treefmtEval.${sys}.config.build.check self;
+          module-contract =
+            pkgs.runCommand "offline-banner-module-contract"
+              {
+                unitPresent = toString (enabled.config.systemd.user.units ? "offline-banner.service");
+                unitAbsent = toString (!(disabled.config.systemd.user.units ? "offline-banner.service"));
+                quickshellInExecStart = toString (nixpkgs.lib.hasInfix "quickshell" unit.text);
+                envContractInUnit = toString (
+                  nixpkgs.lib.all (var: nixpkgs.lib.hasInfix var unit.text) [
+                    "OFFLINE_BANNER_INTERVAL"
+                    "OFFLINE_BANNER_PROBE_HOST"
+                    "OFFLINE_BANNER_PROBE_TIMEOUT"
+                    "OFFLINE_BANNER_FAILURES"
+                  ]
+                );
+                memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
+                badConfigAsserts = toString (nixpkgs.lib.length bad.config.assertions);
+                toplevelRef = toString enabled.config.system.build.toplevel;
+              }
+              ''
+                [ "$unitPresent" = "1" ] || { echo "FAIL: unit missing when enabled"; exit 1; }
+                [ "$unitAbsent" = "1" ] || { echo "FAIL: unit present when disabled"; exit 1; }
+                [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
+                [ "$envContractInUnit" = "1" ] || { echo "FAIL: OFFLINE_BANNER_* env contract missing from the unit"; exit 1; }
+                [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
+                [ "$badConfigAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
+                echo "$toplevelRef"
+                touch "$out"
+              '';
         }
       );
 
