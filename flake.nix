@@ -31,11 +31,13 @@
       );
       getPlatform = p: p.stdenv.hostPlatform.system;
 
+      offlineBannerModule = import ./module.nix;
+
       evalModule =
         system: extraModules:
         nixpkgs.lib.nixosSystem {
           inherit system;
-          modules = [ self.nixosModules.offline-banner ] ++ extraModules;
+          modules = [ offlineBannerModule ] ++ extraModules;
         };
     in
     {
@@ -47,24 +49,53 @@
           sys = getPlatform pkgs;
           enabled = evalModule sys [ { services.offline-banner.enable = true; } ];
           disabled = evalModule sys [ ];
-          bad = evalModule sys [
-            {
-              services.offline-banner = {
-                enable = true;
-                checkIntervalSeconds = 2;
-                probeTimeoutSeconds = 5;
-              };
-            }
-          ];
           unit = enabled.config.systemd.user.units."offline-banner.service";
-          # Lazy-safe: base NixOS assertion messages can THROW when forced
-          # (e.g. the fileSystems' .cycle interpolation) — tryEval each so
-          # only well-defined messages are matched.
-          probeOverlapMessages =
-            eval:
-            nixpkgs.lib.filter (m: m.success && nixpkgs.lib.hasInfix "probeTimeoutSeconds" m.value) (
-              map (a: builtins.tryEval (builtins.toString a.message)) eval.config.assertions
-            );
+          # Assertions are tested in ISOLATION (lib.evalModules with only our
+          # module): a full nixosSystem eval carries ~1.4k base assertions,
+          # several with messages that throw when forced — count-total there
+          # would stay green even if OUR assertion vanished.
+          standaloneAssertions =
+            settings:
+            (nixpkgs.lib.evalModules {
+              modules = [
+                # The `assertions` and `systemd.user.services` options are
+                # declared by NixOS base modules, absent from a bare
+                # module-system eval — stub them (loose types; we only
+                # inspect the merged values).
+                {
+                  options = {
+                    assertions = nixpkgs.lib.mkOption {
+                      type = nixpkgs.lib.types.listOf nixpkgs.lib.types.attrs;
+                      default = [ ];
+                      internal = true;
+                      visible = false;
+                    };
+                    systemd.user.services = nixpkgs.lib.mkOption {
+                      type = nixpkgs.lib.types.attrs;
+                      default = { };
+                      internal = true;
+                      visible = false;
+                    };
+                  };
+                }
+                offlineBannerModule
+                { services.offline-banner = settings; }
+              ];
+              specialArgs.pkgs = pkgs;
+            }).config.assertions;
+          failing = nixpkgs.lib.filter (a: !a.assertion);
+          badStandaloneAsserts = nixpkgs.lib.length (
+            failing (standaloneAssertions {
+              enable = true;
+              checkIntervalSeconds = 2;
+              probeTimeoutSeconds = 5;
+            })
+          );
+          goodStandaloneAsserts = nixpkgs.lib.length (
+            failing (standaloneAssertions {
+              enable = true;
+            })
+          );
         in
         {
           formatting = treefmtEval.${sys}.config.build.check self;
@@ -83,11 +114,8 @@
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
-                # Count-matching, not count-total: a minimal nixosSystem eval
-                # carries ~1.4k base assertions, so `length assertions >= 1`
-                # would stay green even if OUR assertion vanished.
-                badProbeOverlapAsserts = toString (nixpkgs.lib.length (probeOverlapMessages bad));
-                goodProbeOverlapAsserts = toString (nixpkgs.lib.length (probeOverlapMessages enabled));
+                badProbeOverlapAsserts = toString badStandaloneAsserts;
+                goodProbeOverlapAsserts = toString goodStandaloneAsserts;
               }
               ''
                 [ "$unitPresent" = "1" ] || { echo "FAIL: unit missing when enabled"; exit 1; }
@@ -103,7 +131,7 @@
       );
 
       nixosModules = {
-        offline-banner = import ./module.nix;
+        offline-banner = offlineBannerModule;
         default = self.nixosModules.offline-banner;
       };
     };
