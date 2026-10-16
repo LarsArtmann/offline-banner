@@ -267,7 +267,7 @@
           probe-transitions =
             let
               execStart = enabled.config.systemd.user.services.offline-banner.serviceConfig.ExecStart;
-              qmlDir = builtins.elemAt (builtins.split " " execStart) 2;
+              qmlDir = builtins.elemAt (builtins.split " " execStart) 4;
             in
             pkgs.runCommand "offline-banner-probe-transitions"
               {
@@ -276,6 +276,7 @@
                   pkgs.jq
                   pkgs.quickshell
                   pkgs.sway
+                  pkgs.dbus
                   pkgs.coreutils
                   pkgs.gnugrep
                   pkgs.gnused
@@ -286,6 +287,11 @@
                 export XDG_RUNTIME_DIR="$PWD/runtime"
                 export QT_QUICK_BACKEND=software
                 export QT_QPA_PLATFORM=wayland
+                # sway's wrapper would start a session bus via
+                # dbus-run-session; the sandbox has no dbus config, and the
+                # headless backend does not need one — point the env at a
+                # dead path so the wrapper skips it.
+                export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
                 mkdir -p "$XDG_RUNTIME_DIR"
 
                 echo "output HEADLESS-1 mode 1280x800 position 0,0" > sway-config
