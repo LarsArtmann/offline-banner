@@ -28,4 +28,4 @@ nix fmt           # treefmt wrapper (flake formatter)
 
 ## Consumers
 
-- SystemNix (evo-x2) — cutover from the in-tree module to this input is queued there (docs/todo/desktop.md); the push landed 2026-10-16, and execution is gated on the hardened-unit live smoke test (TODO_LIST).
+- SystemNix (evo-x2) — CUTOVER DONE 2026-10-16 (owner-directed): consumed via the `offline-banner` input (locked fff0b61), thin wrapper sets `layerNamespace = "systemnix:offline-banner"`; evo-x2 eval green + shipped-QML parity proven. The v3 switch rides SystemNix's next deploy — run the hardened-unit live smoke test (TODO_LIST) BEFORE that switch.
