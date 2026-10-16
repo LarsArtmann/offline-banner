@@ -144,6 +144,14 @@
                 # Deliberate absence: NoNewPrivileges would strip ping's
                 # cap_net_raw file capability (see module.nix serviceConfig).
                 noNoNewPrivileges = toString (!(nixpkgs.lib.hasInfix "NoNewPrivileges" unit.text));
+                # Rename drift: the service must keep restarting on QML
+                # changes via a store path that actually holds shell.qml.
+                restartTriggersStoreQml = toString (
+                  let
+                    trigs = enabled.config.systemd.user.services.offline-banner.restartTriggers or [ ];
+                  in
+                  nixpkgs.lib.length trigs == 1 && nixpkgs.lib.hasInfix "shell.qml" (toString (builtins.head trigs))
+                );
                 badProbeOverlapAsserts = toString badStandaloneAsserts;
                 goodProbeOverlapAsserts = toString goodStandaloneAsserts;
               }
@@ -155,8 +163,42 @@
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
                 [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
                 [ "$noNoNewPrivileges" = "1" ] || { echo "FAIL: NoNewPrivileges must stay unset (it strips cap_net_raw from ping)"; exit 1; }
+                [ "$restartTriggersStoreQml" = "1" ] || { echo "FAIL: restartTriggers must reference the store QML (rename drift)"; exit 1; }
                 [ "$badProbeOverlapAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
                 [ "$goodProbeOverlapAsserts" = "0" ] || { echo "FAIL: probe-overlap assertion fires on a valid config"; exit 1; }
+                touch "$out"
+              '';
+          # Docs drift gate: every option the module DECLARES (derived from
+          # the eval, so a new/renamed option mechanically fails the gate)
+          # must appear in README.md and FEATURES.md, and the README must
+          # keep the env-contract mention and the consumer pointers. Docs
+          # stay true mechanically, not by discipline.
+          docs-drift =
+            let
+              readme = builtins.readFile ./README.md;
+              features = builtins.readFile ./FEATURES.md;
+              declaredOptions = builtins.attrNames enabled.options.services.offline-banner;
+              optionMissingInDoc = doc: nixpkgs.lib.any (o: !(nixpkgs.lib.hasInfix o doc)) declaredOptions;
+            in
+            pkgs.runCommand "offline-banner-docs-drift"
+              {
+                optionsInReadme = toString (!(optionMissingInDoc readme));
+                optionsInFeatures = toString (!(optionMissingInDoc features));
+                envContractInReadme = toString (
+                  nixpkgs.lib.hasInfix "OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}" readme
+                );
+                quickstartInReadme = toString (
+                  nixpkgs.lib.hasInfix "github:LarsArtmann/offline-banner" readme
+                  && nixpkgs.lib.hasInfix "nixosModules.default" readme
+                );
+                declaredList = nixpkgs.lib.concatStringsSep "," declaredOptions;
+              }
+              ''
+                echo "declared options: $declaredList"
+                [ "$optionsInReadme" = "1" ] || { echo "FAIL: README is missing a declared option (docs drifted)"; exit 1; }
+                [ "$optionsInFeatures" = "1" ] || { echo "FAIL: FEATURES is missing a declared option (docs drifted)"; exit 1; }
+                [ "$envContractInReadme" = "1" ] || { echo "FAIL: README no longer documents the OFFLINE_BANNER_* env contract"; exit 1; }
+                [ "$quickstartInReadme" = "1" ] || { echo "FAIL: README quickstart lost the flake input / module import pointers"; exit 1; }
                 touch "$out"
               '';
         }

@@ -59,7 +59,7 @@
     probeHost = lib.mkOption {
       type = lib.types.str;
       default = "9.9.9.9";
-      description = "IP pinged for the internet-reachability leg (an IP, not a name — DNS is the resolver's job and must not gate the banner)";
+      description = "IP pinged for the internet-reachability leg (an IP, not a name — DNS is the resolver's job and must not gate the banner). The default is an IPv4 literal: on a v6-primary uplink with a broken v4 route the banner shows offline while v6 browsing works — accepted tradeoff; point this at a v6 literal on v6-primary hosts (iputils ping dials it directly)";
     };
 
     probeTimeoutSeconds = lib.mkOption {
@@ -107,9 +107,14 @@
                 return parsed > 0 ? parsed : 2;
             }
 
+            // Demo mode (OFFLINE_BANNER_DEMO=1): force the banner visible
+            // with no probes at all — safe demos and post-deploy checks,
+            // no unroutable-IP drop-in hack required.
+            readonly property bool demo: Quickshell.env("OFFLINE_BANNER_DEMO") === "1"
+
             property int failures: 0
             property string reason: ""
-            readonly property bool offline: root.failures >= root.failuresToShow
+            readonly property bool offline: root.demo || root.failures >= root.failuresToShow
             readonly property string reasonText: root.reason === "link"
                 ? "Network link is down"
                 : "No internet connection"
@@ -138,10 +143,13 @@
             function applyProbe(text) {
                 const result = (text ?? "").trim().split("\n")[0];
                 if (result === "ok") {
+                    if (root.failures > 0)
+                        console.log("[offline-banner] probe ok — recovered after " + root.failures + " consecutive failure(s)");
                     root.lastOnlineAt = Date.now() / 1000;
                     root.dismissed = false;
                     root.failures = 0;
                     root.reason = "";
+                    root.emitState();
                     return;
                 }
                 // "link" = carrier gone; "net" = link up, probe host
@@ -149,14 +157,55 @@
                 // to run — all three keep the banner honest.
                 root.reason = result === "link" ? "link" : "net";
                 root.failures = root.failures + 1;
+                console.log("[offline-banner] probe failed: " + root.reason + " (consecutive failure " + root.failures + " of " + root.failuresToShow + ")");
+                root.emitState();
+            }
+
+            // Observability (2026-10-17): the journal lines above plus the
+            // state file below make a dead or stuck banner visible instead
+            // of silent. The file doubles as a freshness heartbeat — it is
+            // rewritten on every probe, so an `updatedAt` older than ~2
+            // intervals means the unit is effectively dead (fail closed).
+            function emitState() {
+                stateWrite.command = [
+                    "sh", "-c",
+                    "printf '%s' \"$2\" > \"$1\"",
+                    "offline-banner-state",
+                    (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/offline-banner.state",
+                    JSON.stringify({
+                        active: root.offline && !root.dismissed,
+                        demo: root.demo,
+                        reason: root.reason,
+                        failures: root.failures,
+                        failuresToShow: root.failuresToShow,
+                        updatedAt: Math.floor(Date.now() / 1000)
+                    })
+                ];
+                stateWrite.running = true;
+            }
+
+            onOfflineChanged: {
+                console.log("[offline-banner] banner " + (root.offline ? "SHOWN — " + root.reasonText : "hidden — network recovered"));
+                root.emitState();
+            }
+            onDismissedChanged: {
+                if (root.dismissed)
+                    console.log("[offline-banner] banner dismissed by click (re-arms on next clean probe)");
+                root.emitState();
             }
 
             Process {
                 id: probe
 
+                // The virtual-interface exclusion list below is mirrored in
+                // SystemNix's wifi-failover QML (SystemNix/modules/nixos/
+                // services/wifi-failover.nix) — keep the two lists in sync.
                 command: ["sh", "-c",
                     "link=0; " +
-                    "for c in /sys/class/net/*/carrier; do " +
+                    // OFFLINE_BANNER_SYSROOT (internal, test-only): redirects
+                    // the carrier glob — the probe-transition test injects a
+                    // synthetic sysroot instead of needing a real NIC.
+                    "for c in ''${OFFLINE_BANNER_SYSROOT:-/sys}/class/net/*/carrier; do " +
                     "  case \"$c\" in " +
                     "    */lo/*|*/docker*/*|*/br-*/*|*/veth*/*|*/virbr*/*|*/tailscale*/*|*/zt*/*|*/wg*/*|*/tun*/*|*/tap*/*) continue ;; " +
                     "  esac; " +
@@ -165,7 +214,7 @@
                     "done; " +
                     "if [ \"$link\" = \"0\" ]; then echo link; exit 0; fi; " +
                     "if ping -n -c 1 -W \"$OFFLINE_BANNER_PROBE_TIMEOUT\" \"$OFFLINE_BANNER_PROBE_HOST\" >/dev/null 2>&1; then echo ok; else echo net; fi"]
-                running: true
+                running: !root.demo
 
                 stdout: StdioCollector {
                     id: probeOut
@@ -183,9 +232,17 @@
                 onTriggered: {
                     // A still-running probe (ping up to -W timeout) is
                     // never stomped; the next tick catches it instead.
-                    if (!probe.running)
+                    if (!root.demo && !probe.running)
                         probe.running = true;
                 }
+            }
+
+            // Rewritten by emitState() on every probe and every transition
+            // (see the observability note there).
+            Process {
+                id: stateWrite
+
+                running: false
             }
 
             // 1 s display tick: re-evaluates the "last online X ago"
@@ -284,6 +341,10 @@
         {
           assertion = cfg.probeTimeoutSeconds < cfg.checkIntervalSeconds;
           message = "services.offline-banner: probeTimeoutSeconds (${toString cfg.probeTimeoutSeconds}) must be < checkIntervalSeconds (${toString cfg.checkIntervalSeconds}) or probes overlap";
+        }
+        {
+          assertion = cfg.failuresToShow <= 10;
+          message = "services.offline-banner: failuresToShow (${toString cfg.failuresToShow}) exceeds 10 — the banner would stay hidden for over a minute at defaults; a value this high is a typo, not a debounce";
         }
       ];
 
