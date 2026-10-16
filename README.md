@@ -19,13 +19,15 @@ A probe that cannot even run counts as a failure — fail visible, never fail si
 - **Push-down, not cover**: the strip is a `WlrLayer.Top` layer-shell surface with `ExclusionMode.Auto` and an **animated height** (InOutCubic, 450 ms) — a top-anchored bar gets pushed down beneath it frame by frame and slides back up on recovery. Nothing is covered; nothing underneath is unreachable.
 - **Last-online caption**: "last online 4m 12s ago" (or `unknown` early in the session), re-evaluated every second while visible.
 - **Click to dismiss**: hides for the rest of *this* outage; the next clean probe re-arms it so a fresh outage shows again.
-- **Own Quickshell instance**: renders as a second [Quickshell](https://quickshell.outfoxxed.me/) process — no plugin into your existing shell/bar required, works with any layer-shell compositor (niri, Hyprland, ...).
+- **Own Quickshell instance**: renders as a second [Quickshell](https://quickshell.outfoxxed.me/) process — no plugin into your existing shell/bar required; targets any layer-shell compositor (proven on niri; others expected but untested here).
+- **Hardened unit**: the service runs under a strict systemd sandbox (`ProtectSystem=strict`, restricted address families, kernel/clock/hostname protections) — it reads `/sys`, pings, and talks Wayland; nothing else.
 
 ## Quickstart
 
 ```nix
 # flake.nix
 inputs.offline-banner.url = "github:LarsArtmann/offline-banner";
+inputs.offline-banner.inputs.nixpkgs.follows = "nixpkgs"; # one nixpkgs in your lock, not two
 ```
 
 ```nix
@@ -52,7 +54,7 @@ The unit is a `systemd.user` service bound to `graphical-session.target` — it 
 
 ## Runtime tuning & demos
 
-The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environment variables mirror the options — a drop-in override (`systemctl --user edit offline-banner`) retunes a live system without a rebuild, and forcing `PROBE_HOST` to an unroutable IP forces the banner visible for demos.
+The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environment variables mirror the options — a drop-in override (`systemctl --user edit offline-banner`, then restart the unit: env is read at start) retunes a live system without a rebuild, and forcing `PROBE_HOST` to an unroutable IP forces the banner visible for demos. The env contract is asserted by the `module-contract` flake check, so it cannot silently drift from the options.
 
 ## Provenance
 

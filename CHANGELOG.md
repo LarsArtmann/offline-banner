@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com); versioning waits for the first tag.
 
+## [Unreleased]
+
+### Added
+
+- `FEATURES.md` — honest, evidence-cited feature inventory (runtime rows honestly PARTIALLY_FUNCTIONAL pending the live smoke test; CI honestly BROKEN on the unresolvable action pin).
+- `ROADMAP.md` — long-term themes (probe expressiveness, operational smoothness, verification depth) and explicit non-goals.
+- `docs/status/README.md` — index for the status-report snapshots.
+- README: consumer `nixpkgs.follows` quickstart line (avoids a duplicated lock entry), hardened-unit bullet, restart note on env-drop-in tuning.
+- TODO_LIST rebuilt from the 2026-10-16 nix-skills review harvest (deduped and routed; stale "blocked on push" row retired — the push landed).
+
+### Fixed
+
+- README: compositor-compatibility claim softened to the verified subset (proven on niri; others expected but untested).
+
 ## [0.1.0] — 2026-10-16
 
 ### Added
