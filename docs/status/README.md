@@ -7,6 +7,7 @@ are never rewritten; open items are harvested forward into `TODO_LIST.md` /
 
 | Report | Scope |
 | ------ | ----- |
+| [2026-10-17 marketing launch retrospective](2026-10-17_08-37_marketing-launch-retrospective-status.md) | a-g retrospective of the launch session: 14 fully-done, CI/mobile/docs-dark verification gaps, `.hyperframes/` tracked-state leak, 50 next items, 3 owner questions |
 | [2026-10-17 marketing launch](2026-10-17_08-30_marketing-launch-status.md) | FULL marketing push: README sales page, 24s HyperFrames promo video (frames eyeballed), Astro+Starlight website deployed (offline-banner.web.app live), custom domain staged (apply owner-gated), website CI, social preview, launch drafts; §b/§f/§g handoffs |
 | [2026-10-17 full execution + live smoke](2026-10-17_01-59_full-execution-and-live-smoke-status.md) | pareto T01–T22 executed: CI first green, sandbox live-smoked (/run/user bug found+fixed), 6 flake gates, v0.1.0 released; §f 50-item brainstorm (1–12 TODO candidates), §g 3 questions pending |
 | [2026-10-16 docs-health audit](2026-10-16_23-58_docs-health-audit.md) | full docs-health AUDIT: FEATURES/ROADMAP built, TODO rebuilt from the 23-28 harvest, README/AGENTS/CHANGELOG fixed; gate green; §f held for harvest instruction |
