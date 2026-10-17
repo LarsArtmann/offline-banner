@@ -22,6 +22,33 @@ nix flake check   # formatting + module-contract checks (eval + trivial builds)
 nix fmt           # treefmt wrapper (flake formatter)
 ```
 
+Website (Astro + Starlight + Tailwind v4, pnpm pinned via packageManager):
+
+```bash
+cd website && nix shell nixpkgs#nodejs -c pnpm install
+cd website && nix shell nixpkgs#nodejs -c pnpm run build   # astro build + fix-csp.mjs
+cd website && nix shell nixpkgs#nodejs -c pnpm exec astro check && nix shell nixpkgs#nodejs -c pnpm exec html-validate "dist/**/*.html"
+cd website && nix shell nixpkgs#nodejs nixpkgs#firebase-tools -c firebase deploy --only hosting:offline-banner --project lars-software
+```
+
+Promo video (HyperFrames; NixOS needs real node + chrome libs — never bare npx):
+
+```bash
+cd website/video
+bash ~/projects/SKILLS/scripts/hf-env.sh --install .   # first time only
+bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hyperframes.mjs lint
+bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hyperframes.mjs check
+bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hyperframes.mjs render --quality high --output ../public/demo.mp4
+```
+
+## Public presence
+
+- **Website**: https://offline-banner.lars.software (canonical) = https://offline-banner.web.app (live alias). Source in `website/` (gogenfilter baseline; banner-yellow `#e8d44d` accent on the demo's catppuccin-dark base; og:image = 1200x630 crop of the video poster). Landing video anchor `#demo` is deep-linked from the README bar.
+- **Demo video**: `website/video/index.html` is the committed composition (24 s, 1920x1080; strip/bar rebuilt in CSS from module.nix colors, transform-only, lint+check clean); render to `website/public/demo.mp4` (<3 MB). Beat structure + verification rules: website-launch skill `references/demo-video.md`.
+- **Deploy**: Firebase Hosting, shared `lars-software` project, hosting target `offline-banner` (site ID immutable). CI deploys on master push once the `FIREBASE_SERVICE_ACCOUNT` secret is set (deploy step is secret-gated so CI stays green meanwhile).
+- **DNS**: `offline-banner.lars.software` CNAME + ACME TXT staged in `~/projects/domains/lars.software.tf`; `tofu apply` is owner-gated (host gcloud identity lacks GCS-backend quota access). Custom domain registered at Firebase (REST API; the CLI cannot) — CERT_ACTIVE follows 10-60 min after apply.
+- **Launch posts**: Discourse + r/NixOS drafts in `docs/marketing/launch-post-drafts.md` (one narrative from the README "Why?" — do not re-invent per surface). Social preview card: `assets/branding/social-preview.png` (manual upload in repo Settings → Social preview; no API).
+
 ## Inventory
 
 Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direction + non-goals in `ROADMAP.md`, dispatch queue in `TODO_LIST.md`, history in `CHANGELOG.md` (append-only), status snapshots under `docs/status/` (indexed by `docs/status/README.md`), plans under `docs/planning/`.
