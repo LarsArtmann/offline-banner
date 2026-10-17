@@ -8,5 +8,8 @@
     "lint": "hyperframes lint",
     "check": "hyperframes check",
     "render": "hyperframes render --quality high --output ../public/demo.mp4"
+  },
+  "dependencies": {
+    "hyperframes": "^0.8.163"
   }
 }

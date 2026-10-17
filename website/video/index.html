@@ -210,12 +210,12 @@
       <section id="desktop-scene" class="clip" data-start="0" data-duration="24">
         <div id="wall"></div>
         <div id="bar">
-          <span>nixos</span>
-          <span>12:47</span>
+          <span data-layout-allow-occlusion>nixos</span>
+          <span data-layout-allow-occlusion>12:47</span>
         </div>
-        <div id="strip">
+        <div id="strip" data-layout-allow-overflow>
           <div id="strip-inner">
-            <div class="reason-stack">
+            <div class="reason-stack" data-layout-allow-overlap>
               <div id="reason-net" class="reason">
                 <svg class="warn-icon" viewBox="0 0 24 24" fill="#1e1e2e" aria-hidden="true">
                   <path d="M12 2 1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z" />
@@ -229,7 +229,7 @@
                 OFFLINE — Network link is down
               </div>
             </div>
-            <div class="caption-stack">
+            <div class="caption-stack" data-layout-allow-overlap>
               <div id="caption-a" class="caption">last online 4s ago&ensp;·&ensp;click to dismiss</div>
               <div id="caption-b" class="caption">last online 12s ago&ensp;·&ensp;click to dismiss</div>
             </div>

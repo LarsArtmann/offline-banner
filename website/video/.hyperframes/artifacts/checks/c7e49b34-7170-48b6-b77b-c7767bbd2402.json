@@ -1,0 +1,543 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 6,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"desktop-scene\"> is a timeline element that contains nested <div id=\"wall\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#desktop-scene",
+        "dataAttributes": {},
+        "sourceFile": "/home/lars/projects/offline-banner/website/video/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"desktop-scene\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"hook-scene\"> is a timeline element that contains nested <div id=\"hook-copy\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#hook-scene",
+        "dataAttributes": {},
+        "sourceFile": "/home/lars/projects/offline-banner/website/video/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"hook-scene\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"value-scene\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#value-scene",
+        "dataAttributes": {},
+        "sourceFile": "/home/lars/projects/offline-banner/website/video/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"value-scene\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"why-scene\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#why-scene",
+        "dataAttributes": {},
+        "sourceFile": "/home/lars/projects/offline-banner/website/video/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"why-scene\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"recovery-scene\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#recovery-scene",
+        "dataAttributes": {},
+        "sourceFile": "/home/lars/projects/offline-banner/website/video/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"recovery-scene\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"cta-scene\"> is a timeline element that contains nested <div id=\"cta-card\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#cta-scene",
+        "dataAttributes": {},
+        "sourceFile": "/home/lars/projects/offline-banner/website/video/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"cta-scene\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      }
+    ],
+    "filesScanned": 1
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": false,
+    "errorCount": 2,
+    "warningCount": 1,
+    "infoCount": 6,
+    "findings": [
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 20,
+        "selector": "#bar > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 14,
+          "top": 8.5,
+          "right": 54.77,
+          "bottom": 23.5,
+          "width": 40.77,
+          "height": 15
+        },
+        "containerSelector": "#cta-card",
+        "text": "nixos",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 14,
+          "y": 8.5,
+          "width": 40.77,
+          "height": 15
+        },
+        "firstSeen": 20,
+        "lastSeen": 22.667,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          20,
+          22.667
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 20,
+        "selector": "#bar > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1862.61,
+          "top": 8.5,
+          "right": 1906,
+          "bottom": 23.5,
+          "width": 43.39,
+          "height": 15
+        },
+        "containerSelector": "#cta-card",
+        "text": "12:47",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1862.61,
+          "y": 8.5,
+          "width": 43.39,
+          "height": 15
+        },
+        "firstSeen": 20,
+        "lastSeen": 22.667,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          20,
+          22.667
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "warning",
+        "time": 1.333,
+        "selector": "#strip",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 0,
+          "top": -52,
+          "right": 1920,
+          "bottom": 0,
+          "width": 1920,
+          "height": 52
+        },
+        "containerSelector": "#desktop-scene",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 52
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": -52,
+          "width": 1920,
+          "height": 52
+        },
+        "firstSeen": 1.333,
+        "lastSeen": 22.667,
+        "occurrences": 5,
+        "heldMs": 0,
+        "times": [
+          1.333,
+          4,
+          17.333,
+          20,
+          22.667
+        ]
+      },
+      {
+        "code": "canvas_overflow",
+        "severity": "info",
+        "time": 1.333,
+        "selector": "#reason-net",
+        "message": "Text extends outside the composition canvas.",
+        "rect": {
+          "left": 792.78,
+          "top": -42.5,
+          "right": 1148.22,
+          "bottom": -24.5,
+          "width": 355.44,
+          "height": 18
+        },
+        "containerSelector": "#root",
+        "text": "OFFLINE — No internet connection",
+        "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 42.5
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 792.78,
+          "y": -42.5,
+          "width": 355.44,
+          "height": 18
+        },
+        "firstSeen": 1.333,
+        "lastSeen": 4,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          1.333,
+          4
+        ]
+      },
+      {
+        "code": "canvas_overflow",
+        "severity": "info",
+        "time": 1.333,
+        "selector": "#caption-a",
+        "message": "Text extends outside the composition canvas.",
+        "rect": {
+          "left": 850.08,
+          "top": -22.5,
+          "right": 1069.92,
+          "bottom": -9.5,
+          "width": 219.84,
+          "height": 13
+        },
+        "containerSelector": "#root",
+        "text": "last online 4s ago · click to dismiss",
+        "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 22.5
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 850.08,
+          "y": -22.5,
+          "width": 219.84,
+          "height": 13
+        },
+        "firstSeen": 1.333,
+        "lastSeen": 4,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          1.333,
+          4
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 7.625,
+        "selector": "#caption-a",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 850.08,
+          "top": 29.5,
+          "right": 1069.92,
+          "bottom": 42.5,
+          "width": 219.84,
+          "height": 13
+        },
+        "containerSelector": "#caption-b",
+        "text": "last online 4s ago · click to dismiss",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 850.08,
+          "y": 29.5,
+          "width": 219.84,
+          "height": 13
+        },
+        "firstSeen": 7.625,
+        "lastSeen": 7.625,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          7.625
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "info",
+        "time": 10.125,
+        "selector": "#reason-net",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 792.78,
+          "top": 9.5,
+          "right": 1148.22,
+          "bottom": 27.5,
+          "width": 355.44,
+          "height": 18
+        },
+        "containerSelector": "#reason-link",
+        "text": "OFFLINE — No internet connection",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 792.78,
+          "y": 9.5,
+          "width": 355.44,
+          "height": 18
+        },
+        "firstSeen": 10.125,
+        "lastSeen": 10.125,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          10.125
+        ]
+      },
+      {
+        "code": "canvas_overflow",
+        "severity": "info",
+        "time": 17.333,
+        "selector": "#reason-link",
+        "message": "Text extends outside the composition canvas.",
+        "rect": {
+          "left": 803.34,
+          "top": -42.5,
+          "right": 1137.67,
+          "bottom": -24.5,
+          "width": 334.33,
+          "height": 18
+        },
+        "containerSelector": "#root",
+        "text": "OFFLINE — Network link is down",
+        "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 42.5
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 803.34,
+          "y": -42.5,
+          "width": 334.33,
+          "height": 18
+        },
+        "firstSeen": 17.333,
+        "lastSeen": 22.667,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          17.333,
+          20,
+          22.667
+        ]
+      },
+      {
+        "code": "canvas_overflow",
+        "severity": "info",
+        "time": 17.333,
+        "selector": "#caption-b",
+        "message": "Text extends outside the composition canvas.",
+        "rect": {
+          "left": 846.25,
+          "top": -22.5,
+          "right": 1073.75,
+          "bottom": -9.5,
+          "width": 227.5,
+          "height": 13
+        },
+        "containerSelector": "#root",
+        "text": "last online 12s ago · click to dismiss",
+        "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 22.5
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 846.25,
+          "y": -22.5,
+          "width": 227.5,
+          "height": 13
+        },
+        "firstSeen": 17.333,
+        "lastSeen": 22.667,
+        "occurrences": 3,
+        "heldMs": 0,
+        "times": [
+          17.333,
+          20,
+          22.667
+        ]
+      }
+    ],
+    "duration": 24,
+    "samples": [
+      1.333,
+      4,
+      6.667,
+      9.333,
+      12,
+      14.667,
+      17.333,
+      20,
+      22.667
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 9,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      1.333,
+      6.667,
+      12,
+      17.333,
+      22.667
+    ],
+    "checked": 30,
+    "passed": 30
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  }
+}
