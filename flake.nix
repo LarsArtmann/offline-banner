@@ -372,6 +372,22 @@
                   tail -20 "$f" >&2
                   exit 1
                 }
+                # Regex twin of assert_journal for mid-sequence counter
+                # asserts: extra probes fire while the shell is between
+                # statements (600 ms cadence, slow emulated runners), so
+                # exact failure counts are only deterministic at positions
+                # reachable from a controlled start — past that, assert
+                # the transition (reason + counter advanced), not a count.
+                assert_journal_re() {
+                  local pattern="$1" f="''${2:-qs.log}" i
+                  for i in $(seq 1 40); do
+                    grep -qE -- "$pattern" "$f" && return 0
+                    sleep 0.25
+                  done
+                  echo "FAIL: journal pattern '$pattern' not found in $f" >&2
+                  tail -20 "$f" >&2
+                  exit 1
+                }
                 assert_no_journal() {
                   local pattern="$1" f="''${2:-qs.log}"
                   if grep -qF -- "$pattern" "$f"; then
@@ -395,10 +411,15 @@
                 [ "$hb2" -gt "$hb1" ] || { echo "FAIL: updatedAt did not advance between probes (heartbeat broken)"; exit 1; }
                 : > control                      # probe cannot run (empty output): fail visible as net
                 assert_state true net
-                assert_journal "probe failed reason=net failures=4/2"
+                # failures=4/2 exactly is NOT guaranteed here: while the
+                # shell was asserting the link phase, extra link probes
+                # kept the counter climbing — the first net line after the
+                # switch can read 4/2, 8/2, or higher. Assert the
+                # transition (reason back to net, counter past 3).
+                assert_journal_re "probe failed reason=net failures=([4-9]|[1-9][0-9]+)/2"
                 echo ok > control                # recovery: hides + re-arms
                 assert_state false
-                assert_journal "probe ok recovered_after=4"
+                assert_journal_re "probe ok recovered_after=([4-9]|[1-9][0-9]+)"
                 assert_journal "banner state=hidden reason=net failures=0/2"
                 echo net > control               # failure 1 of 2 again
                 assert_state false               # debounce holds again
