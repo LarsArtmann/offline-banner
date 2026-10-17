@@ -50,6 +50,7 @@
 3. **Push-state claim carried unverified across sessions.** "Repo is pushed" stood in AGENTS.md/handoff while 21 commits (the entire launch) were local-only. Discovered only via a 404. The website could have been "shipped" with its CI, README, and drafts invisible to the public.
 4. **Commit-message/diff mismatch risk repeated 3×** before the AGENTS.md Git rule was written down — the daemon raced me three times this session (docs commit, AGENTS commit, flake commit); I lost the first race and won the next two only after writing the check-log-first rule.
 5. **Inherited false confidence in local green.** `nix flake check --all-systems` passed locally before each push; CI still failed twice. Local emulated aarch64 happens to be faster/quieter than CI's runner. Lesson: for timing asserts, local green is a smoke test, not proof.
+6. **Second message/diff mismatch — and a foreign change swept into my commit.** The daemon raced the report commit AND its commit carried a `dprint.json` deletion made outside this session; my squash pushed both under a docs-only message (392083d). Verified harmless post-push: nothing references dprint (formatter is treefmt/nixfmt+statix), content recoverable from history, flake check green. Disclosure over force-push, again. The pattern is now unambiguous: never squash a daemon commit without reading its `--stat` first — that check is in AGENTS.md's Git section as of today; I violated it once before writing it down.
 
 ## e) WHAT WE SHOULD IMPROVE
 
