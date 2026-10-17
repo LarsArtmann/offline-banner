@@ -58,16 +58,16 @@
 ## f) 50 things to get done next
 
 **Now (small, from this session's leftovers):**
-1. Kill the hung demo-capture background job; trash `/tmp/offline-banner-demo/` for a clean slate.
-2. Cache-clean re-run of `scripts/capture-demo.sh` (fresh ground-truth QML → honest §f-48 provenance); consider a `--fresh` flag in the script.
-3. Watch the regenerated webp end-to-end (§f-1): ffmpeg frame-dump → confirm push-down AND recovery slide-up visible; close §b-4 of the 01:59 report properly.
-4. Trash the scratch: `/run/user/1000/offline-banner.state`, `/tmp/qsprobe`, `/tmp/uvroot`.
-5. Write the CHANGELOG `[Unreleased]` section (journal token format = user-visible change; cache fix; render-smoke; consumer; seven checks) + keep-a-changelog compare-link footer (§f-16).
-6. docs-health pass: TODO_LIST row updates (render proof leg of T18 is now CI-covered; live-monitor leg remains), FEATURES updates (new checks, consumer, journal contract), index this report in `docs/status/README.md`, ANNOTATE the 01:59 report per its footer.
-7. Global lessons quartet + this session's two new lessons → crush-config `references/lessons.md` (by commit there).
-8. SystemNix `docs/todo/desktop.md` annotation (§f-7): smoke gate DONE, switch unblocked — cross-repo handoff.
-9. Dependabot PR triage (§f-8): `gh pr list`, review + merge if green (protection requires Checks).
-10. Decide treefmt-shfmt wiring for real (I recorded a tentative no — confirm or overturn).
+1. ~~Kill the hung demo-capture background job; trash `/tmp/offline-banner-demo/` for a clean slate.~~ done — killed 2026-10-17 (wf-recorder 7h SIGINT hang) + /tmp/offline-banner-demo/ trashed
+2. ~~Cache-clean re-run of `scripts/capture-demo.sh` (fresh ground-truth QML → honest §f-48 provenance); consider a `--fresh` flag in the script.~~ done — better 2026-10-17 — stale-QML cache guard removed (ground truth re-extracted every run); no --fresh flag needed
+3. ~~Watch the regenerated webp end-to-end (§f-1): ffmpeg frame-dump → confirm push-down AND recovery slide-up visible; close §b-4 of the 01:59 report properly.~~ done — frame-watched 2026-10-17 — 179 frames, push-down + slide-up visible; 01:59 §b-4 closed
+4. ~~Trash the scratch: `/run/user/1000/offline-banner.state`, `/tmp/qsprobe`, `/tmp/uvroot`.~~ done — trashed 2026-10-17 (all three paths; live unit dir untouched)
+5. ~~Write the CHANGELOG `[Unreleased]` section (journal token format = user-visible change; cache fix; render-smoke; consumer; seven checks) + keep-a-changelog compare-link footer (§f-16).~~ done — written 2026-10-17 — [Unreleased] Added/Changed/Fixed + compare-link footer
+6. ~~docs-health pass: TODO_LIST row updates (render proof leg of T18 is now CI-covered; live-monitor leg remains), FEATURES updates (new checks, consumer, journal contract), index this report in `docs/status/README.md`, ANNOTATE the 01:59 report per its footer.~~ done — 2026-10-17 — TODO_LIST/FEATURES/status-index updated; 01:59 ANNOTATE applied in this same pass
+7. ~~Global lessons quartet + this session's two new lessons → crush-config `references/lessons.md` (by commit there).~~ done at `4f6dd31`
+8. ~~SystemNix `docs/todo/desktop.md` annotation (§f-7): smoke gate DONE, switch unblocked — cross-repo handoff.~~ done — annotated 2026-10-17 — v3 row: smoke gate DONE + relock pointer a91a77a
+9. ~~Dependabot PR triage (§f-8): `gh pr list`, review + merge if green (protection requires Checks).~~ done — 2026-10-17 — 0 open PRs, 20 alerts (non-gating); nothing to merge
+10. ~~Decide treefmt-shfmt wiring for real (I recorded a tentative no — confirm or overturn).~~ **Won't implement — shfmt stays on-demand lint — nix fmt (nixfmt+statix) is the sole style arbiter per AGENTS; capture-demo.sh is shellcheck+shfmt clean.**
 
 **Next (small-medium):**
 11. Live render proof the moment outputs exist (§f-3): layer check + grim screenshot on the real monitor; 3-command recipe already in AGENTS.
@@ -87,11 +87,11 @@
 25. Screenshot artifact upload on render-smoke failure (gha artifact) so pixel failures are debuggable from CI.
 
 **Return-state triage (other sessions' work noticed at 09:36, not researched):**
-26. `website/` now exists in-repo (another session; "website CI never started — secrets not allowed in step ifs" commit) — reconcile with the docs (AGENTS/Inventory don't mention it yet).
-27. `dprint.json` is BACK at the repo root — this contradicts the recorded 2026-10-17 decision ("dropped as uninvoked split brain") still written in AGENTS Hard rules; either the decision was overturned (update AGENTS + TODO row) or the file is a stray (trash it).
-28. `assets/` top-level dir appeared — purpose unknown to this session; inventory it.
-29. `result` symlink at repo root (untracked? git status is clean, so either ignored or committed) — vulnix warned about stale `./result` in the 01:59 era; confirm policy.
-30. The `assets/` + `website/` additions likely need `.gitignore` review (HyperFrames tool state commit suggests churn) — confirm intent.
+26. ~~`website/` now exists in-repo (another session; "website CI never started — secrets not allowed in step ifs" commit) — reconcile with the docs (AGENTS/Inventory don't mention it yet).~~ done at `ec840bc`
+27. ~~`dprint.json` is BACK at the repo root — this contradicts the recorded 2026-10-17 decision ("dropped as uninvoked split brain") still written in AGENTS Hard rules; either the decision was overturned (update AGENTS + TODO row) or the file is a stray (trash it).~~ done — daemon zombie re-add (byte-identical md5, zero invokers) — trashed 2026-10-17; recorded decision stands
+28. ~~`assets/` top-level dir appeared — purpose unknown to this session; inventory it.~~ done — GitHub social preview (assets/branding/social-preview.png+svg) — inventoried 2026-10-17
+29. ~~`result` symlink at repo root (untracked? git status is clean, so either ignored or committed) — vulnix warned about stale `./result` in the 01:59 era; confirm policy.~~ done — result is gitignored — policy confirmed 2026-10-17
+30. ~~The `assets/` + `website/` additions likely need `.gitignore` review (HyperFrames tool state commit suggests churn) — confirm intent.~~ done — .gitignore has a Website section (tool state untracked) — confirmed 2026-10-17
 
 **Unchanged standing items (01:59 report, still valid):**
 31. Release runbook exists (AGENTS) — next release (v0.1.1?) is mechanical; see §g-3.
@@ -117,9 +117,9 @@
 
 ## g) Three questions I cannot answer myself
 
-1. **The monitor question, again with new data:** at ~03:00 the live niri session (PID 5049) was healthy but had ZERO active outputs. Is the display intentionally dark overnight (→ the live render proof waits for the SystemNix switch or morning), or is the session supposed to have outputs and this is a real bug worth investigating (in which case I'd dig into niri's output state)?
-2. **Trash the smoke leftovers?** `/run/user/1000/offline-banner.state` (01:44, written by an intermediate QML revision at a path no current code uses), `/tmp/qsprobe`, `/tmp/uvroot`, `/tmp/offline-banner-demo/` — I read them all as same-session scratch; confirm they have no forensic value before I trash them (fleet rule: `trash`, never `rm`).
-3. **Versioning intent for this batch:** the journal line format is a user-visible contract change (scripts grepping the old prose lines would break — unlikely but possible). Fold into `[Unreleased]` until the SystemNix switch lands, or cut v0.1.1 now that the release runbook exists? My default if unheard: `[Unreleased]`, no tag.
+1. **The monitor question, again with new data:** at ~03:00 the live niri session (PID 5049) was healthy but had ZERO active outputs. Is the display intentionally dark overnight (→ the live render proof waits for the SystemNix switch or morning), or is the session supposed to have outputs and this is a real bug worth investigating (in which case I'd dig into niri's output state)? **→ answered 2026-10-17 — displayless by circumstance (owner on SSH; card1-DP-1 connected-but-disabled); live proof rides the switch**
+2. **Trash the smoke leftovers?** `/run/user/1000/offline-banner.state` (01:44, written by an intermediate QML revision at a path no current code uses), `/tmp/qsprobe`, `/tmp/uvroot`, `/tmp/offline-banner-demo/` — I read them all as same-session scratch; confirm they have no forensic value before I trash them (fleet rule: `trash`, never `rm`). **→ executed 2026-10-17 as the stated default — all four trashed; live dir /run/user/1000/offline-banner/ kept**
+3. **Versioning intent for this batch:** the journal line format is a user-visible contract change (scripts grepping the old prose lines would break — unlikely but possible). Fold into `[Unreleased]` until the SystemNix switch lands, or cut v0.1.1 now that the release runbook exists? My default if unheard: `[Unreleased]`, no tag. **→ default taken — [Unreleased], no tag; v0.1.1 decision escalated to owner (10:40 report §g-1)**
 
 ---
 

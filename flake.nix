@@ -539,6 +539,26 @@
                     exit 1
                   fi
                 }
+                # Transition-style pixel poll (CI-timing doctrine, same as
+                # probe-transitions): after a control switch, assert the
+                # OBSERVED frame transition with a bounded retry instead of a
+                # sleep-then-single-shot — slow runners get more time, not
+                # flakes. The captures below stay as settled evidence frames.
+                wait_pixel() {
+                  local want="$1" x="$2" y="$3" i
+                  for i in $(seq 1 40); do
+                    grim -o HEADLESS-1 frame.png
+                    if [ "$want" = yellow ]; then
+                      pixel_is_yellow frame.png "$x" "$y" && return 0
+                    else
+                      pixel_is_yellow frame.png "$x" "$y" || return 0
+                    fi
+                    sleep 0.25
+                  done
+                  echo "FAIL: pixel ($x,$y) never became $want after 10s" >&2
+                  echo "--- qs.log ---" >&2; tail -20 qs.log >&2
+                  exit 1
+                }
 
                 wait_active false
                 sleep 1                       # settle frames before capture
@@ -547,13 +567,15 @@
 
                 echo net > control            # 2 consecutive failures -> show
                 wait_active true
-                sleep 1.2                     # 450 ms push-down + margin
+                wait_pixel yellow 20 10       # strip entering the frame
+                sleep 1.2                     # let the 450 ms push-down fully settle
                 grim -o HEADLESS-1 shown.png
                 assert_yellow shown.png 20 10
                 assert_not_yellow shown.png 640 700   # strip is localized, not a wash
 
                 echo ok > control             # recovery -> slide back up
                 wait_active false
+                wait_pixel not-yellow 20 10   # strip leaving the frame
                 sleep 1.2
                 grim -o HEADLESS-1 recovered.png
                 assert_not_yellow recovered.png 20 10

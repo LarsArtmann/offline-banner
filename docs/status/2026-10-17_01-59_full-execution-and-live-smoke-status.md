@@ -34,10 +34,10 @@
 
 ## b) PARTIALLY DONE
 
-1. **T02 pixel-visibility leg** — everything else in the smoke passed (sandbox active, ping ok, forced outage → net → SHOWN, journal, state file, RSS), but the session had **zero active outputs** (`niri msg outputs` empty at 01:48), so the QML rendered to Qt's placeholder screen. First real render proof rides the SystemNix switch.
+1. ~~**T02 pixel-visibility leg** — everything else in the smoke passed (sandbox active, ping ok, forced outage → net → SHOWN, journal, state file, RSS), but the session had **zero active outputs** (`niri msg outputs` empty at 01:48), so the QML rendered to Qt's placeholder screen. First real render proof rides the SystemNix switch.~~ done — pixels CI-proven by render-smoke (4cff63a) 2026-10-17; real-monitor leg remains open in TODO_LIST Live-verification debts
 2. **T18 live-verification debts** — reboot/re-login auto-start, multi-monitor proof, physical click-dismiss: not attempted (see §c/§d-7 — the click harness was declared blocked without trying `wlrctl`, which was a miss).
-3. **State-file machine consumer** — the "fail-closed gauge" exists (file + freshness semantics in README) but nothing automated reads it. Without a consumer it is half a ghost system: documented, tested as emitted, unused as a metric.
-4. **Demo asset content** — I verified the webp is a valid RIFF container, embedded it, but **never actually watched it**: does it show the banner push-down AND the recovery slide-up? Unconfirmed by eye.
+3. ~~**State-file machine consumer** — the "fail-closed gauge" exists (file + freshness semantics in README) but nothing automated reads it. Without a consumer it is half a ghost system: documented, tested as emitted, unused as a metric.~~ done — contrib/offline-banner-waybar shipped with five fabricated-state tests (767728b)
+4. ~~**Demo asset content** — I verified the webp is a valid RIFF container, embedded it, but **never actually watched it**: does it show the banner push-down AND the recovery slide-up? Unconfirmed by eye.~~ done — frame-watched 2026-10-17: push-down (frames 095-098-120) and recovery slide-up (176-179) both visible
 5. **Live-tuning drop-in path** — README claims `systemctl --user edit` retuning; I exercised env vars via `systemd-run`, not the real drop-in edit flow. The contract is the same (env at start), but the README's specific recipe is untested.
 6. **T22 format** — plan said "GIF"; shipped webp (better: 13 KB vs multi-MB GIF). Deliberate improvement, but a deviation from the written task.
 
@@ -76,25 +76,25 @@
 ## f) 50 things to get done next (brainstorm — TODO-worthy items are already in TODO_LIST; the rest is ROADMAP fuel)
 
 **Now (TODO-worthy, small):**
-1. Watch the demo webp end-to-end (push-down AND recovery visible?) — retire §b-4.
+1. ~~Watch the demo webp end-to-end (push-down AND recovery visible?) — retire §b-4.~~ done — frame-watched 2026-10-17 — 179 frames: hidden 001-099, banner 100-175, slide-up 176-179; both transitions visible (§b-4 retired)
 2. Click-dismiss recon: try `wlrctl pointer click` against the banner (may retire half of T18 tonight).
 3. Monitor-on render proof — rides the SystemNix switch; the moment outputs are live, run the layer check + screenshot.
 4. Test the real `systemctl --user edit` drop-in retune path (README recipe).
-5. Extend probe-transitions: empty-probe-output case (fail-visible edge) + demo-mode case + assert journal lines, not only the state file.
-6. Write the smoke-test runbook (exact systemd-run command, literal-paths caveat) into AGENTS.md.
-7. Annotate SystemNix `docs/todo/desktop.md`: smoke gate DONE, switch unblocked (cross-repo handoff).
-8. Dependabot PR triage: when the two pin-bump PRs open, review + merge (protection requires green Checks on them).
-9. State-file consumer v0: a 10-line `contrib/offline-banner-waybar.py` or a `watch` script reading `$XDG_RUNTIME_DIR/offline-banner/state` — makes the gauge real (kills the half-ghost).
-10. shellcheck/shfmt for `scripts/capture-demo.sh`; consider wiring shfmt into treefmt.
-11. Document the 500 ms interval floor (`OFFLINE_BANNER_INTERVAL < 500 → 5000`) in the README options table — it surprised even the author.
-12. Startup-race note: what happens when quickshell starts before outputs exist (placeholder screen) — document or handle.
+5. ~~Extend probe-transitions: empty-probe-output case (fail-visible edge) + demo-mode case + assert journal lines, not only the state file.~~ done — extended (empty-probe-output, demo-mode, journal asserts) + deflaked cade264/39d51bf/8a14308
+6. ~~Write the smoke-test runbook (exact systemd-run command, literal-paths caveat) into AGENTS.md.~~ done — smoke runbook in AGENTS.md (Live smoke test section: systemd-run recipe + checklist)
+7. ~~Annotate SystemNix `docs/todo/desktop.md`: smoke gate DONE, switch unblocked (cross-repo handoff).~~ done — annotated 2026-10-17 — ../SystemNix/docs/todo/desktop.md v3 row: smoke gate DONE + relock pointer a91a77a
+8. ~~Dependabot PR triage: when the two pin-bump PRs open, review + merge (protection requires green Checks on them).~~ done — triaged 2026-10-17 — 0 open PRs, 20 alerts (website transitive, non-gating); TODO_LIST row refreshed
+9. ~~State-file consumer v0: a 10-line `contrib/offline-banner-waybar.py` or a `watch` script reading `$XDG_RUNTIME_DIR/offline-banner/state` — makes the gauge real (kills the half-ghost).~~ done at `767728b`
+10. ~~shellcheck/shfmt for `scripts/capture-demo.sh`; consider wiring shfmt into treefmt.~~ done — shellcheck+shfmt clean 2026-10-17; treefmt wiring declined — nix fmt (nixfmt+statix) stays sole arbiter per AGENTS
+11. ~~Document the 500 ms interval floor (`OFFLINE_BANNER_INTERVAL < 500 → 5000`) in the README options table — it surprised even the author.~~ done — README options table documents the floor (values ≤ 500 fall back to the 5000 ms default)
+12. ~~Startup-race note: what happens when quickshell starts before outputs exist (placeholder screen) — document or handle.~~ done — README startup-race paragraph, live-observed 2026-10-17 with zero outputs
 
 **Next (small-medium):**
-13. Fontconfig cache warnings in the sandbox — set a writable XDG_CACHE_HOME in the unit env or document as benign.
-14. Structured journal lines (`banner_state=shown reason=net failures=2/2`) for grep-able journalctl.
-15. Release runbook in AGENTS (tag → CHANGELOG → gh release → topics) so v0.1.1 is mechanical.
-16. keep-a-changelog footer diff links for 0.1.0.
-17. Screenshot-based render smoke: extend the headless-sway harness with `grim` + a pixel-diff assertion (banner yellow present) — rendering enters CI without a monitor.
+13. ~~Fontconfig cache warnings in the sandbox — set a writable XDG_CACHE_HOME in the unit env or document as benign.~~ done at `4cff63a`
+14. ~~Structured journal lines (`banner_state=shown reason=net failures=2/2`) for grep-able journalctl.~~ done at `4cff63a`
+15. ~~Release runbook in AGENTS (tag → CHANGELOG → gh release → topics) so v0.1.1 is mechanical.~~ done — Release runbook in AGENTS.md (gates, CHANGELOG fold, tag, gh release, metadata verify)
+16. ~~keep-a-changelog footer diff links for 0.1.0.~~ done — compare-link footer at CHANGELOG.md bottom ([Unreleased] and [0.1.0] links)
+17. ~~Screenshot-based render smoke: extend the headless-sway harness with `grim` + a pixel-diff assertion (banner yellow present) — rendering enters CI without a monitor.~~ done at `4cff63a`
 18. Reboot auto-start proof (schedule with the owner; needs a reboot).
 19. Multi-monitor proof (≥2 outputs; headless sway can fake a second output — partially doable without hardware).
 20. Virtual-pointer harness (wlrctl/ydotool) as a flake check if niri/wlroots headless supports it.
@@ -107,7 +107,7 @@
 **ROADMAP fuel (bigger, demand-gated):**
 26. Upstream the module to nixpkgs (search.nixos.org visibility; review burden vs value).
 27. nixosTests-style VM test covering the systemd wiring end-to-end (User=, target binding) — complements probe-transitions.
-28. Project website (Astro/Starling pattern) with the demo front and center.
+28. ~~Project website (Astro/Starling pattern) with the demo front and center.~~ done — shipped — website/ live at offline-banner.lars.software, documented in AGENTS (ec840bc); demo anchors the landing page
 29. Release automation (tag push → CI builds → GH release notes from CHANGELOG).
 30. `packages.<sys>.offline-banner-shell` public passthru (useful for consumers + removes the restartTriggers indirection in checks).
 31. Example module (`nixosModules.example` with laptop defaults).
@@ -127,15 +127,15 @@
 45. Renovate-vs-dependabot final call (renovate locks differently; only if dependabot annoys).
 46. Pre-commit treefmt hook for local dev (flake-backed).
 47. CI: aarch64 job on a real arm runner (availablility permitting) to drop the qemu caveat.
-48. Demo capture: regenerate assets from the CURRENT QML (assets predate today's observability/demo changes — content identical visually but provenance stale).
-49. Trash scratch state: `/run/user/1000/offline-banner` from the smoke, `/tmp/qsprobe`, `/tmp/uvroot` (session leftovers).
-50. Global lessons: write the "sandbox has no /run / bus-props don't expand %t / jq-//-swallows-false / negative-tests-mutate-semantics" quartet into the crush-config lessons file (cross-project value).
+48. ~~Demo capture: regenerate assets from the CURRENT QML (assets predate today's observability/demo changes — content identical visually but provenance stale).~~ done — regenerated 2026-10-17 10:14 from fresh ground-truth QML (stale-cache guard removed; capture re-run green)
+49. ~~Trash scratch state: `/run/user/1000/offline-banner` from the smoke, `/tmp/qsprobe`, `/tmp/uvroot` (session leftovers).~~ done — trashed 2026-10-17 — /tmp scratch + stale /run state FILE; live dir /run/user/1000/offline-banner/ kept (real unit heartbeat)
+50. ~~Global lessons: write the "sandbox has no /run / bus-props don't expand %t / jq-//-swallows-false / negative-tests-mutate-semantics" quartet into the crush-config lessons file (cross-project value).~~ done at `4f6dd31`
 
 ## g) Three questions I cannot answer myself
 
-1. **License veto window**: I chose MIT by fleet-convention inference (published libraries are MIT; personal infra is PROPRIETARY) and shipped v0.1.0 with it. Confirm MIT — or name the license you actually want, and I'll cut v0.1.1 with the change before anyone consumes the tag.
-2. **The zero-outputs session**: was the monitor simply off/asleep at 01:48, or is this niri session intentionally headless right now? This decides whether the render proof is a "wake the screen and re-run 3 commands" or "schedule a supervised session".
-3. **Gauge ambition**: is the state file meant to get a real consumer (waybar module / script — I'd build one), or is journal + `cat` the intended surface, and I should stop calling it a "gauge" in the docs?
+1. **License veto window**: I chose MIT by fleet-convention inference (published libraries are MIT; personal infra is PROPRIETARY) and shipped v0.1.0 with it. Confirm MIT — or name the license you actually want, and I'll cut v0.1.1 with the change before anyone consumes the tag. **→ MIT confirmed by owner 2026-10-17 — no relicense needed**
+2. **The zero-outputs session**: was the monitor simply off/asleep at 01:48, or is this niri session intentionally headless right now? This decides whether the render proof is a "wake the screen and re-run 3 commands" or "schedule a supervised session". **→ answered 2026-10-17 — displayless by circumstance (owner on SSH; DRM: card1-DP-1 connected-but-disabled); real-monitor proof rides the SystemNix switch**
+3. **Gauge ambition**: is the state file meant to get a real consumer (waybar module / script — I'd build one), or is journal + `cat` the intended surface, and I should stop calling it a "gauge" in the docs? **→ answered — contrib/offline-banner-waybar (767728b) is the consumer; the state file stays the documented contract**
 
 ---
 
