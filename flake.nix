@@ -412,7 +412,11 @@
                 hb1=$(date -r "$state" +%s%N)
                 echo link > control              # reason switches
                 assert_state true link
-                assert_journal "probe failed reason=link failures=3/2"
+                # failures=3/2 exactly is NOT guaranteed: a third net
+                # probe can slip in before the shell writes `link` (seen
+                # on CI) — the first link line is reason=link with the
+                # counter past the two net failures that showed it.
+                assert_journal_re "probe failed reason=link failures=([3-9]|[1-9][0-9]+)/2"
                 hb2=$(date -r "$state" +%s%N)
                 [ "$hb2" -gt "$hb1" ] || { echo "FAIL: state file was not rewritten between probes (heartbeat broken)"; exit 1; }
                 : > control                      # probe cannot run (empty output): fail visible as net
