@@ -8,6 +8,10 @@
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
+<p align="center">
+<a href="https://offline-banner.lars.software">Documentation</a> · <a href="https://offline-banner.lars.software/#demo">Watch the 24s demo</a>
+</p>
+
 A yellow top-strip banner for NixOS desktops that appears on **every monitor** while your network is offline — and slides away the moment it's back.
 
 Connectivity loss is a **warning, not a page**: the banner is a static, non-flashing yellow strip (no blinking, no urgency colors) that shows up ~10 seconds after the network is actually gone, tells you *why* ("Network link is down" vs "No internet connection") and *when* you were last online, and dismisses on click if you've seen it.
