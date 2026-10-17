@@ -76,6 +76,8 @@ jobs:
     needs: build-website
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    env:
+      HAS_DEPLOY_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -90,7 +92,7 @@ jobs:
 
       - name: Deploy to Firebase Hosting
         working-directory: website
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        if: env.HAS_DEPLOY_KEY == 'true'
         run: |
           npm install -g firebase-tools
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
@@ -101,5 +103,5 @@ jobs:
 
       - name: Notice (deploy skipped)
         working-directory: website
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT == '' }}
+        if: env.HAS_DEPLOY_KEY != 'true'
         run: echo "::notice::FIREBASE_SERVICE_ACCOUNT secret not set on this repo — site already deployed manually; add the shared lars-software service-account key to enable CI deploys."
