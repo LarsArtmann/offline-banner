@@ -48,13 +48,15 @@ Channel policy: this flake tracks `nixos-unstable` (the NixOS-test-gated channel
 
 The unit is a `systemd.user` service bound to `graphical-session.target` — it starts with the graphical session, one banner surface per connected monitor.
 
+Startup race, by design: if the session starts with **no active monitor** (lid closed, headless boot), quickshell runs against Qt's placeholder screen — no banner surfaces exist, but the probe keeps running, so the journal and state file stay truthful (live-observed 2026-10-17 with zero outputs). Surfaces are created per monitor as outputs connect (Quickshell screen tracking).
+
 ## Options
 
 | Option                 | Type    | Default         | Description                                                                   |
 | ---------------------- | ------- | --------------- | ----------------------------------------------------------------------------- |
 | `enable`               | bool    | `false`         | Enable the banner                                                             |
 | `package`              | package | `pkgs.quickshell` | Quickshell package to run                                                     |
-| `checkIntervalSeconds` | int > 0 | `5`             | Seconds between connectivity probes                                           |
+| `checkIntervalSeconds` | int > 0 | `5`             | Seconds between connectivity probes (env-override values ≤ 500 fall back to the 5000 ms default — sub-half-second probing is refused)          |
 | `probeHost`            | string  | `"9.9.9.9"`     | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                    |
 | `probeTimeoutSeconds`  | int > 0 | `3`             | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)  |
 | `failuresToShow`       | int > 0 | `2`             | Consecutive failed probes before the banner appears (debounce)                |
