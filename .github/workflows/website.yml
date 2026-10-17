@@ -74,7 +74,8 @@ jobs:
   deploy-website:
     name: Deploy Website
     needs: build-website
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: >-
+      ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     env:
       HAS_DEPLOY_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
