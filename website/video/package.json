@@ -1,0 +1,12 @@
+{
+  "name": "offline-banner-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HyperFrames promo composition for offline-banner — rendered to website/public/demo.mp4",
+  "type": "module",
+  "scripts": {
+    "lint": "hyperframes lint",
+    "check": "hyperframes check",
+    "render": "hyperframes render --quality high --output ../public/demo.mp4"
+  }
+}

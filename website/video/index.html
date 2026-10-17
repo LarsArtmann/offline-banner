@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>offline-banner — 24s promo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #11111b;
+        font-family: system-ui, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* ---------- desktop scene ---------- */
+      #wall {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(1200px 700px at 70% 30%, #262637 0%, #1e1e2e 55%, #181825 100%);
+      }
+      #bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 32px;
+        background: #181825;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        box-sizing: border-box;
+      }
+      #bar span {
+        color: #cdd6f4;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+      }
+      #strip {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 52px;
+        background: rgba(242, 249, 226, 0.686);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #strip-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+      .reason-stack {
+        position: relative;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .reason {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #1e1e2e;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        white-space: nowrap;
+      }
+      .caption-stack {
+        position: relative;
+        height: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .caption {
+        position: absolute;
+        color: #1e1e2e;
+        opacity: 0.75;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .warn-icon {
+        width: 13px;
+        height: 13px;
+        flex: none;
+      }
+
+      /* ---------- copy layers ---------- */
+      .copy {
+        position: absolute;
+        left: 90px;
+        bottom: 120px;
+        max-width: 900px;
+      }
+      .copy .kicker {
+        color: #f2f9e2;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        margin: 0 0 14px 0;
+      }
+      .copy h2 {
+        color: #cdd6f4;
+        font-size: 46px;
+        line-height: 1.2;
+        font-weight: 800;
+        margin: 0;
+      }
+      .copy p {
+        color: #a6adc8;
+        font-size: 24px;
+        line-height: 1.5;
+        margin: 16px 0 0 0;
+      }
+      .copy .dim {
+        color: #7f849c;
+      }
+
+      #hook-copy {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      #hook-copy .line1 {
+        color: #cdd6f4;
+        font-size: 72px;
+        font-weight: 800;
+        margin: 0;
+        text-align: center;
+      }
+      #hook-copy .line2 {
+        color: #7f849c;
+        font-size: 40px;
+        font-weight: 600;
+        margin: 18px 0 0 0;
+        text-align: center;
+      }
+
+      /* ---------- CTA card ---------- */
+      #cta-card {
+        position: absolute;
+        inset: 0;
+        background: #11111b;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+      }
+      #cta-card .overline {
+        color: #f2f9e2;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 6px;
+      }
+      #cta-code {
+        background: #181825;
+        border: 1px solid #313244;
+        border-radius: 14px;
+        padding: 34px 46px;
+        color: #cdd6f4;
+        font-size: 27px;
+        line-height: 1.85;
+        font-family: monospace;
+        white-space: pre;
+      }
+      #cta-code .s {
+        color: #f2f9e2;
+      }
+      #cta-code .b {
+        color: #89b4fa;
+      }
+      #cta-card .outro {
+        color: #7f849c;
+        font-size: 24px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="24"
+    >
+      <!-- persistent desktop scene: wall + bar + banner strip -->
+      <section id="desktop-scene" class="clip" data-start="0" data-duration="24">
+        <div id="wall"></div>
+        <div id="bar">
+          <span>nixos</span>
+          <span>12:47</span>
+        </div>
+        <div id="strip">
+          <div id="strip-inner">
+            <div class="reason-stack">
+              <div id="reason-net" class="reason">
+                <svg class="warn-icon" viewBox="0 0 24 24" fill="#1e1e2e" aria-hidden="true">
+                  <path d="M12 2 1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z" />
+                </svg>
+                OFFLINE — No internet connection
+              </div>
+              <div id="reason-link" class="reason">
+                <svg class="warn-icon" viewBox="0 0 24 24" fill="#1e1e2e" aria-hidden="true">
+                  <path d="M12 2 1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z" />
+                </svg>
+                OFFLINE — Network link is down
+              </div>
+            </div>
+            <div class="caption-stack">
+              <div id="caption-a" class="caption">last online 4s ago&ensp;·&ensp;click to dismiss</div>
+              <div id="caption-b" class="caption">last online 12s ago&ensp;·&ensp;click to dismiss</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- hook -->
+      <section id="hook-scene" class="clip" data-start="0" data-duration="4.2">
+        <div id="hook-copy">
+          <div>
+            <h1 id="hook-line1" class="line1">Your network just died.</h1>
+            <p id="hook-line2" class="line2">…and your desktop says nothing.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- value -->
+      <section id="value-scene" class="clip" data-start="4.4" data-duration="5">
+        <div class="copy">
+          <p id="value-kicker" class="kicker">OFFLINE-BANNER</p>
+          <h2 id="value-head">A quiet yellow strip on every monitor.<br />Gone the moment you're back.</h2>
+        </div>
+      </section>
+
+      <!-- why -->
+      <section id="why-scene" class="clip" data-start="9.4" data-duration="5.2">
+        <div class="copy">
+          <h2 id="why-head">It knows <span class="dim">why</span> you're offline.</h2>
+          <p id="why-body">
+            Carrier from the kernel, one ping to an IP literal —<br />
+            never NetworkManager, never DNS.
+          </p>
+        </div>
+      </section>
+
+      <!-- recovery -->
+      <section id="recovery-scene" class="clip" data-start="14.6" data-duration="4.8">
+        <div class="copy">
+          <h2 id="rec-head">No flashing. No covering. No clicking.</h2>
+          <p id="rec-body">
+            Pushes your bar down — nothing hidden underneath.<br />
+            One lost ping changes nothing. Recovery slides it away.
+          </p>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section id="cta-scene" class="clip" data-start="19.4" data-duration="4.6">
+        <div id="cta-card">
+          <div id="cta-overline" class="overline">NIXOS MODULE · V0.1.0 · MIT</div>
+          <div id="cta-code">
+            <span class="b">inputs</span>.offline-banner.url = <span class="s">"github:LarsArtmann/offline-banner"</span>;
+
+            <span class="b">services</span>.offline-banner.<span class="s">enable</span> = <span class="b">true</span>;
+          </div>
+          <div id="cta-outro" class="outro">github.com/LarsArtmann/offline-banner — one option, every monitor, zero flashing.</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      /* hook */
+      tl.fromTo("#hook-line1", { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 0.3);
+      tl.fromTo("#hook-line2", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 1.6);
+      tl.to("#hook-copy", { opacity: 0, duration: 0.5, ease: "power2.in" }, 3.4);
+
+      /* banner arrives: strip slides in, bar is pushed down — the real 450 ms InOutCubic beat */
+      tl.fromTo("#strip", { y: -52 }, { y: 0, duration: 0.45, ease: "power2.inOut" }, 4.0);
+      tl.fromTo("#bar", { y: 0 }, { y: 52, duration: 0.45, ease: "power2.inOut" }, 4.0);
+
+      /* value copy */
+      tl.fromTo("#value-kicker", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }, 4.6);
+      tl.fromTo("#value-head", { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 4.8);
+
+      /* caption ticks */
+      tl.to("#caption-a", { opacity: 0, duration: 0.3 }, 7.5);
+      tl.fromTo("#caption-b", { opacity: 0 }, { opacity: 0.75, duration: 0.3 }, 7.5);
+
+      /* reason swap: link leg vs internet leg */
+      tl.to("#reason-net", { opacity: 0, duration: 0.35 }, 10.0);
+      tl.fromTo("#reason-link", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 10.0);
+
+      /* why copy */
+      tl.fromTo("#why-head", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 9.6);
+      tl.fromTo("#why-body", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 9.9);
+
+      /* recovery: strip slides away, bar returns */
+      tl.to("#strip", { y: -52, duration: 0.45, ease: "power2.inOut" }, 14.8);
+      tl.to("#bar", { y: 0, duration: 0.45, ease: "power2.inOut" }, 14.8);
+
+      /* recovery copy */
+      tl.fromTo("#rec-head", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 15.0);
+      tl.fromTo("#rec-body", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 15.3);
+
+      /* CTA */
+      tl.fromTo("#cta-overline", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }, 19.7);
+      tl.fromTo("#cta-code", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 19.9);
+      tl.fromTo("#cta-outro", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }, 20.4);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

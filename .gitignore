@@ -3,6 +3,11 @@ result
 result-*
 .direnv
 
+# Website
+website/node_modules/
+website/video/node_modules/
+website/dist/
+
 # Secrets and environment — never commit
 .env
 .env.local
