@@ -1,0 +1,26 @@
+---
+import { useCases } from '../data/sections';
+import Icon from './Icon.astro';
+import SectionHeader from './SectionHeader.astro';
+import type { AccentColor } from '../data/types';
+
+const iconColor: Record<AccentColor, string> = {
+  accent: 'text-accent bg-accent-dim',
+  amber: 'text-amber bg-amber/10',
+  success: 'text-success bg-success/10',
+};
+---
+
+<SectionHeader eyebrow="Built For" title="Who is this for?" subtitle="If you build or run Go tooling that analyzes source code, you need this." />
+
+<div class="grid gap-5 sm:grid-cols-3">
+  {useCases.map((useCase) => (
+    <div class="p-6 rounded-xl border border-border bg-bg-card text-center transition-all duration-200 hover:border-border-hover">
+      <div class={`mx-auto mb-3 w-fit inline-flex w-12 h-12 items-center justify-center rounded-lg ${iconColor[useCase.accent]}`}>
+        <Icon name={useCase.icon} size={24} />
+      </div>
+      <h3 class="font-semibold text-text-primary text-base mb-1">{useCase.title}</h3>
+      <p class="text-sm text-text-muted">{useCase.desc}</p>
+    </div>
+  ))}
+</div>

@@ -1,0 +1,16 @@
+{
+  "name": "gogenfilter",
+  "short_name": "gogenfilter",
+  "description": "Skip auto-generated Go code in linters and CI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0a09",
+  "theme_color": "#22d3ee",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

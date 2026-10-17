@@ -1,0 +1,29 @@
+import { getCollection } from "astro:content";
+import { OGImageRoute } from "astro-og-canvas";
+import { generatorCount } from "../../data/generators";
+
+const docs = await getCollection("docs");
+const docPages = Object.fromEntries(docs.map(({ data, id }) => [id, { data }]));
+
+const pages = {
+  ...docPages,
+  home: {
+    data: {
+      title: "gogenfilter",
+      description: `Stop linting code no human wrote. Detect and skip ${generatorCount} Go code generators in your linters and CI.`,
+    },
+  },
+};
+
+export const { getStaticPaths, GET } = await OGImageRoute({
+  // @ts-expect-error param is required at runtime by astro-og-canvas (avoids PrerenderDynamicEndpointPathCollide) but absent from OGImageRouteConfig types
+  param: "slug",
+  pages,
+  getImageOptions: (_path, page) => ({
+    title: page.data.title,
+    description: page.data.description,
+    bgGradient: [[12, 10, 9]],
+    border: { color: [34, 211, 238], width: 4 },
+    padding: 80,
+  }),
+});
