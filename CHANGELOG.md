@@ -6,12 +6,17 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
-- Project website (Astro + Starlight + Tailwind v4): landing page with the 24 s demo as the hero centerpiece, options/observability/limitations docs, and the module's own visual identity (banner yellow on the demo's dark palette). Live at https://offline-banner.lars.software (custom domain: DNS staged, cert validating) and https://offline-banner.web.app (live).
+- Project website (Astro + Starlight + Tailwind v4): landing page with the 24 s demo as the hero centerpiece, options/observability/limitations docs, and the module's own visual identity (banner yellow on the demo's dark palette). Live at https://offline-banner.lars.software (custom domain: DNS applied by the owner, cert ACTIVE, landing + demo.mp4 verified over HTTPS) and https://offline-banner.web.app.
 - 24 s promo video rendered from a committed HyperFrames composition (`website/video/`) using the module's real colors and 450 ms InOutCubic push-down; embedded on the landing page with poster + VideoObject metadata and verified live (HTTP 200, `video/mp4`, immutable cache).
-- Website CI workflow (`website.yml`): build + validate (astro check, html-validate) then deploy to Firebase Hosting on master; deploy step waits for the `FIREBASE_SERVICE_ACCOUNT` secret.
+- Website CI workflow (`website.yml`): build + validate (astro check, html-validate) then deploy to Firebase Hosting on master; first real run green; deploy step waits for the `FIREBASE_SERVICE_ACCOUNT` secret and is verified to skip gracefully without it.
 - GitHub social-preview card (`assets/branding/social-preview.png`) and repo homepage link.
 - README overhauled as the project's sales page: tagline, documentation link bar, "Who is this for?", comparison table, "How it works", and an honest "When NOT to use this" section — all claims traceable to FEATURES/module behavior.
 - Launch-post drafts for NixOS Discourse and r/NixOS (`docs/marketing/launch-post-drafts.md`).
+
+### Fixed
+
+- Website CI never started: GitHub Actions rejects the `secrets` context in `if` conditionals, so the first real run failed at parse time (0 s). Deploy steps now gate on a job-level env flag derived from the secret; run green.
+- `probe-transitions` check flaked on slow emulated runners: mid-sequence failure-counter asserts now match the transition (reason + counter advanced) instead of an exact count that extra probes could consume between asserts.
 
 ## [0.1.0] — 2026-10-17
 
