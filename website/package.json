@@ -42,8 +42,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "html-validate": "^11.16.2",
-    "typescript": "^6.0.3"
+    "html-validate": "^11.16.3",
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "brace-expansion": "5.0.6",
