@@ -2,7 +2,7 @@
 
 **Generated:** 2026-10-17 08:37 CEST · **Session:** single "Go FULL on marketing" push over the v0.1.0 tree · **HEAD at writing:** `1cc9a1e` (auto-commit daemon; everything of this session committed) · **Skills loaded:** copywriting, website-launch, product-launch-video, hyperframes, hyperframes-core (+ 7 website-launch references)
 
-**Headline:** Public presence shipped live end-to-end — README sales page (docs-drift green), 24 s promo video (frames eyeballed), Astro+Starlight website deployed twice to Firebase Hosting (visual QA in both themes, live HEAD checks), custom domain registered with DNS staged, website CI, GitHub homepage, on-brand social preview, launch drafts, docs truth. Two leaks found by this retrospective: **`.hyperframes/` local state is tracked in git** (d1) and **CI runs of the new workflow are unverified** (b3). Six owner console actions remain (f1-6).
+**Headline:** Public presence shipped live end-to-end — README sales page (docs-drift green), 24 s promo video (frames eyeballed), Astro+Starlight website deployed twice to Firebase Hosting (visual QA in both themes, live HEAD checks), custom domain registered with DNS staged, website CI, GitHub homepage, on-brand social preview, launch drafts, docs truth. Two leaks found by this retrospective: **`.hyperframes/` local state is tracked in git** (d1) and **CI runs of the new workflow are unverified** (b3) — both FIXED the same morning: d1 ignored + untracked (6a0e032/a6ed733), b3's first run failed at parse time on the secrets-in-`if` pattern and is green after the env-flag fix; the owner applied DNS and offline-banner.lars.software serves live (cert ACTIVE).
 
 ---
 
@@ -28,7 +28,7 @@
 ## b) PARTIALLY DONE
 
 1. **Custom domain resolution** — Firebase side complete (domain registered, records demanded, cert CERT_VALIDATING); Namecheap side staged but NOT applied: `tofu init` fails loading the GCS backend state (`UserProjectAccountProblem` — host gcloud identity lacks quota/billing access; firebase CLI identity works but `tofu` uses ADC). Until apply + provisioning, `offline-banner.web.app` serves everything while README/site metadata name the lars.software URL (canonical + homepage + link bar all point at a domain that does not resolve yet).
-2. **CI runs of the new workflow — UNVERIFIED.** The daemon committed website.yml and I never checked `gh run list` for a run of "Website". The build job should pass (same steps ran locally) but the step-level `if: secrets.FIREBASE_SERVICE_ACCOUNT != ''` pattern is untested in the wild — if GitHub rejects secrets in an `if` (it does allow it, but empty-string semantics + the notice step path are unproven here), master could show a red Website run right now.
+2. **CI runs of the new workflow — UNVERIFIED.** The daemon committed website.yml and I never checked `gh run list` for a run of "Website". The build job should pass (same steps ran locally) but the step-level `if: secrets.FIREBASE_SERVICE_ACCOUNT != ''` pattern is untested in the wild — if GitHub rejects secrets in an `if` (it does allow it, but empty-string semantics + the notice step path are unproven here), master could show a red Website run right now. **RESOLVED 2026-10-17:** GitHub does NOT allow the `secrets` context in `if` conditionals — the first real run failed at parse time (0 s). Fixed with a job-level env flag (`HAS_DEPLOY_KEY`); the next run went green in 52 s with the deploy job correctly skipping (no secret yet).
 3. **Mobile visual QA — not done.** All screenshots were 1440 px wide. The baseline's responsive classes exist (sm:/lg: grids, nav toggle) but the rewritten components (personas 4-col, comparison 2-col, hero clamp) were never eyeballed at 375/768 px.
 4. **Docs dark theme — not eyeballed.** Landing was checked in both themes; the Starlight docs chrome (sidebar, TOC, expressive code in dracula) was only seen in light.
 5. **CI-adjacent quality steps ported only partially** — gogenfilter's website pipeline also runs pnpm audit (kept, continue-on-error), a11y-guard, dedup, docs-code-block validation, CHANGELOG sync, /v3 import gate; I kept audit + astro check + build + html-validate and dropped the rest deliberately, but the a11y-guard and lighthouse jobs of the template family are real quality bars, not gogenfilter cruft — they were dropped for scope, not judged.
@@ -54,7 +54,7 @@
 
 ## d) TOTALLY FUCKED UP (all found by this retrospective unless noted; none shipped broken)
 
-1. **`.hyperframes/` tool state is TRACKED IN GIT** — `git ls-files website/video/` shows `.hyperframes/artifacts/checks/*.json`, `history-id`, `video-state.json` committed by the daemon (my .gitignore added `website/video/node_modules/` but NOT `website/video/.hyperframes/`). Local CLI state does not belong in the repo; it will churn on every lint/check run and pollutes diffs. Fix is one gitignore line + `git rm -r --cached`; NOT done in this session because the instruction was report-then-wait.
+1. **`.hyperframes/` tool state is TRACKED IN GIT** — `git ls-files website/video/` shows `.hyperframes/artifacts/checks/*.json`, `history-id`, `video-state.json` committed by the daemon (my .gitignore added `website/video/node_modules/` but NOT `website/video/.hyperframes/`). Local CLI state does not belong in the repo; it will churn on every lint/check run and pollutes diffs. Fix is one gitignore line + `git rm -r --cached`; NOT done in this session because the instruction was report-then-wait. **FIXED 2026-10-17:** ignored + untracked in commits 6a0e032/a6ed733.
 2. **CI status of my own workflow never checked** — I shipped a workflow and did not look at a single run of it. "Checks green" claims elsewhere in this session refer to local gates only. This is the exact "verify the delivering layer" lesson from crush-config fan-out doctrine, applied late.
 3. **LandingLayout shipped without `<body>`** — build failed with a confusing "closing tag has no matching opening tag"; the first repair attempt then edited from memory and missed (old_string mismatch), costing a second cycle. Re-read → fixed → rebuilt. Twice-taught lesson: re-read before every edit, especially after a failed match.
 4. **astro check was shipped broken under TypeScript 7** — inherited `typescript: ^7.0.2` from the gogenfilter baseline means its own `astro check` cannot ever have run cleanly; I first accepted the failure, then fixed it properly (verified-matrix pin `^6.0.3`). The baseline itself carries this latent breakage — worth reporting upstream to the fleet skill.
@@ -84,8 +84,8 @@
 3. 👤 Upload `assets/branding/social-preview.png` (Settings → Social preview), then run the script's `--verify LarsArtmann/offline-banner`
 4. 👤 Post the Discourse draft; cross-link the topic from README (one line)
 5. 👤 Post the r/NixOS draft
-6. Check `gh run list --workflow website.yml` — first run must be green (notice step, not red)
-7. Untrack `.hyperframes/`: add `website/video/.hyperframes/` to .gitignore + `git rm -r --cached website/video/.hyperframes`
+6. Check `gh run list --workflow website.yml` — first run must be green (notice step, not red) — DONE 2026-10-17 (green after the secrets-in-if fix)
+7. Untrack `.hyperframes/`: add `website/video/.hyperframes/` to .gitignore + `git rm -r --cached website/video/.hyperframes` — DONE 2026-10-17
 8. `nix flake check --all-systems` once (aarch64, release-runbook discipline)
 9. Mobile visual QA: 375 px + 768 px screenshots of landing + a docs page
 10. Docs dark-theme eyeball pass (Starlight chrome + dracula code)
@@ -140,6 +140,6 @@
 
 ## g) Questions I cannot answer myself
 
-1. **Canonical while DNS is pending**: should site metadata (`canonical`, `og:url`, homepage, README bar) temporarily point at the live `offline-banner.web.app` and flip to `offline-banner.lars.software` after apply — or stay pointed at the future canonical (current state) and accept a not-yet-resolving URL for a day? (Pure preference/risk call — I cannot infer how soon you'll apply DNS.)
+1. **Canonical while DNS is pending**: should site metadata (`canonical`, `og:url`, homepage, README bar) temporarily point at the live `offline-banner.web.app` and flip to `offline-banner.lars.software` after apply — or stay pointed at the future canonical (current state) and accept a not-yet-resolving URL for a day? (Pure preference/risk call — I cannot infer how soon you'll apply DNS.) **RESOLVED 2026-10-17:** DNS was applied the same morning; the canonical domain is live (cert ACTIVE), so staying pointed at it was the right call and no temp-URL flip is needed.
 2. **Launch sequencing**: post the Discourse/r/NixOS drafts now (web.app live, module machine-verified) — or wait for the SystemNix switch so "every monitor" has real-monitor footage? This is a strategy tradeoff (timing vs proof strength) only you can weigh.
 3. **Investment tiers**: build the 9:16 vertical cut + TTS voiceover now as launch assets, or hold tier 2-3 until a channel (Shorts/Reels/YouTube) actually exists? I default to "hold until demand" per the reference, but if you plan to push social channels this week, the answer changes.

@@ -403,12 +403,18 @@
                 assert_journal "probe failed reason=net failures=1/2"
                 assert_state true net            # failure 2 of 2: shows
                 assert_journal "banner state=shown reason=net failures=2/2"
-                hb1=$(jq -r .updatedAt "$state")
+                # Heartbeat = the state file is REWRITTEN on every probe.
+                # updatedAt itself has second granularity (fine for the
+                # ~2-interval staleness contract) but two probes 600 ms
+                # apart can land in the same second, and a strict field
+                # compare then flakes (seen on CI) — the file mtime at ns
+                # resolution proves the rewrite without that collision.
+                hb1=$(date -r "$state" +%s%N)
                 echo link > control              # reason switches
                 assert_state true link
                 assert_journal "probe failed reason=link failures=3/2"
-                hb2=$(jq -r .updatedAt "$state")
-                [ "$hb2" -gt "$hb1" ] || { echo "FAIL: updatedAt did not advance between probes (heartbeat broken)"; exit 1; }
+                hb2=$(date -r "$state" +%s%N)
+                [ "$hb2" -gt "$hb1" ] || { echo "FAIL: state file was not rewritten between probes (heartbeat broken)"; exit 1; }
                 : > control                      # probe cannot run (empty output): fail visible as net
                 assert_state true net
                 # failures=4/2 exactly is NOT guaranteed here: while the
