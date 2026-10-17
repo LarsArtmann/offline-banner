@@ -31,9 +31,11 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export DEMO_REPO="$repo"
 
 # --- ground-truth QML: realize the module's writeTextDir store file -------
-if [ ! -f "$work/shell.qml" ]; then
-	out="$(nix build --impure --no-link --print-out-paths --expr "$(
-		cat <<'EXPR'
+# Re-extracted EVERY run: a cached copy would silently record an old module
+# revision (this exact staleness produced a 2026-10-17 03:04 PNG from a
+# 00:06 QML). The extraction build is cheap; ground truth is not optional.
+out="$(nix build --impure --no-link --print-out-paths --expr "$(
+	cat <<'EXPR'
 let
   repo = toString (builtins.getEnv "DEMO_REPO");
   flake = builtins.getFlake repo;
@@ -54,9 +56,8 @@ pkgs.runCommandLocal "shell-qml-ground-truth" { } ''
   cp "$qmldir/shell.qml" "$out"
 ''
 EXPR
-	)")"
-	cp "$out" "$work/shell.qml"
-fi
+)")"
+cp "$out" "$work/shell.qml"
 
 # --- headless compositor ---------------------------------------------------
 sway_pid="" bar_pid="" foot_pid="" rec_pid="" banner_pid=""
@@ -138,6 +139,14 @@ sleep 5.0
 grim -o HEADLESS-1 "$outdir/offline-banner-demo.png"
 sleep 4.5
 kill -INT "$rec_pid" 2>/dev/null || true
+# wf-recorder finalizes on SIGINT, but with a dead compositor connection it
+# never drains its event loop and ignores the signal forever (observed as a
+# 7-hour hang on 2026-10-17) — poll, then escalate to SIGKILL.
+for _ in $(seq 1 50); do
+	kill -0 "$rec_pid" 2>/dev/null || break
+	sleep 0.1
+done
+kill -KILL "$rec_pid" 2>/dev/null || true
 wait "$rec_pid" 2>/dev/null || true
 rec_pid=""
 
