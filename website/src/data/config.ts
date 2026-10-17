@@ -1,15 +1,14 @@
 export const siteConfig = {
-  name: "gogenfilter",
-  title: "gogenfilter — Skip Auto-Generated Go Code in Linters & CI",
+  name: "offline-banner",
+  title: "offline-banner — Know Your Network Died, On Every Monitor",
   description:
-    "Detect and skip auto-generated Go code files from sqlc, protobuf, templ, and more. Built for linters, static analysis, and CI pipelines.",
+    "A yellow top-strip banner for NixOS desktops that appears on every monitor while your network is offline, tells you why and how long, and slides away the moment it's back.",
   ogDescription:
-    "Stop linting code no human wrote. Detect and skip {count} Go code generators in your linters and CI.",
-  siteUrl: "https://gogenfilter.lars.software",
-  github: "https://github.com/LarsArtmann/gogenfilter",
+    "The moment your network dies, a yellow strip slides in on every monitor — and slides away the moment it's back. One NixOS module option, zero flashing.",
+  siteUrl: "https://offline-banner.lars.software",
+  github: "https://github.com/LarsArtmann/offline-banner",
   author: {
     name: "LarsArtmann",
     url: "https://larsartmann.com/",
   },
-  pkgGoDev: "https://pkg.go.dev/github.com/LarsArtmann/gogenfilter/v3",
 } as const;

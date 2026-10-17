@@ -1,36 +1,14 @@
-export const logoPaths = [
-  "/logos/sqlc.png",
-  "/logos/templ.svg",
-  "/logos/protobuf.svg",
-  "/logos/go-enum.svg",
-  "/logos/mockgen.svg",
-  "/logos/moq.png",
-  "/logos/wire.svg",
-  "/logos/oapi-codegen.svg",
-  "/logos/deepcopy-gen.svg",
-  "/logos/stringer.svg",
-  "/logos/generic.svg",
-] as const;
-export type LogoPath = (typeof logoPaths)[number];
-
-export interface Generator {
-  name: string;
-  file: string;
-  url: string;
-  logo: LogoPath;
-}
-
 export const featureIconKeys = [
-  "lightning",
+  "monitor",
+  "layers",
+  "clock",
+  "shield",
+  "eye",
   "sliders",
-  "glob",
-  "chart",
-  "folder",
-  "database",
 ] as const;
 export type FeatureIcon = (typeof featureIconKeys)[number];
 
-export type AccentColor = "accent" | "amber" | "success";
+export type AccentColor = "accent" | "blue" | "success";
 
 export interface Feature {
   icon: FeatureIcon;
@@ -39,23 +17,23 @@ export interface Feature {
   accent: AccentColor;
 }
 
-export interface PhaseCard {
-  phase: string;
-  phaseColor: "accent" | "amber";
+export interface ProbeLeg {
+  leg: string;
+  legColor: "accent" | "blue";
   title: string;
   patterns: string[];
   hint: string;
-  hintColor: "accent" | "amber";
-  hintIcon: UseCaseIcon;
+  hintColor: "accent" | "blue";
+  hintIcon: string;
 }
 
-export const useCaseIconKeys = ["cog", "chart", "refresh", "bolt", "check"] as const;
-export type UseCaseIcon = (typeof useCaseIconKeys)[number];
+export const personaIconKeys = ["monitor", "layers", "server", "terminal"] as const;
+export type PersonaIcon = (typeof personaIconKeys)[number];
 
-export interface UseCase {
+export interface Persona {
   title: string;
   desc: string;
-  icon: UseCaseIcon;
+  icon: PersonaIcon;
   accent: AccentColor;
 }
 
@@ -69,7 +47,9 @@ export const uiIconKeys = [
   "moon",
   "monitor",
   "star",
+  "play",
+  "warning",
 ] as const;
 export type UIIcon = (typeof uiIconKeys)[number];
 
-export type IconName = FeatureIcon | UseCaseIcon | UIIcon;
+export type IconName = FeatureIcon | PersonaIcon | UIIcon;

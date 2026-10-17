@@ -2,39 +2,39 @@ import type { Feature } from "./types";
 
 export const features: Feature[] = [
   {
-    icon: "lightning",
-    title: "Two-Phase Detection",
-    desc: "Filename check first (zero I/O), content scan only when needed.",
+    icon: "monitor",
+    title: "Every monitor, one truth",
+    desc: "One layer-shell surface per connected output. No screen left quietly lying to you.",
     accent: "accent",
+  },
+  {
+    icon: "layers",
+    title: "Pushes down, never covers",
+    desc: "An animated exclusive zone (InOutCubic, 450 ms) that your bar slides beneath — nothing hidden, nothing unreachable.",
+    accent: "blue",
+  },
+  {
+    icon: "clock",
+    title: "Debounced, with a memory",
+    desc: "Two failed probes (~10 s) before it appears — one lost ping changes nothing. 'last online 4m 12s ago' while it's up.",
+    accent: "accent",
+  },
+  {
+    icon: "shield",
+    title: "Sandboxed by contract",
+    desc: "A strict systemd sandbox — reads /sys, pings, talks Wayland; nothing else. Asserted line-by-line by a flake check.",
+    accent: "success",
+  },
+  {
+    icon: "eye",
+    title: "Fail visible, never silent",
+    desc: "A probe that cannot run counts as a failure. Journal lines and a JSON state file rewritten on every probe.",
+    accent: "blue",
   },
   {
     icon: "sliders",
-    title: "Functional Options API",
-    desc: "Clean, composable configuration. Immutable after construction.",
-    accent: "amber",
-  },
-  {
-    icon: "glob",
-    title: "Glob Pattern Matching",
-    desc: "Include/exclude with ** glob support via doublestar.",
-    accent: "success",
-  },
-  {
-    icon: "chart",
-    title: "Detailed Results",
-    desc: "FilterResult with reason, trace, and path for every file.",
+    title: "Tune live, no rebuild",
+    desc: "OFFLINE_BANNER_* env vars mirror every option — retune a running system with a drop-in, or force-show with demo mode.",
     accent: "accent",
-  },
-  {
-    icon: "folder",
-    title: "SQLC Config Discovery",
-    desc: "Parse sqlc.yaml to find output directories automatically.",
-    accent: "amber",
-  },
-  {
-    icon: "database",
-    title: "fs.FS Abstraction",
-    desc: "Pluggable filesystem. Test with fstest.MapFS, no real files needed.",
-    accent: "success",
   },
 ];

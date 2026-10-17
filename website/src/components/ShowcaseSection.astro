@@ -1,0 +1,32 @@
+---
+import Section from './Section.astro';
+import SectionHeader from './SectionHeader.astro';
+import Icon from './Icon.astro';
+---
+
+<Section width="narrow" tone="raised" id="demo-anchor">
+  <SectionHeader
+    eyebrow="Demo"
+    title="See it work end-to-end."
+    subtitle="Link drops, the strip slides in, the caption ticks, the link returns — 24 seconds, the real banner behavior."
+  />
+  <div id="demo" class="relative max-w-4xl mx-auto">
+    <div class="absolute -inset-4 bg-gradient-to-r from-accent/10 via-blue/8 to-accent/10 rounded-2xl blur-6 pointer-events-none" aria-hidden="true"></div>
+    <div class="relative rounded-xl border border-border bg-bg-code shadow-2xl overflow-hidden">
+      <video
+        controls
+        preload="metadata"
+        poster="/demo-poster.png"
+        class="w-full h-auto block bg-[#11111b]"
+        aria-label="offline-banner demo: a yellow strip appears on the desktop when the network dies and slides away on recovery"
+      >
+        <source src="/demo.mp4" type="video/mp4" />
+        Your browser does not support HTML video. <a href="/demo.mp4">Download the demo (MP4)</a>.
+      </video>
+    </div>
+    <p class="text-center mt-4 text-sm text-text-muted inline-flex items-center justify-center gap-1.5 w-full">
+      <Icon name="play" size={13} />
+      24 seconds · captured behavior, real module colors · <a href="/demo.mp4" class="text-text-muted underline hover:text-text-primary transition-colors">MP4</a>
+    </p>
+  </div>
+</Section>
