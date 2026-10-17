@@ -357,12 +357,20 @@
                 }
 
                 # Journal asserts: quickshell's console.log lands in the log
-                # files (stderr), one structured line per transition
+                # files (stderr), one structured line per transition.
+                # POLLING (not a one-shot grep): the state-file asserts can
+                # return on a pre-existing state before the triggering probe
+                # has even run, so the matching line may lag a few hundred ms
                 # (grep -F: the patterns contain = and /).
                 assert_journal() {
-                  local pattern="$1" f="''${2:-qs.log}"
-                  grep -qF -- "$pattern" "$f" \
-                    || { echo "FAIL: journal line '$pattern' not found in $f" >&2; tail -20 "$f" >&2; exit 1; }
+                  local pattern="$1" f="''${2:-qs.log}" i
+                  for i in $(seq 1 40); do
+                    grep -qF -- "$pattern" "$f" && return 0
+                    sleep 0.25
+                  done
+                  echo "FAIL: journal line '$pattern' not found in $f" >&2
+                  tail -20 "$f" >&2
+                  exit 1
                 }
                 assert_no_journal() {
                   local pattern="$1" f="''${2:-qs.log}"

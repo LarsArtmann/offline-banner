@@ -109,17 +109,17 @@ sleep 0.7
 # Banner run, inside a private mount ns: carrier 1 -> 0 at t=2.5 (banner
 # appears within one probe interval) -> back to 1 at t=6.0 (recovery).
 # "$work" rides in as $1 (sh -c 'script' name arg1) so the inner script
-# stays single-quoted without quote gymnastics.
+# stays single-quoted without quote gymnastics; "$1"/"$qs" below belong to
+# the INNER shell (shellcheck cannot follow sh -c through unshare and
+# misreads them as outer-expansion intent).
+# shellcheck disable=SC2016
 env \
 	OFFLINE_BANNER_INTERVAL=1000 \
 	OFFLINE_BANNER_FAILURES=1 \
 	OFFLINE_BANNER_PROBE_TIMEOUT=2 \
 	OFFLINE_BANNER_PROBE_HOST=9.9.9.9 \
 	QT_QUICK_BACKEND=software \
-	# shellcheck disable=SC2016 — "$1"/"$qs" are for the INNER shell (shellcheck
-# cannot follow sh -c through unshare, so it misreads them as outer-expansion
-# intent; args after the script string pass "$work" in as $1).
-unshare -rm sh -c '
+	unshare -rm sh -c '
     mount -t tmpfs tmpfs /sys/class/net || exit 3
     mkdir -p /sys/class/net/eth0
     echo 1 > /sys/class/net/eth0/carrier

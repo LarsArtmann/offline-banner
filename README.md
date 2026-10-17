@@ -26,7 +26,7 @@ A probe that cannot even run counts as a failure — fail visible, never fail si
 - **Observable**: every probe failure, banner show/hide, and dismissal is logged to the journal, and the current state is mirrored to `offline-banner.state` in `XDG_RUNTIME_DIR` (rewritten every probe — a stale file means the unit is dead). See [Observability](#observability).
 - **Demo mode**: `OFFLINE_BANNER_DEMO=1` forces the banner visible with no probes at all — safe demos and post-deploy checks, no unroutable-IP drop-in hack.
 - **Own Quickshell instance**: renders as a second [Quickshell](https://quickshell.outfoxxed.me/) process — no plugin into your existing shell/bar required (zero dependence on any shell plugin API); targets any layer-shell compositor (proven on niri; others expected but untested here).
-- **Hardened unit**: the service runs under a strict systemd sandbox (`ProtectSystem=strict`, restricted address families, kernel/clock/hostname protections) — it reads `/sys`, pings, and talks Wayland; nothing else.
+- **Hardened unit**: the service runs under a strict systemd sandbox (`ProtectSystem=strict`, restricted address families, kernel/clock/hostname protections) — it reads `/sys`, pings, and talks Wayland; nothing else. Its only writable paths are the two runtime dirs (`RuntimeDirectory`), including the Qt/fontconfig cache via `XDG_CACHE_HOME`.
 
 ## Quickstart
 
@@ -70,8 +70,8 @@ The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environ
 
 A dead banner must never be silent:
 
-- **Journal**: every failed probe (reason + consecutive count), every banner show/hide, recovery, and click-dismiss is logged — `journalctl --user -u offline-banner -f`.
-- **State file**: `$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`.
+- **Journal**: every transition logs a structured, grep-able line — `probe failed reason=net failures=1/2`, `probe ok recovered_after=2`, `banner state=shown|hidden|dismissed reason=… failures=N/M` — e.g. `journalctl --user -u offline-banner -f | grep "banner state="`.
+- **State file**: `$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`. A reference waybar consumer ships in `contrib/offline-banner-waybar`: it shows an offline widget while active, stays empty while fine, and flips to a `stale` marker once the heartbeat exceeds `OFFLINE_BANNER_MAX_AGE` (default 15 s).
 - **v6 note**: `probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken v4 route the banner shows offline while v6 browsing works — an accepted tradeoff; point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials it directly).
 
 ## Provenance

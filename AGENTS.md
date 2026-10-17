@@ -28,17 +28,47 @@ Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direc
 
 ## Checks
 
-Six flake checks (green on both systems, CI-enforced via branch protection):
-- `module-contract`: unit present/absent, quickshell ExecStart, env contract, MemoryMax, ALL 22 sandbox directive lines, NoNewPrivileges absent (it strips ping's cap_net_raw), restartTriggers references the store QML, probe-overlap assertion fires on a bad config.
+Seven flake checks (green on both systems, CI-enforced via branch protection):
+- `module-contract`: unit present/absent, quickshell ExecStart, env contract, MemoryMax, XDG_CACHE_HOME pointed at the runtime dir (specifiers DO expand in unit-file `Environment=` — verified in systemd's `config_parse_environ`), ALL 22 sandbox directive lines, NoNewPrivileges absent (it strips ping's cap_net_raw), restartTriggers references the store QML, probe-overlap assertion fires on a bad config.
 - `unit-verify`: systemd-analyze verify on the rendered unit (sandbox recipe: LD_PRELOAD mkdir/mkdirat shim redirects /run; --user --recursive-errors=no; graphical-session.target stubbed).
 - `docs-drift`: option list derived from the module eval must appear in README + FEATURES; env-contract mention + quickstart pointers pinned.
 - `shell-content`: the BUILT shell.qml must contain the namespace interpolation and the probe env markers (the unit-text contract cannot see inside the QML; negative-tested).
-- `probe-transitions`: drives the REAL store QML through ok/net/link (OFFLINE_BANNER_PROBE_CMD injection, headless sway, software rendering) and asserts debounce/reason/recovery/re-arm via the state file.
+- `probe-transitions`: drives the REAL store QML through ok/net/link/empty-probe/demo (OFFLINE_BANNER_PROBE_CMD injection, headless sway, software rendering) and asserts debounce/reason/recovery/re-arm, the state-file freshness heartbeat, AND the structured journal lines (`probe failed reason=net failures=1/2`, `banner state=shown ...`).
+- `render-smoke`: the pixel gate — grim-captures the headless-sway output through hidden → shown → recovered via the real probe path and asserts the strip color (#f2f9e2af at 95% alpha) present on the strip, absent below it and after recovery. Software rendering (pixman); a real-monitor pixel proof still rides a live session.
 - `formatting`: treefmt (nixfmt + statix).
 
-Live evidence on record (2026-10-17, evo-x2 smoke): sandbox live-proven (ping cap_net_raw, runtime dirs, state file, ~23 MB RSS), journal + state file verified. Pixel visibility on a real monitor is NOT yet proven (session had zero active outputs) — it rides the SystemNix switch. Demo capture: `scripts/capture-demo.sh` (headless sway, ground-truth store QML); assets in `docs/assets/`.
+A reference waybar consumer for the state file ships in `contrib/offline-banner-waybar` (POSIX sh + jq; emits nothing while fine, an offline widget while active, and a `stale` marker when the heartbeat exceeds `OFFLINE_BANNER_MAX_AGE`, default 15 s — not part of the module, not contract-checked).
+
+Live evidence on record (2026-10-17, evo-x2 smoke): sandbox live-proven (ping cap_net_raw, runtime dirs, state file, ~23 MB RSS), journal + state file verified. Real-monitor pixel visibility still rides the SystemNix switch; headless pixels are CI-proven by `render-smoke`. Demo capture: `scripts/capture-demo.sh` (headless sway, ground-truth store QML, shellcheck+shfmt clean); assets in `docs/assets/`.
 
 Decision records: docs surface = README table + option descriptions + docs-drift gate (no optionDoc/manual render check — cost over value for 7 options, 2026-10-17). CI: branch protection requires the Checks workflow with admin bypass (direct pushes stay possible); dependabot weekly on the action pins; actionlint + zizmor clean (run on demand, not wired — 3-step workflow, both green).
+
+## Runbooks
+
+### Live smoke test (hardened unit without a NixOS switch)
+
+Runs the exact serviceConfig sandbox as a transient user unit. Bus-transient properties do NOT expand specifiers (the `%t` expansion above is unit-file-only), so runtime paths are literal. Ground-truth store QML dir: extract exactly as `scripts/capture-demo.sh` does (third word of the eval'd `ExecStart`).
+
+```bash
+uid=$(id -u)
+systemd-run --user --unit=offline-banner-smoke \
+  -p ProtectSystem=strict -p ProtectHome=read-only -p PrivateTmp=true \
+  -p RuntimeDirectory="offline-banner quickshell" -p RuntimeDirectoryMode=0700 \
+  -p ReadWritePaths="/run/user/$uid/offline-banner /run/user/$uid/quickshell" \
+  -p MemoryMax=256M \
+  -p Environment="OFFLINE_BANNER_PROBE_HOST=127.0.0.1" \
+  -- quickshell -p "$qml"
+```
+
+Checklist: unit active under the full sandbox; ping works with cap_net_raw (`probe ok` for 127.0.0.1); forced outage (restart with `OFFLINE_BANNER_PROBE_HOST=192.0.2.123`) → journal `banner state=shown reason=net` + `{"active":true}` in `$XDG_RUNTIME_DIR/offline-banner/state`; demo control (`OFFLINE_BANNER_DEMO=1`) → `{"active":true,"demo":true}`; RSS well under MemoryMax; fontconfig cache warnings gone (XDG_CACHE_HOME lands in the runtime dir). `systemctl --user stop` when done — RuntimeDirectory cleans up with the unit.
+
+### Release
+
+1. Gates: `nix fmt && nix flake check --all-systems` green locally, CI green on master.
+2. CHANGELOG: fold `[Unreleased]` into the new version, add the keep-a-changelog compare-link footer.
+3. Tag + push (owner-gated): `git tag -a vX.Y.Z -m "offline-banner vX.Y.Z" && git push origin vX.Y.Z`.
+4. `gh release create vX.Y.Z --verify-tag --generate-notes`, or paste the CHANGELOG section as the body.
+5. Verify: CI green on the tag; `nix flake metadata github:LarsArtmann/offline-banner/vX.Y.Z` resolves.
 
 ## Consumers
 
