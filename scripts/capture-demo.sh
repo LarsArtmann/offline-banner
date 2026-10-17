@@ -68,7 +68,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-snapshot() { LC_ALL=C ls "$XDG_RUNTIME_DIR" | sort; }
+snapshot() { find "$XDG_RUNTIME_DIR" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort; }
 before="$(snapshot)"
 
 WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
@@ -108,17 +108,22 @@ sleep 0.7
 
 # Banner run, inside a private mount ns: carrier 1 -> 0 at t=2.5 (banner
 # appears within one probe interval) -> back to 1 at t=6.0 (recovery).
+# "$work" rides in as $1 (sh -c 'script' name arg1) so the inner script
+# stays single-quoted without quote gymnastics.
 env \
 	OFFLINE_BANNER_INTERVAL=1000 \
 	OFFLINE_BANNER_FAILURES=1 \
 	OFFLINE_BANNER_PROBE_TIMEOUT=2 \
 	OFFLINE_BANNER_PROBE_HOST=9.9.9.9 \
 	QT_QUICK_BACKEND=software \
-	unshare -rm sh -c '
+	# shellcheck disable=SC2016 — "$1"/"$qs" are for the INNER shell (shellcheck
+# cannot follow sh -c through unshare, so it misreads them as outer-expansion
+# intent; args after the script string pass "$work" in as $1).
+unshare -rm sh -c '
     mount -t tmpfs tmpfs /sys/class/net || exit 3
     mkdir -p /sys/class/net/eth0
     echo 1 > /sys/class/net/eth0/carrier
-    quickshell -p '"$work"' &
+    quickshell -p "$1" &
     qs=$!
     sleep 2.5
     echo 0 > /sys/class/net/eth0/carrier
@@ -126,7 +131,7 @@ env \
     echo 1 > /sys/class/net/eth0/carrier
     sleep 8
     kill "$qs"
-  ' >"$work/banner.log" 2>&1 &
+  ' offline-banner-demo "$work" >"$work/banner.log" 2>&1 &
 banner_pid=$!
 
 sleep 5.0

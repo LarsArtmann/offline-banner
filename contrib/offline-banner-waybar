@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+# Reference consumer for the offline-banner state file (see README
+# "Observability"): turns the fail-closed heartbeat into a waybar
+# indicator. Emits a custom-module JSON object while the banner is
+# active, nothing while fine, and a "stale" marker when the state file
+# is older than MAX_AGE seconds — a stale heartbeat means the unit is
+# effectively dead, so the consumer must say so instead of staying
+# silent.
+#
+# waybar config:
+#   "custom/offline-banner": {
+#       "exec": "/path/to/offline-banner/contrib/offline-banner-waybar",
+#       "interval": 5
+#   }
+#
+# Env: XDG_RUNTIME_DIR, OFFLINE_BANNER_MAX_AGE (default 15 s — about
+# three default probe intervals; README documents ~2 intervals as the
+# staleness threshold, the extra margin absorbs scheduling jitter).
+set -eu
+
+state="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/offline-banner/state"
+max_age="${OFFLINE_BANNER_MAX_AGE:-15}"
+
+[ -r "$state" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+now=$(date +%s)
+updated=$(jq -r '.updatedAt // 0' "$state")
+if [ "$((now - updated))" -gt "$max_age" ]; then
+	printf '{"text":"banner?","class":"stale","tooltip":"offline-banner state %ss old (threshold %ss) - unit dead?"}\n' \
+		"$((now - updated))" "$max_age"
+	exit 0
+fi
+
+active=$(jq -r '.active | tostring' "$state")
+[ "$active" = "true" ] || exit 0
+
+reason=$(jq -r '.reason // ""' "$state")
+case "$reason" in
+link) why="no link" ;;
+net) why="no internet" ;;
+*) why="offline" ;;
+esac
+
+tooltip="offline-banner: $why"
+[ "$(jq -r '.demo | tostring' "$state")" = "true" ] && tooltip="$tooltip (demo)"
+printf '{"text":"offline","class":"offline","tooltip":"%s"}\n' "$tooltip"
