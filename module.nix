@@ -153,7 +153,7 @@
                 const result = (text ?? "").trim().split("\n")[0];
                 if (result === "ok") {
                     if (root.failures > 0)
-                        console.log("[offline-banner] probe ok — recovered after " + root.failures + " consecutive failure(s)");
+                        console.log("[offline-banner] probe ok recovered_after=" + root.failures);
                     root.lastOnlineAt = Date.now() / 1000;
                     root.dismissed = false;
                     root.failures = 0;
@@ -166,7 +166,7 @@
                 // to run — all three keep the banner honest.
                 root.reason = result === "link" ? "link" : "net";
                 root.failures = root.failures + 1;
-                console.log("[offline-banner] probe failed: " + root.reason + " (consecutive failure " + root.failures + " of " + root.failuresToShow + ")");
+                console.log("[offline-banner] probe failed reason=" + root.reason + " failures=" + root.failures + "/" + root.failuresToShow);
                 root.emitState();
             }
 
@@ -194,12 +194,16 @@
             }
 
             onOfflineChanged: {
-                console.log("[offline-banner] banner " + (root.offline ? "SHOWN — " + root.reasonText : "hidden — network recovered"));
+                // Structured tokens (grep-able: journalctl | grep "banner state=")
+                // on top of the prose. At hide time the binding fires on the
+                // failures reset, so reason still names the outage being
+                // recovered from and failures is already 0.
+                console.log("[offline-banner] banner state=" + (root.offline ? "shown" : "hidden") + " reason=" + root.reason + " failures=" + root.failures + "/" + root.failuresToShow);
                 root.emitState();
             }
             onDismissedChanged: {
                 if (root.dismissed)
-                    console.log("[offline-banner] banner dismissed by click (re-arms on next clean probe)");
+                    console.log("[offline-banner] banner state=dismissed rearm=next_clean_probe");
                 root.emitState();
             }
 
@@ -368,6 +372,13 @@
           OFFLINE_BANNER_PROBE_HOST = cfg.probeHost;
           OFFLINE_BANNER_PROBE_TIMEOUT = toString cfg.probeTimeoutSeconds;
           OFFLINE_BANNER_FAILURES = toString cfg.failuresToShow;
+          # fontconfig/Qt cache under the sandbox: ProtectSystem=strict +
+          # ProtectHome=read-only make $HOME/.cache unwritable (live smoke
+          # showed fontconfig cache-write warnings). %t expands in unit-file
+          # Environment= (config_parse_environ specifier table); the cache/
+          # subdir is created by the apps — the state file stays untouched
+          # beside it.
+          XDG_CACHE_HOME = "%t/offline-banner/cache";
           # mkForce: systemd's user-unit default PATH is also set via
           # environment.PATH and would collide (eval-hard error). The
           # probe is pure shell builtins + ping — bash provides sh,

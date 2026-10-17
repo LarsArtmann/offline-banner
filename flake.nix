@@ -115,6 +115,11 @@
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
+                # Writable cache under the sandbox: the unit must point the
+                # XDG cache at the runtime dir (specifiers DO expand in
+                # unit-file Environment=), or fontconfig/Qt spams read-only
+                # $HOME/.cache warnings under ProtectSystem=strict.
+                cacheDirSet = toString (nixpkgs.lib.hasInfix "XDG_CACHE_HOME=%t/offline-banner/cache" unit.text);
                 # The FULL sandbox contract: every hardening directive the
                 # unit must carry (a refactor dropping one line fails this).
                 # List options render one line per item in unit text.
@@ -166,6 +171,7 @@
                 [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
                 [ "$envContractInUnit" = "1" ] || { echo "FAIL: OFFLINE_BANNER_* env contract missing from the unit"; exit 1; }
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
+                [ "$cacheDirSet" = "1" ] || { echo "FAIL: XDG_CACHE_HOME must point at the runtime dir (fontconfig cache under strict sandbox)"; exit 1; }
                 [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
                 [ "$noNoNewPrivileges" = "1" ] || { echo "FAIL: NoNewPrivileges must stay unset (it strips cap_net_raw from ping)"; exit 1; }
                 [ "$restartTriggersStoreQml" = "1" ] || { echo "FAIL: restartTriggers must reference the store QML (rename drift)"; exit 1; }
@@ -350,21 +356,171 @@
                   exit 1
                 }
 
+                # Journal asserts: quickshell's console.log lands in the log
+                # files (stderr), one structured line per transition
+                # (grep -F: the patterns contain = and /).
+                assert_journal() {
+                  local pattern="$1" f="''${2:-qs.log}"
+                  grep -qF -- "$pattern" "$f" \
+                    || { echo "FAIL: journal line '$pattern' not found in $f" >&2; tail -20 "$f" >&2; exit 1; }
+                }
+                assert_no_journal() {
+                  local pattern="$1" f="''${2:-qs.log}"
+                  if grep -qF -- "$pattern" "$f"; then
+                    echo "FAIL: unexpected journal line '$pattern' in $f" >&2
+                    exit 1
+                  fi
+                }
+
                 assert_state false               # clean ok probes: stays hidden
+                assert_no_journal "probe failed"  # nothing failed yet
                 echo net > control               # failure 1 of 2
                 assert_state false               # debounce holds
+                assert_journal "probe failed reason=net failures=1/2"
                 assert_state true net            # failure 2 of 2: shows
+                assert_journal "banner state=shown reason=net failures=2/2"
+                hb1=$(jq -r .updatedAt "$state")
                 echo link > control              # reason switches
                 assert_state true link
-                mkdir -p "$XDG_RUNTIME_DIR/offline-banner"   # the real unit gets this via RuntimeDirectory=
+                assert_journal "probe failed reason=link failures=3/2"
+                hb2=$(jq -r .updatedAt "$state")
+                [ "$hb2" -gt "$hb1" ] || { echo "FAIL: updatedAt did not advance between probes (heartbeat broken)"; exit 1; }
+                : > control                      # probe cannot run (empty output): fail visible as net
+                assert_state true net
+                assert_journal "probe failed reason=net failures=4/2"
                 echo ok > control                # recovery: hides + re-arms
                 assert_state false
+                assert_journal "probe ok recovered_after=4"
+                assert_journal "banner state=hidden reason=net failures=0/2"
                 echo net > control               # failure 1 of 2 again
                 assert_state false               # debounce holds again
                 assert_state true net            # fresh outage shows again
 
+                # Demo mode: a second instance must force-show with probes
+                # skipped (previous instance fully reaped first so no stale
+                # state write can race the fresh state file).
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                rm -f "$state"
+                OFFLINE_BANNER_DEMO=1 quickshell -p "$qmlDir" >qs-demo.log 2>&1 &
+                qs_pid=$!
+                assert_state true
+                [ "$(jq -r '.demo | tostring' "$state")" = "true" ] || { echo "FAIL: demo flag missing in state: $(cat "$state")"; exit 1; }
+                assert_journal "banner state=shown reason=" qs-demo.log
+
                 kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                 echo "probe-transitions: all assertions passed" > "$out"
+              '';
+          # Render smoke: the FIRST pixel-level proof that the banner
+          # actually renders. Same headless-sway harness as
+          # probe-transitions, but drives the real probe path (control
+          # file, not demo mode) and grim-captures HEADLESS-1 at each
+          # phase: hidden -> shown -> recovered. The strip is #f2f9e2af
+          # at 95% alpha; composited over any background it lands in the
+          # accepted R/G/B ranges below (black bg ~236,214,166, white bg
+          # ~249,227,179) — asserted at a strip pixel, asserted ABSENT
+          # below the strip and after recovery. This is software
+          # rendering (QT_QUICK_BACKEND=software, pixman), not a real
+          # monitor; hardware-output proof still rides a live session.
+          render-smoke =
+            let
+              qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
+            in
+            pkgs.runCommand "offline-banner-render-smoke"
+              {
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.jq
+                  pkgs.quickshell
+                  pkgs.sway
+                  pkgs.grim
+                  pkgs.imagemagick
+                  pkgs.coreutils
+                  pkgs.gnugrep
+                ];
+                inherit qmlDir;
+              }
+              ''
+                export XDG_RUNTIME_DIR="$PWD/runtime"
+                export HOME="$PWD/home"
+                export XDG_CACHE_HOME="$HOME/cache"
+                mkdir -p "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
+                export QT_QUICK_BACKEND=software
+                export QT_QPA_PLATFORM=wayland
+                export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+
+                echo "output HEADLESS-1 mode 1280x800 position 0,0" > sway-config
+                WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+                  sway --unsupported-gpu -c sway-config >sway.log 2>&1 &
+                sway_pid=$!
+                sock=""
+                for i in $(seq 1 100); do
+                  sock=$(ls "$XDG_RUNTIME_DIR" 2>/dev/null | grep -E '^wayland-[0-9]+$' | head -1 || true)
+                  [ -n "$sock" ] && break
+                  sleep 0.1
+                done
+                [ -n "$sock" ] || { echo "FAIL: headless sway did not start"; cat sway.log; exit 1; }
+                export WAYLAND_DISPLAY="$sock"
+                sleep 0.5
+
+                mkdir -p "$XDG_RUNTIME_DIR/offline-banner"
+                echo ok > control
+                export OFFLINE_BANNER_INTERVAL=600
+                export OFFLINE_BANNER_FAILURES=2
+                export OFFLINE_BANNER_PROBE_CMD="cat $PWD/control"
+                quickshell -p "$qmlDir" >qs.log 2>&1 &
+                qs_pid=$!
+
+                state="$XDG_RUNTIME_DIR/offline-banner/state"
+                wait_active() {
+                  local want="$1" i got
+                  for i in $(seq 1 40); do
+                    got=$(jq -r '.active | tostring' "$state" 2>/dev/null || true)
+                    [ "$got" = "$want" ] && return 0
+                    sleep 0.25
+                  done
+                  echo "FAIL: state never became active=$want" >&2
+                  echo "--- qs.log ---" >&2; tail -20 qs.log >&2
+                  exit 1
+                }
+                # Strip pixel color range (see comment above); %[pixel:p{}]
+                # prints srgb(r,g,b) — alpha is gone in the composited frame.
+                pixel_is_yellow() {
+                  magick "$1" -format "%[pixel:p{$2,$3}]" info: | awk -F'[(,)]' \
+                    '{ r = $2 + 0; g = $3 + 0; b = $4 + 0
+                       exit !(r >= 225 && r <= 255 && g >= 200 && g <= 240 && b >= 150 && b <= 195 && r - b >= 55) }'
+                }
+                assert_yellow() {
+                  pixel_is_yellow "$@" \
+                    || { echo "FAIL: expected banner yellow at ($2,$3) in $1, got $(magick "$1" -format "%[pixel:p{$2,$3}]" info:)"; exit 1; }
+                }
+                assert_not_yellow() {
+                  if pixel_is_yellow "$@"; then
+                    echo "FAIL: unexpected banner yellow at ($2,$3) in $1"
+                    exit 1
+                  fi
+                }
+
+                wait_active false
+                sleep 1                       # settle frames before capture
+                grim -o HEADLESS-1 hidden.png
+                assert_not_yellow hidden.png 20 10
+
+                echo net > control            # 2 consecutive failures -> show
+                wait_active true
+                sleep 1.2                     # 450 ms push-down + margin
+                grim -o HEADLESS-1 shown.png
+                assert_yellow shown.png 20 10
+                assert_not_yellow shown.png 640 700   # strip is localized, not a wash
+
+                echo ok > control             # recovery -> slide back up
+                wait_active false
+                sleep 1.2
+                grim -o HEADLESS-1 recovered.png
+                assert_not_yellow recovered.png 20 10
+
+                kill "$qs_pid" "$sway_pid" 2>/dev/null || true
+                echo "render-smoke: banner hidden -> shown -> recovered, pixel-verified" > "$out"
               '';
           # Shell-content gate: the BUILT shell.qml must actually contain
           # the namespace interpolation and the env-var probe markers —
