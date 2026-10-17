@@ -1,9 +1,8 @@
 {
-  description = "gogenfilter website — Astro + Starlight";
+  description = "offline-banner website — Astro + Starlight";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
 
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
@@ -12,11 +11,6 @@
 
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    md-go-validator = {
-      url = "github:LarsArtmann/md-go-validator";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -40,10 +34,6 @@
           ...
         }:
         let
-          mdgo = inputs.md-go-validator.packages.${pkgs.stdenv.system}.default.overrideAttrs (_: {
-            vendorHash = "sha256-r2hvS99DCP2DkLrMkRs4lOkvDk2tQI+CGQl89KM4ZBc=";
-          });
-
           mkApp = name: runtimeInputs: text: {
             type = "app";
             program = "${
@@ -67,13 +57,8 @@
                 ]
                 ''
                   pnpm run build
-                  firebase deploy --only hosting
+                  firebase deploy --only hosting:offline-banner
                 '';
-            validate-docs = mkApp "validate-docs" [
-              pkgs.nodejs
-              pkgs.pnpm
-              mdgo
-            ] "md-go-validator -f table src/content/docs/";
           };
 
           devShells.default = pkgs.mkShellNoCC {
@@ -81,7 +66,6 @@
               pkgs.nodejs
               pkgs.pnpm
               pkgs.firebase-tools
-              mdgo
             ];
           };
 
