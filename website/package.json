@@ -1,25 +1,25 @@
 {
-  "name": "gogenfilter-website",
+  "name": "offline-banner-website",
   "version": "1.0.0",
   "private": true,
-  "description": "Website and documentation for gogenfilter — detect and filter auto-generated Go code files",
+  "description": "Website and documentation for offline-banner — a yellow top-strip offline banner for NixOS desktops",
   "keywords": [
     "astro",
-    "code-generation",
-    "code-quality",
-    "go",
-    "gogenfilter",
-    "golang",
+    "nixos",
+    "nix-flake",
+    "wayland",
+    "layer-shell",
+    "quickshell",
     "starlight",
-    "static-analysis"
+    "offline-banner"
   ],
-  "homepage": "https://gogenfilter.lars.software",
-  "bugs": "https://github.com/LarsArtmann/gogenfilter/issues",
+  "homepage": "https://offline-banner.lars.software",
+  "bugs": "https://github.com/LarsArtmann/offline-banner/issues",
   "license": "MIT",
   "author": "LarsArtmann <lars@larsartmann.com> (https://larsartmann.com/)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/LarsArtmann/gogenfilter.git",
+    "url": "https://github.com/LarsArtmann/offline-banner.git",
     "directory": "website"
   },
   "type": "module",
@@ -29,8 +29,6 @@
     "preview": "astro preview",
     "typecheck": "astro check",
     "clean": "rm -rf dist .astro node_modules/.cache",
-    "validate:docs": "md-go-validator -f table src/content/docs/",
-    "dedup": "bash scripts/dedup.sh",
     "astro": "astro"
   },
   "dependencies": {
@@ -45,7 +43,6 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "html-validate": "^11.16.1",
-    "jscpd": "^5.3.3",
     "typescript": "^7.0.2"
   },
   "overrides": {

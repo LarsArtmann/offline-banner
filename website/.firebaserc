@@ -5,8 +5,8 @@
   "targets": {
     "lars-software": {
       "hosting": {
-        "gogenfilter": [
-          "gogenfilter"
+        "offline-banner": [
+          "offline-banner"
         ]
       }
     }

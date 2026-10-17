@@ -1,17 +1,10 @@
 {
   "hosting": {
-    "target": "gogenfilter",
+    "target": "offline-banner",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/src/**"],
     "cleanUrls": true,
     "trailingSlash": false,
-    "redirects": [
-      {
-        "source": "/docs/:path*",
-        "destination": "/:path*",
-        "type": 301
-      }
-    ],
     "headers": [
       {
         "source": "**",

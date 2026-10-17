@@ -1,11 +1,11 @@
 {
-  "name": "gogenfilter",
-  "short_name": "gogenfilter",
-  "description": "Skip auto-generated Go code in linters and CI",
+  "name": "offline-banner",
+  "short_name": "offline-banner",
+  "description": "A yellow top-strip offline banner for NixOS desktops — on every monitor while the network is down, gone on recovery",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0c0a09",
-  "theme_color": "#22d3ee",
+  "background_color": "#11111b",
+  "theme_color": "#e8d44d",
   "icons": [
     {
       "src": "/favicon.svg",

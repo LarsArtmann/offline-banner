@@ -5,7 +5,7 @@ import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  site: "https://gogenfilter.lars.software",
+  site: "https://offline-banner.lars.software",
   security: {
     csp: {
       scriptDirective: {
@@ -48,7 +48,7 @@ export default defineConfig({
   integrations: [
     sitemap(),
     starlight({
-      title: "gogenfilter",
+      title: "offline-banner",
       favicon: "/favicon.svg",
       customCss: ["./src/styles/starlight.css"],
       expressiveCode: {
@@ -62,34 +62,15 @@ export default defineConfig({
           label: "Getting Started",
           items: [
             { label: "Installation", slug: "getting-started/installation" },
-            { label: "Quick Start", slug: "getting-started/quick-start" },
+            { label: "Configuration", slug: "getting-started/configuration" },
           ],
         },
         {
           label: "Guides",
           items: [
-            { label: "Filter Options", slug: "guides/filter-options" },
-            { label: "Pattern Matching", slug: "guides/pattern-matching" },
-            { label: "SQLC Config Discovery", slug: "guides/sqlc-config" },
-            { label: "Custom Filesystems", slug: "guides/custom-filesystem" },
-            { label: "Gitignore Pre-Filtering", slug: "guides/gitignore-pre-filtering" },
-            { label: "Benchmarks", slug: "guides/benchmarks" },
+            { label: "How It Works", slug: "guides/how-it-works" },
+            { label: "Observability", slug: "guides/observability" },
           ],
-        },
-        {
-          label: "API Reference",
-          items: [
-            { label: "Filter", slug: "api/filter" },
-            { label: "Detection", slug: "api/detection" },
-            {
-              label: "Full API on pkg.go.dev",
-              link: "https://pkg.go.dev/github.com/LarsArtmann/gogenfilter/v3",
-            },
-          ],
-        },
-        {
-          label: "Supported Generators",
-          slug: "generators",
         },
         {
           label: "Known Limitations",
@@ -101,7 +82,6 @@ export default defineConfig({
             { label: "Changelog", slug: "changelog" },
             { label: "Contributing", slug: "contributing" },
             { label: "Related Tools", slug: "related-tools" },
-            { label: "Who Uses gogenfilter", link: "/dependents" },
           ],
         },
       ],
@@ -109,7 +89,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/LarsArtmann/gogenfilter",
+          href: "https://github.com/LarsArtmann/offline-banner",
         },
       ],
       head: [
@@ -118,7 +98,7 @@ export default defineConfig({
           attrs: {
             name: "description",
             content:
-              "Stop linting code no human wrote. gogenfilter detects and filters auto-generated Go files for linters, static analysis, and code quality tools.",
+              "A yellow top-strip banner for NixOS desktops that appears on every monitor while the network is down, and slides away the moment it's back.",
           },
         },
       ],
