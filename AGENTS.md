@@ -46,7 +46,7 @@ bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hy
 - **Website**: https://offline-banner.lars.software (canonical) = https://offline-banner.web.app (live alias). Source in `website/` (gogenfilter baseline; banner-yellow `#e8d44d` accent on the demo's catppuccin-dark base; og:image = 1200x630 crop of the video poster). Landing video anchor `#demo` is deep-linked from the README bar.
 - **Demo video**: `website/video/index.html` is the committed composition (24 s, 1920x1080; strip/bar rebuilt in CSS from module.nix colors, transform-only, lint+check clean); render to `website/public/demo.mp4` (<3 MB). Beat structure + verification rules: website-launch skill `references/demo-video.md`.
 - **Deploy**: Firebase Hosting, shared `lars-software` project, hosting target `offline-banner` (site ID immutable). CI deploys on master push once the `FIREBASE_SERVICE_ACCOUNT` secret is set (deploy step is secret-gated so CI stays green meanwhile).
-- **DNS**: `offline-banner.lars.software` CNAME + ACME TXT staged in `~/projects/domains/lars.software.tf`; `tofu apply` is owner-gated (host gcloud identity lacks GCS-backend quota access). Custom domain registered at Firebase (REST API; the CLI cannot) — CERT_ACTIVE follows 10-60 min after apply.
+- **DNS**: applied by the owner 2026-10-17 — CNAME resolves (→ `offline-banner.web.app`, A 199.36.158.100), Firebase cert ACTIVE, both URLs serve identical content (landing + demo.mp4 verified over HTTPS the same morning). Terraform source lives in `~/projects/domains/lars.software.tf`; note `tofu init` from this host hits a GCS-backend quota error, so apply is owner-side. The custom domain itself was registered via Firebase REST API (the CLI cannot).
 - **Launch posts**: Discourse + r/NixOS drafts in `docs/marketing/launch-post-drafts.md` (one narrative from the README "Why?" — do not re-invent per surface). Social preview card: `assets/branding/social-preview.png` (manual upload in repo Settings → Social preview; no API).
 
 ## Inventory
@@ -60,7 +60,7 @@ Seven flake checks (green on both systems, CI-enforced via branch protection):
 - `unit-verify`: systemd-analyze verify on the rendered unit (sandbox recipe: LD_PRELOAD mkdir/mkdirat shim redirects /run; --user --recursive-errors=no; graphical-session.target stubbed).
 - `docs-drift`: option list derived from the module eval must appear in README + FEATURES; env-contract mention + quickstart pointers pinned.
 - `shell-content`: the BUILT shell.qml must contain the namespace interpolation and the probe env markers (the unit-text contract cannot see inside the QML; negative-tested).
-- `probe-transitions`: drives the REAL store QML through ok/net/link/empty-probe/demo (OFFLINE_BANNER_PROBE_CMD injection, headless sway, software rendering) and asserts debounce/reason/recovery/re-arm, the state-file freshness heartbeat, AND the structured journal lines (`probe failed reason=net failures=1/2`, `banner state=shown ...`).
+- `probe-transitions`: drives the REAL store QML through ok/net/link/empty-probe/demo (OFFLINE_BANNER_PROBE_CMD injection, headless sway, software rendering) and asserts debounce/reason/recovery/re-arm, the state-file freshness heartbeat, AND the structured journal lines (`probe failed reason=net failures=1/2`, `banner state=shown ...`). CI runs it on emulated aarch64 — far slower than local — so mid-sequence asserts must tolerate extra probes: exact counter matches only at deterministic positions, regex transitions past that (`assert_journal_re`), and the heartbeat compares the state file's mtime at ns resolution (updatedAt is epoch-seconds and two 600 ms-apart probes can share a second — two same-day CI flakes, both harness races, not product bugs).
 - `render-smoke`: the pixel gate — grim-captures the headless-sway output through hidden → shown → recovered via the real probe path and asserts the strip color (#f2f9e2af at 95% alpha) present on the strip, absent below it and after recovery. Software rendering (pixman); a real-monitor pixel proof still rides a live session.
 - `formatting`: treefmt (nixfmt + statix).
 
@@ -100,3 +100,7 @@ Checklist: unit active under the full sandbox; ping works with cap_net_raw (`pro
 ## Consumers
 
 - SystemNix (evo-x2) — CUTOVER DONE 2026-10-16 (owner-directed): consumed via the `offline-banner` input (locked fff0b61), thin wrapper sets `layerNamespace = "systemnix:offline-banner"`; evo-x2 eval green + shipped-QML parity proven. The hardened-unit live smoke test is DONE (2026-10-17, found+fixed the /run/user sandbox blocker) — the v3 switch is unblocked; its first real-monitor render proof rides the switch itself (the smoke session had zero active outputs).
+
+## Git
+
+- The auto-commit daemon commits locally every few minutes but NEVER pushes — push meaningful changes yourself. It can also commit mid-edit: check `git log` immediately before committing; if the daemon swept your files into an unpushed `chore: auto-commit` commit, `git reset --soft HEAD~1` and recommit with a real message (squash only unpushed commits).
