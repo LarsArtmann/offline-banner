@@ -1,17 +1,17 @@
 :root,
 ::backdrop {
-  --sl-color-white: #e7e5e4;
-  --sl-color-gray-1: #d6d3d1;
-  --sl-color-gray-2: #a8a29e;
-  --sl-color-gray-3: #78716c;
-  --sl-color-gray-4: #57534e;
-  --sl-color-gray-5: #292524;
-  --sl-color-gray-6: #1c1917;
-  --sl-color-black: #0c0a09;
+  --sl-color-white: #cdd6f4;
+  --sl-color-gray-1: #b6bdd0;
+  --sl-color-gray-2: #a5adc8;
+  --sl-color-gray-3: #7a819c;
+  --sl-color-gray-4: #5c6077;
+  --sl-color-gray-5: #313244;
+  --sl-color-gray-6: #1e1e2e;
+  --sl-color-black: #11111b;
 
-  --sl-color-accent-low: #083344;
-  --sl-color-accent: #22d3ee;
-  --sl-color-accent-high: #67e8f9;
+  --sl-color-accent-low: #3b340d;
+  --sl-color-accent: #e8d44d;
+  --sl-color-accent-high: #f2e06a;
 
   --sl-color-text: var(--sl-color-gray-2);
   --sl-color-text-accent: var(--sl-color-accent-high);
@@ -34,19 +34,19 @@
 
 :root[data-theme="light"],
 [data-theme="light"] ::backdrop {
-  --sl-color-white: #1c1917;
-  --sl-color-gray-1: #292524;
-  --sl-color-gray-2: #57534e;
-  --sl-color-gray-3: #78716c;
-  --sl-color-gray-4: #a8a29e;
-  --sl-color-gray-5: #d6d3d1;
-  --sl-color-gray-6: #e7e5e4;
-  --sl-color-gray-7: #f5f5f4;
-  --sl-color-black: #fafaf9;
+  --sl-color-white: #1e1e2e;
+  --sl-color-gray-1: #2a2c3d;
+  --sl-color-gray-2: #4c4f69;
+  --sl-color-gray-3: #6c6f85;
+  --sl-color-gray-4: #9498b0;
+  --sl-color-gray-5: #d5d6e4;
+  --sl-color-gray-6: #e6e6ef;
+  --sl-color-gray-7: #f0f0f7;
+  --sl-color-black: #f5f5fa;
 
-  --sl-color-accent-high: #06b6d4;
-  --sl-color-accent: #0e7490;
-  --sl-color-accent-low: #ecfeff;
+  --sl-color-accent-high: #8a7514;
+  --sl-color-accent: #a3891a;
+  --sl-color-accent-low: #fbf7e0;
 
   --sl-color-text-accent: var(--sl-color-accent);
   --sl-color-text-invert: var(--sl-color-black);

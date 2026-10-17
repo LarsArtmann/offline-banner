@@ -2,54 +2,55 @@
 import SectionHeader from './SectionHeader.astro';
 import Icon from './Icon.astro';
 
-const beforeIssues = [
-  { file: 'models.pb.go', line: '15', msg: '`User` is unused', linter: 'unused' },
-  { file: 'db/sqlc_gen.go', line: '8', msg: 'cyclomatic complexity 38', linter: 'gocyclo' },
-  { file: 'user_templ.go', line: '3', msg: 'too many statements', linter: 'funlen' },
-  { file: 'mock_user_mock.go', line: '5', msg: '`MockUser` is unused', linter: 'unused' },
-  { file: 'wire_gen.go', line: '12', msg: 'ineffectual assignment', linter: 'ineffassign' },
+const without = [
+  'Dead call, stalled build, endless spinner — nothing on screen says it\'s not your fault.',
+  'The NM tray icon reads "connecting…" on a static-IP uplink that was never NM-managed.',
+  'One bar widget covers one screen; the other two lie to you.',
+];
+const withBanner = [
+  'A yellow strip slides in on every monitor ~10 s after the network is actually gone.',
+  'It says why: "Network link is down" vs "No internet connection" — and how long ("last online 4m 12s ago").',
+  'The first clean probe slides it away and re-arms for the next outage.',
 ];
 ---
 
-<SectionHeader eyebrow="Before / After" title="See the difference." subtitle="Generated files vanish from your linter output." />
+<SectionHeader eyebrow="Without / With" title="The difference is on screen." subtitle="Connectivity loss stops being a mystery and becomes a warning." />
 
 <div class="grid gap-4 md:grid-cols-2 text-left max-w-4xl mx-auto">
-  <!-- BEFORE -->
   <div class="rounded-xl border border-border bg-bg-card overflow-hidden">
     <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-[#ff5555]/5">
       <Icon name="close" size={16} />
-      <span class="text-sm font-semibold text-text-secondary">Without gogenfilter</span>
+      <span class="text-sm font-semibold text-text-secondary">Without offline-banner</span>
     </div>
-    <div class="p-4 font-mono text-xs leading-relaxed space-y-1.5">
-      <div class="text-text-muted">$ golangci-lint run</div>
-      {beforeIssues.map((issue) => (
-        <div class="text-[#ff5555]">
-          <span class="text-[#f1fa8c]">{issue.file}</span><span class="text-text-muted">:{issue.line}: </span>{issue.msg} <span class="text-[#6272a4]">({issue.linter})</span>
+    <div class="p-4 space-y-3">
+      {without.map((line) => (
+        <div class="flex gap-2.5 text-sm leading-relaxed">
+          <span class="text-[#ff5555] mt-0.5 flex-none"><Icon name="close" size={14} /></span>
+          <span class="text-text-muted">{line}</span>
         </div>
       ))}
-      <div class="text-text-muted pt-2">{beforeIssues.length} issues — all on generated files</div>
     </div>
   </div>
 
-  <!-- AFTER -->
-  <div class="rounded-xl border border-success/30 bg-bg-card overflow-hidden">
-    <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-success/5">
+  <div class="rounded-xl border border-accent/30 bg-bg-card overflow-hidden">
+    <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-accent/5">
       <Icon name="check" size={16} />
-      <span class="text-sm font-semibold text-success">With gogenfilter</span>
+      <span class="text-sm font-semibold text-accent">With offline-banner</span>
     </div>
-    <div class="p-4 font-mono text-xs leading-relaxed space-y-1.5">
-      <div class="text-text-muted">$ golangci-lint run</div>
-      <div class="text-[#50fa7b] pt-1">
-        {beforeIssues.length} generated files skipped
-      </div>
-      <div class="text-text-muted pt-2">0 issues from generated code</div>
+    <div class="p-4 space-y-3">
+      {withBanner.map((line) => (
+        <div class="flex gap-2.5 text-sm leading-relaxed">
+          <span class="text-accent mt-0.5 flex-none"><Icon name="check" size={14} /></span>
+          <span class="text-text-muted">{line}</span>
+        </div>
+      ))}
     </div>
   </div>
 </div>
 
 <p class="text-center mt-6 text-sm text-text-muted">
-  Add one call to your analyzer. Every generated file disappears from the results.
+  One boolean in your config. Every screen tells the truth.
 </p>
 <p class="text-center mt-2 text-xs text-text-muted">
-  Illustrative example — file names and issue counts are representative.
+  Behavior as shipped in v0.1.0 — see the FEATURES inventory for per-claim evidence.
 </p>

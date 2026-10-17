@@ -24,7 +24,7 @@ export interface ProbeLeg {
   patterns: string[];
   hint: string;
   hintColor: "accent" | "blue";
-  hintIcon: string;
+  hintIcon: "check" | "warning";
 }
 
 export const personaIconKeys = ["monitor", "layers", "server", "terminal"] as const;
@@ -49,6 +49,7 @@ export const uiIconKeys = [
   "star",
   "play",
   "warning",
+  "check",
 ] as const;
 export type UIIcon = (typeof uiIconKeys)[number];
 

@@ -1,0 +1,51 @@
+---
+title: Configuration
+description: All seven options, live tuning via drop-in, and demo mode.
+---
+
+Seven options, all with honest defaults:
+
+| Option                 | Type    | Default            | Description                                                                                                                             |
+| ---------------------- | ------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `enable`               | bool    | `false`            | Enable the banner                                                                                                                       |
+| `package`              | package | `pkgs.quickshell`  | Quickshell package to run                                                                                                               |
+| `checkIntervalSeconds` | int > 0 | `5`                | Seconds between connectivity probes (env-override values ≤ 500 fall back to the 5000 ms default — sub-half-second probing is refused)   |
+| `probeHost`            | string  | `"9.9.9.9"`        | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                             |
+| `probeTimeoutSeconds`  | int > 0 | `3`                | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)                                                            |
+| `failuresToShow`       | int > 0 | `2`                | Consecutive failed probes before the banner appears (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable)  |
+| `layerNamespace`       | string  | `"offline-banner"` | WlrLayershell namespace (find the surface via e.g. `niri msg layers`)                                                                   |
+
+The probe-overlap assertion (`probeTimeoutSeconds < checkIntervalSeconds`) is
+checked at eval time — a bad config fails the build, not your desktop.
+
+## Live tuning without a rebuild
+
+The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}`
+environment variables mirror the options. A drop-in override retunes a live
+system without a rebuild:
+
+```bash
+systemctl --user edit offline-banner
+# add [Service] Env=OFFLINE_BANNER_PROBE_HOST=1.1.1.1
+systemctl --user restart offline-banner   # env is read at start
+```
+
+The env contract is asserted by the `module-contract` flake check, so it cannot
+silently drift from the options.
+
+## Demo mode
+
+```bash
+systemctl --user set-environment OFFLINE_BANNER_DEMO=1
+systemctl --user restart offline-banner
+```
+
+`OFFLINE_BANNER_DEMO=1` forces the banner visible with the probes skipped
+entirely — safe demos and post-deploy checks, no unroutable-IP drop-in hack.
+
+## IPv6 note
+
+`probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken
+v4 route the banner shows offline while v6 browsing works — an accepted
+tradeoff. Point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials
+it directly).

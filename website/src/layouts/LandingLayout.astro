@@ -3,7 +3,6 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { siteConfig } from '../data/config';
-import { generatorCount } from '../data/generators';
 import { ClientRouter } from 'astro:transitions';
 
 export interface Props {
@@ -11,7 +10,6 @@ export interface Props {
 }
 
 const { title } = Astro.props;
-const ogDesc = siteConfig.ogDescription.replace('{count}', String(generatorCount));
 ---
 
 <!doctype html>
@@ -23,34 +21,31 @@ const ogDesc = siteConfig.ogDescription.replace('{count}', String(generatorCount
     <meta name="description" content={siteConfig.description} />
     <title>{title}</title>
     <meta property="og:title" content={siteConfig.name} />
-    <meta property="og:description" content={ogDesc} />
+    <meta property="og:description" content={siteConfig.ogDescription} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={siteConfig.siteUrl} />
-    <meta property="og:image" content={`${siteConfig.siteUrl}/og/home.png`} />
-    <meta property="og:image:alt" content="gogenfilter — Detect & Filter Auto-Generated Go Code" />
+    <meta property="og:image" content={`${siteConfig.siteUrl}/demo-poster.png`} />
+    <meta property="og:image:alt" content="offline-banner — a yellow strip appears on the desktop when the network dies and slides away on recovery" />
+    <meta property="og:image:width" content="1920" />
+    <meta property="og:image:height" content="1080" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={siteConfig.name} />
-    <meta name="twitter:description" content={ogDesc} />
-    <meta name="twitter:image" content={`${siteConfig.siteUrl}/og/home.png`} />
+    <meta name="twitter:description" content={siteConfig.ogDescription} />
+    <meta name="twitter:image" content={`${siteConfig.siteUrl}/demo-poster.png`} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="canonical" href={siteConfig.siteUrl} />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#11111b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5fa" media="(prefers-color-scheme: light)" />
     <script is:inline src="/js/theme-init.js"></script>
-  </head>
-  <body class="font-sans bg-bg-primary text-text-secondary antialiased leading-relaxed">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-accent focus:text-on-accent focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold">Skip to content</a>
     <script type="application/ld+json" is:inline set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "gogenfilter",
+      "name": "offline-banner",
       "description": siteConfig.description,
       "url": siteConfig.siteUrl,
       "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Go",
-      "programmingLanguage": "Go",
+      "operatingSystem": "NixOS, Linux",
       "license": "https://opensource.org/licenses/MIT",
       "author": {
         "@type": "Person",
@@ -63,6 +58,20 @@ const ogDesc = siteConfig.ogDescription.replace('{count}', String(generatorCount
         "priceCurrency": "USD"
       }
     })} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": "offline-banner demo — 24 seconds",
+      "description": "The offline banner appearing when the network dies and sliding away on recovery — debounce, reason caption, last-online tick, push-down animation.",
+      "thumbnailUrl": [`${siteConfig.siteUrl}/demo-poster.png`],
+      "uploadDate": "2026-10-17",
+      "contentUrl": `${siteConfig.siteUrl}/demo.mp4`,
+      "embedUrl": siteConfig.siteUrl,
+      "duration": "PT24S"
+    })} />
+  </head>
+  <body class="font-sans bg-bg-primary text-text-secondary antialiased leading-relaxed">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-accent focus:text-on-accent focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold">Skip to content</a>
     <Header />
     <main id="main-content">
       <slot />

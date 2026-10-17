@@ -1,6 +1,5 @@
 import { getCollection } from "astro:content";
 import { OGImageRoute } from "astro-og-canvas";
-import { generatorCount } from "../../data/generators";
 
 const docs = await getCollection("docs");
 const docPages = Object.fromEntries(docs.map(({ data, id }) => [id, { data }]));
@@ -9,8 +8,9 @@ const pages = {
   ...docPages,
   home: {
     data: {
-      title: "gogenfilter",
-      description: `Stop linting code no human wrote. Detect and skip ${generatorCount} Go code generators in your linters and CI.`,
+      title: "offline-banner",
+      description:
+        "The moment your network dies, a yellow strip slides in on every monitor — and slides away the moment it's back.",
     },
   },
 };
@@ -22,8 +22,8 @@ export const { getStaticPaths, GET } = await OGImageRoute({
   getImageOptions: (_path, page) => ({
     title: page.data.title,
     description: page.data.description,
-    bgGradient: [[12, 10, 9]],
-    border: { color: [34, 211, 238], width: 4 },
+    bgGradient: [[17, 17, 27]],
+    border: { color: [232, 212, 77], width: 4 },
     padding: 80,
   }),
 });

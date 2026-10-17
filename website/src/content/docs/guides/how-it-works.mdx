@@ -1,0 +1,53 @@
+---
+title: How It Works
+description: The two-leg probe, the debounce, the push-down animation, and the startup race.
+---
+
+## The probe
+
+offline-banner never asks NetworkManager — `nmcli networking connectivity`
+reads `none` on NM-unmanaged uplinks (static-IP ethernet, bridges) while the
+internet is perfectly reachable. Live-verified on the origin host.
+
+Instead, every `checkIntervalSeconds` it runs a two-leg shell check:
+
+1. **Link leg** — any real interface (lo/veth/tailscale/wireguard/docker/...
+   excluded) with `carrier 1`, read straight from `/sys/class/net`. No carrier
+   → *"Network link is down"*.
+2. **Internet leg** — one ICMP echo to `probeHost` (default `9.9.9.9`, an IP,
+   not a name: DNS is often half-broken exactly when the banner matters, and
+   the banner must never depend on the resolver). No echo → *"No internet
+   connection"*.
+
+A probe that cannot even run counts as a failure — fail visible, never fail
+silent.
+
+## The debounce
+
+`failuresToShow` consecutive failed probes (default 2 × 5 s ≈ 10 s) must fail
+before the banner appears; it hides on the *first* clean probe. One lost ping
+changes nothing — no flash. The click-to-dismiss state re-arms on recovery, so
+a fresh outage shows a fresh banner.
+
+## The push-down
+
+The strip is a `WlrLayer.Top` layer-shell surface with `ExclusionMode.Auto`
+and an **animated height** (InOutCubic, 450 ms). A top-anchored bar is pushed
+down beneath it frame by frame and slides back up on recovery. Nothing is
+covered; nothing underneath is unreachable.
+
+## The startup race
+
+If the session starts with no active monitor (lid closed, headless boot),
+quickshell runs against Qt's placeholder screen — no banner surfaces exist,
+but the probe keeps running, so the journal and state file stay truthful.
+Surfaces are created per monitor as outputs connect.
+
+## What it is verified by
+
+- `probe-transitions` flake check — drives the **real store QML** through
+  ok/net/link in headless sway and asserts hidden → debounce → show(net) →
+  reason(link) → recovery → re-arm through the state file.
+- `unit-verify` — `systemd-analyze verify` on the rendered unit, in-sandbox.
+- `module-contract` — every sandbox directive line, the env contract, and the
+  quickshell ExecStart, asserted line-by-line.

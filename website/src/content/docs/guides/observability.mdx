@@ -1,0 +1,39 @@
+---
+title: Observability
+description: Journal lines, the JSON state file, fail-closed liveness, and a waybar consumer.
+---
+
+A dead banner must never be silent.
+
+## Journal
+
+Every transition logs a structured, grep-able line:
+
+```console
+$ journalctl --user -u offline-banner -f | grep "banner state="
+probe failed reason=net failures=1/2
+banner state=shown reason=net failures=2/2
+probe ok recovered_after=2
+banner state=hidden reason=ok failures=0/2
+```
+
+## State file
+
+`$XDG_RUNTIME_DIR/offline-banner.state` holds a JSON snapshot — `active`,
+`reason`, `failures`, `failuresToShow`, `updatedAt` — rewritten on **every
+probe**.
+
+Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the
+unit is effectively dead — treat the banner as absent and check
+`systemctl --user is-active offline-banner`.
+
+## Waybar consumer
+
+A reference consumer ships in
+[`contrib/offline-banner-waybar`](https://github.com/LarsArtmann/offline-banner/tree/master/contrib/offline-banner-waybar):
+
+- shows an offline widget while `active` is true,
+- stays empty while fine,
+- flips to a `stale` marker once the heartbeat exceeds
+  `OFFLINE_BANNER_MAX_AGE` (default 15 s) — the freshness heartbeat made
+  visible.

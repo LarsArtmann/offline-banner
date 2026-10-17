@@ -1,0 +1,36 @@
+---
+title: Contributing
+description: Development setup, commands, and the project's hard rules.
+---
+
+The project lives at
+[github.com/LarsArtmann/offline-banner](https://github.com/LarsArtmann/offline-banner).
+
+## Setup
+
+```bash
+git clone https://github.com/LarsArtmann/offline-banner && cd offline-banner
+nix develop          # dev shell
+nix flake check      # formatting + all module-contract checks
+nix fmt              # treefmt (nixfmt + statix)
+```
+
+## Hard rules
+
+- **The module stays single-file and self-contained** (`module.nix`, QML
+  inlined via `pkgs.writeTextDir`).
+- **The `OFFLINE_BANNER_*` env vars are a public surface** — renaming them
+  breaks live systems.
+- **The rationale comments in `module.nix` are the contract** (non-flashing
+  yellow, debounce, fail-visible probe, push-down animation) — do not silently
+  drop them.
+- `probeTimeoutSeconds < checkIntervalSeconds` is an eval-time assertion —
+  keep it.
+
+## Checks
+
+`nix flake check` runs formatting, the module contract (unit text, sandbox
+directives, restartTriggers, built-shell content), `systemd-analyze verify`,
+the docs-drift gate, and the probe-transition machine test. Rendering itself
+needs a live compositor — `scripts/capture-demo.sh` captures the real QML in
+headless sway.

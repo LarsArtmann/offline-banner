@@ -1,0 +1,29 @@
+---
+title: Known Limitations
+description: When NOT to use offline-banner — named exclusions and what to reach for instead.
+---
+
+The strongest trust signal is naming what a project is not for. Skip
+offline-banner if:
+
+- **You are on X11.** The banner is a layer-shell (Wayland) surface, full
+  stop.
+- **You run GNOME or KDE.** They ship their own network indicators, and this
+  module is proven on niri; other layer-shell compositors (sway, Hyprland) are
+  expected but untested.
+- **You want a network monitor.** Graphs, history, per-app stats are non-goals
+  — this is one boolean, honestly derived and honestly displayed.
+- **You need per-app or per-interface diagnosis.** The probe answers "is the
+  path up", not "which application is misbehaving".
+- **You cannot accept a second Quickshell instance.** The banner deliberately
+  runs its own Quickshell process so it never depends on your bar's plugin
+  API.
+
+## Accepted tradeoffs
+
+- **IPv4-default probe**: on a v6-primary uplink with a broken v4 route the
+  banner shows offline while v6 browsing works. Point `probeHost` at a v6
+  literal on v6-primary hosts (see [Configuration](/getting-started/configuration/)).
+- **First render on a monitor-on session**: pixel visibility on real monitors
+  rode the origin deployment; the behavior itself is machine-verified by the
+  `probe-transitions` check (see [How it works](/guides/how-it-works/)).

@@ -1,34 +1,33 @@
 ---
-import { phases } from '../data/sections';
+import { probeLegs } from '../data/sections';
 import Icon from './Icon.astro';
 import SectionHeader from './SectionHeader.astro';
 ---
 
-<SectionHeader eyebrow="Detection" title="Two-phase detection." subtitle="Filename first, content second. Most files are classified without reading a single byte." />
+<SectionHeader eyebrow="Detection" title="A two-leg probe that doesn't lie." subtitle="Never NetworkManager — it reads `none` on NM-unmanaged uplinks while the internet is perfectly reachable. Live-verified on the origin host." />
 
 <div class="grid gap-4 text-left sm:grid-cols-2 items-stretch relative">
-  <!-- Connecting flow indicator (desktop only) -->
   <div class="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-bg-primary border-2 border-border items-center justify-center" aria-hidden="true">
     <Icon name="arrow-right" size={18} />
   </div>
-  {phases.map((phase, i) => (
-    <div class={`p-6 rounded-xl border bg-bg-card ${phase.phaseColor === 'accent' ? 'border-accent/30' : 'border-amber/30'} ${i === 0 ? 'sm:pr-8' : 'sm:pl-8'}`}>
+  {probeLegs.map((leg, i) => (
+    <div class={`p-6 rounded-xl border bg-bg-card ${leg.legColor === 'accent' ? 'border-accent/30' : 'border-blue/30'} ${i === 0 ? 'sm:pr-8' : 'sm:pl-8'}`}>
       <div class="flex items-center gap-3 mb-4">
-        <div class={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-mono font-bold ${phase.phaseColor === 'accent' ? 'bg-accent-dim text-accent' : 'bg-amber/10 text-amber'}`}>{phase.phase}</div>
-        <h3 class="font-semibold text-text-primary text-lg">{phase.title}</h3>
+        <div class={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-mono font-bold ${leg.legColor === 'accent' ? 'bg-accent-dim text-accent' : 'bg-blue/10 text-blue'}`}>{leg.leg}</div>
+        <h3 class="font-semibold text-text-primary text-lg">{leg.title}</h3>
       </div>
       <p class="text-base text-text-muted mb-4">
-        Scan for{' '}
-        {phase.patterns.map((p, j) => (
+        Reads{' '}
+        {leg.patterns.map((p, j) => (
           <>
-            <code class={`bg-code-inline-bg px-1.5 py-0.5 rounded text-xs ${phase.phaseColor === 'accent' ? 'text-accent' : 'text-amber'}`}>{p}</code>
-            {j < phase.patterns.length - 1 && ' and '}
+            <code class={`bg-code-inline-bg px-1.5 py-0.5 rounded text-xs ${leg.legColor === 'accent' ? 'text-accent' : 'text-blue'}`}>{p}</code>
+            {j < leg.patterns.length - 1 && ' and '}
           </>
         ))}
       </p>
-      <span class={`inline-flex items-center gap-1.5 text-sm font-medium ${phase.hintColor === 'accent' ? 'text-accent' : 'text-amber'}`}>
-        <Icon name={phase.hintIcon} size={15} />
-        {phase.hint}
+      <span class={`inline-flex items-center gap-1.5 text-sm font-medium ${leg.hintColor === 'accent' ? 'text-accent' : 'text-blue'}`}>
+        <Icon name={leg.hintIcon} size={15} />
+        {leg.hint}
       </span>
     </div>
   ))}
@@ -36,5 +35,5 @@ import SectionHeader from './SectionHeader.astro';
 
 <p class="text-center mt-6 text-sm text-success font-medium inline-flex items-center justify-center gap-1.5 w-full">
   <Icon name="check" size={15} />
-  Every file classified — zero ambiguity
+  A probe that cannot even run counts as a failure — fail visible, never fail silent
 </p>

@@ -1,0 +1,50 @@
+---
+title: Installation
+description: Add offline-banner to your NixOS flake in two lines.
+---
+
+Two lines in your flake, one option in your configuration:
+
+```nix
+# flake.nix
+inputs.offline-banner.url = "github:LarsArtmann/offline-banner";
+inputs.offline-banner.inputs.nixpkgs.follows = "nixpkgs"; # one nixpkgs in your lock, not two
+```
+
+```nix
+# your NixOS configuration
+{
+  imports = [ inputs.offline-banner.nixosModules.default ];
+  services.offline-banner.enable = true;
+}
+```
+
+Keep the `follows` line: this flake tracks `nixos-unstable` (the NixOS-test-gated
+channel), and the `follows` makes sure only one nixpkgs lands in your lock. The
+module only needs `quickshell` from it — no channel-specific behavior.
+
+## What starts
+
+The unit is a `systemd --user` service bound to `graphical-session.target` — it
+starts with your graphical session and creates **one banner surface per
+connected monitor**.
+
+## Requirements
+
+- A Wayland compositor with layer-shell support. **Proven on niri**; sway and
+  Hyprland are expected but untested here. X11 is out of scope, full stop.
+- [Quickshell](https://quickshell.outfoxxed.me/) (pulled in automatically as
+  `pkgs.quickshell`; override with `services.offline-banner.package`).
+
+## First start behavior
+
+If the session starts with **no active monitor** (lid closed, headless boot),
+quickshell runs against Qt's placeholder screen — no banner surfaces exist, but
+the probe keeps running, so the journal and state file stay truthful. Surfaces
+are created per monitor as outputs connect.
+
+## Next steps
+
+- [Configuration](/getting-started/configuration/) — every option, live tuning, demo mode
+- [How it works](/guides/how-it-works/) — the two-leg probe and the debounce
+- [Observability](/guides/observability/) — journal lines and the state file

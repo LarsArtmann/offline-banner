@@ -1,0 +1,25 @@
+---
+title: Related Tools
+description: Siblings, consumers, and alternatives.
+---
+
+## In this ecosystem
+
+- [SystemNix](https://github.com/LarsArtmann/SystemNix) — the NixOS fleet this
+  module was extracted from (gen 904 ran it first).
+- [Quickshell](https://quickshell.outfoxxed.me/) — the QML shell runtime the
+  banner renders in.
+
+## Consumers
+
+- `contrib/offline-banner-waybar` — a reference waybar widget reading the
+  banner's JSON state file with fail-closed freshness semantics (see
+  [Observability](/guides/observability/)).
+
+## Alternatives, honestly compared
+
+- **NetworkManager applets/widgets** — read NM's connectivity state, which is
+  wrong on NM-unmanaged uplinks (static-IP ethernet, bridges). offline-banner
+  probes the kernel and the internet directly.
+- **Full network monitors** (conky, nastat-style panels) — graphs and history;
+  different job. offline-banner is one boolean, honestly displayed.
