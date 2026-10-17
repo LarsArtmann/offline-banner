@@ -6,6 +6,7 @@ result-*
 # Website
 website/node_modules/
 website/video/node_modules/
+website/video/.hyperframes/
 website/dist/
 
 # Secrets and environment — never commit
