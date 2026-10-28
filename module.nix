@@ -34,6 +34,29 @@
 # up. A probe that cannot even run (empty output) counts as "net" — fail
 # visible, never fail silent.
 #
+# SOUNDS (2026-10-28): the banner's audible twin rides the SAME
+# warning-not-page doctrine — one short, soft cue per OUTAGE (never per
+# probe, never looping): a gentle droop when the banner appears (lower
+# pitch for link loss — the "heavier" failure), an ascending sparkle on
+# recovery, a near-inaudible tick on dismiss. Three themes, synthesized
+# at build time by inline Python (stdlib only — no audio assets, no
+# fetch): chime (sine), droplet (pitch-bent plips), retro (8-bit
+# square); "none" opts out. Playback is pw-play against the session
+# PipeWire over its AF_UNIX socket (already in RestrictAddressFamilies
+# — the same hole Wayland uses); a bare `quickshell -p` run (env unset)
+# is silent, so tests and demos never beep.
+#
+# OUTAGE LEDGER (2026-10-28): every COMPLETED outage appends one JSON
+# line — from (first failed probe of the run), to (the clean probe that
+# ended it), durationSec, reasons, probeFailures — to a persistent
+# XDG-state file, so "how long were we offline this month?" is one jq.
+# Sub-debounce blips never become entries (they are not outages by this
+# module's definition); an outage still open when the unit stops is
+# lost (documented, accepted — the journal still holds the transitions);
+# demo mode never writes (it is a fake outage). The ledger dir is the
+# unit's ONLY writable home path (ReadWritePaths hole under
+# ProtectHome=read-only).
+#
 # Extracted from SystemNix (modules/nixos/desktop/offline-banner.nix,
 # deployed there as gen 904 v1 — verified: SystemNix live-session report
 # anchors /run/current-system == 904; v2/v3 were demo-proven, not deployed)
@@ -78,6 +101,35 @@
       type = lib.types.str;
       default = "offline-banner";
       description = "WlrLayershell namespace of the banner surfaces (visible via compositor layer tools, e.g. `niri msg layers`)";
+    };
+
+    soundTheme = lib.mkOption {
+      type = lib.types.enum [
+        "chime"
+        "droplet"
+        "retro"
+        "none"
+      ];
+      default = "chime";
+      description = "Sound theme for banner transitions — synthesized at build time (no audio assets): `chime` (soft sine: two-note droop on offline, ascending sparkle on recovery), `droplet` (pitch-bent water plips), `retro` (8-bit square-wave power-down/level-up), `none` (silence). One cue per outage (never per probe): lower pitch for link loss than for net loss, a sparkle on recovery, a quiet tick on dismiss. Playback runs `pw-play` against the session PipeWire (its AF_UNIX socket is already allowed by the sandbox)";
+    };
+
+    soundVolume = lib.mkOption {
+      type = lib.types.ints.between 0 100;
+      default = 60;
+      description = "Playback volume in percent, passed to pw-play as a linear factor (0 mutes without disabling the theme); PipeWire may apply its own stream volume on top";
+    };
+
+    enableHistory = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Append one JSON line per completed outage to historyPath: `{from, to, durationSec, reasons, probeFailures}` (epoch seconds). Outages shorter than the debounce never become entries; an outage still open when the unit stops is not written; demo mode never writes";
+    };
+
+    historyPath = lib.mkOption {
+      type = lib.types.str;
+      default = "%h/.local/state/offline-banner/history.jsonl";
+      description = "Absolute path of the persistent outage log (JSON Lines). %h/%t systemd unit specifiers expand (in unit-file Environment= and ReadWritePaths); the parent directory becomes the unit's only writable path under the read-only home";
     };
   };
 
