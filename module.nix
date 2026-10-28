@@ -173,6 +173,38 @@
                 return raw ? ["sh", "-c", raw] : [];
             }
 
+            // Sounds (see the module header for the doctrine): env unset
+            // (bare `quickshell -p` runs, tests, demos) = "none" = silence
+            // — the unit always passes the theme explicitly.
+            readonly property string soundTheme: {
+                const raw = Quickshell.env("OFFLINE_BANNER_SOUND_THEME");
+                return raw === "chime" || raw === "droplet" || raw === "retro" ? raw : "none";
+            }
+            // pw-play takes a linear 0..1 factor; out-of-range env falls
+            // back to the module default (60), same doctrine as intervalMs.
+            readonly property string soundVolumeArg: {
+                const raw = Quickshell.env("OFFLINE_BANNER_SOUND_VOLUME");
+                const parsed = raw ? parseFloat(raw) : 60;
+                const pct = parsed >= 0 && parsed <= 100 ? parsed : 60;
+                return (pct / 100).toFixed(2);
+            }
+            // OFFLINE_BANNER_SOUND_CMD (internal, test-only): replaces the
+            // player argv — the check harness asserts WHICH event fired.
+            readonly property var soundOverride: {
+                const raw = Quickshell.env("OFFLINE_BANNER_SOUND_CMD");
+                return raw ? ["sh", "-c", raw] : [];
+            }
+
+            // Persistent outage ledger (see the module header): env unset
+            // = no file writes — bare runs and tests never touch home.
+            readonly property string historyPath: Quickshell.env("OFFLINE_BANNER_HISTORY") || ""
+            // First failed probe of the CURRENT failing run (epoch sec;
+            // 0 = probes clean / sub-debounce blip already recovered).
+            property real firstFailedAt: 0
+            // Unique failure reasons of the current run, in first-seen
+            // order — the ledger entry's "reasons" array.
+            property var outageReasons: []
+
             property int failures: 0
             property string reason: ""
             readonly property bool offline: root.demo || root.failures >= root.failuresToShow
@@ -206,10 +238,19 @@
                 if (result === "ok") {
                     if (root.failures > 0)
                         console.log("[offline-banner] probe ok recovered_after=" + root.failures);
+                    // Close the outage ledger entry BEFORE the resets below
+                    // consume it — root.offline is still true here (the
+                    // binding re-evaluates on the failures reset after this
+                    // function returns), so this fires exactly once per
+                    // outage that actually showed.
+                    if (root.offline && root.firstFailedAt > 0)
+                        root.rememberOutage(Date.now() / 1000);
                     root.lastOnlineAt = Date.now() / 1000;
                     root.dismissed = false;
                     root.failures = 0;
                     root.reason = "";
+                    root.firstFailedAt = 0;
+                    root.outageReasons = [];
                     root.emitState();
                     return;
                 }
@@ -217,6 +258,10 @@
                 // unreachable; anything else = the probe itself failed
                 // to run — all three keep the banner honest.
                 root.reason = result === "link" ? "link" : "net";
+                if (root.failures === 0)
+                    root.firstFailedAt = Date.now() / 1000;
+                if (root.outageReasons.indexOf(root.reason) < 0)
+                    root.outageReasons.push(root.reason);
                 root.failures = root.failures + 1;
                 console.log("[offline-banner] probe failed reason=" + root.reason + " failures=" + root.failures + "/" + root.failuresToShow);
                 root.emitState();
@@ -239,10 +284,57 @@
                         reason: root.reason,
                         failures: root.failures,
                         failuresToShow: root.failuresToShow,
+                        // Outage start (epoch sec) while offline, else null —
+                        // the live twin of the ledger's "from"; waybar-style
+                        // consumers can show "offline for N" off this.
+                        since: root.offline && root.firstFailedAt > 0 ? Math.floor(root.firstFailedAt) : null,
                         updatedAt: Math.floor(Date.now() / 1000)
                     })
                 ];
                 stateWrite.running = true;
+            }
+
+            // ONE cue per outage transition, never per probe (see the
+            // module header). The wav dir is unit-managed env; the test
+            // seam replaces the whole player argv ($1 = event, $2 = wav).
+            function playSound(event) {
+                if (root.soundTheme === "none")
+                    return;
+                const override = root.soundOverride;
+                const dir = Quickshell.env("OFFLINE_BANNER_SOUNDS");
+                if (override.length === 0 && !dir)
+                    return;
+                const wav = (dir || "") + "/" + root.soundTheme + "-" + event + ".wav";
+                soundPlay.command = override.length > 0
+                    ? override.concat(["offline-banner-sound", event, wav])
+                    : ["pw-play", "--volume", root.soundVolumeArg, wav];
+                soundPlay.running = true;
+            }
+
+            // Append the completed-outage entry (journal always; the JSONL
+            // file only when historyPath is set). mkdir -p tolerates a
+            // fresh state dir on first outage after boot.
+            function rememberOutage(toEpoch) {
+                const from = root.firstFailedAt;
+                const duration = Math.max(0, Math.round(toEpoch - from));
+                const reasons = root.outageReasons.join(",");
+                console.log("[offline-banner] outage ended from=" + Math.floor(from) + " to=" + Math.floor(toEpoch) + " duration=" + duration + "s reasons=" + reasons);
+                if (root.historyPath === "")
+                    return;
+                historyWrite.command = [
+                    "sh", "-c",
+                    "mkdir -p \"$(dirname \"$1\")\" && printf '%s\n' \"$2\" >> \"$1\"",
+                    "offline-banner-history",
+                    root.historyPath,
+                    JSON.stringify({
+                        from: Math.floor(from),
+                        to: Math.floor(toEpoch),
+                        durationSec: duration,
+                        reasons: root.outageReasons,
+                        probeFailures: root.failures
+                    })
+                ];
+                historyWrite.running = true;
             }
 
             onOfflineChanged: {
@@ -250,12 +342,17 @@
                 // on top of the prose. At hide time the binding fires on the
                 // failures reset, so reason still names the outage being
                 // recovered from and failures is already 0.
+                root.playSound(root.offline
+                    ? "offline-" + (root.reason === "link" ? "link" : "net")
+                    : "recover");
                 console.log("[offline-banner] banner state=" + (root.offline ? "shown" : "hidden") + " reason=" + root.reason + " failures=" + root.failures + "/" + root.failuresToShow);
                 root.emitState();
             }
             onDismissedChanged: {
-                if (root.dismissed)
+                if (root.dismissed) {
+                    root.playSound("dismiss");
                     console.log("[offline-banner] banner state=dismissed rearm=next_clean_probe");
+                }
                 root.emitState();
             }
 
@@ -306,6 +403,22 @@
             // (see the observability note there).
             Process {
                 id: stateWrite
+
+                running: false
+            }
+
+            // Sound playback (pw-play) or the test-seam override; started
+            // at most once per outage transition by playSound().
+            Process {
+                id: soundPlay
+
+                running: false
+            }
+
+            // Outage-ledger appends, started by rememberOutage() on
+            // recovery only.
+            Process {
+                id: historyWrite
 
                 running: false
             }
@@ -400,6 +513,114 @@
             }
         }
       '';
+
+      # Sound-event semantics (the audible doctrine; mirrors the QML
+      # triggers in playSound): offline-net = two-note droop, offline-link
+      # = the same droop LOWER (link loss is the heavier failure — pitch,
+      # not loudness, carries it), recover = ascending sparkle, dismiss =
+      # near-inaudible tick. Synthesis: pure stdlib (wave/struct/math), no
+      # assets, no fetch — 3 themes x 4 events, each < 1 s mono 16-bit.
+      genSoundsScript = pkgs.writeText "gen-offline-banner-sounds.py" ''
+        import math
+        import os
+        import struct
+        import sys
+        import wave
+
+        SR = 44100
+
+        def note(start, dur, f0, f1=None, amp=0.5, kind="sine", att=0.010, rel=0.060):
+            return (start, dur, kind, f0, f0 if f1 is None else f1, amp, att, rel)
+
+        def render(path, notes, gain):
+            total = int((max(s + d for s, d, *_ in notes) + 0.02) * SR) + 1
+            buf = [0.0] * total
+            for start, dur, kind, f0, f1, amp, att, rel in notes:
+                n0, n1 = int(start * SR), int((start + dur) * SR)
+                span = max(1, n1 - n0)
+                phase = 0.0
+                for i in range(n0, n1):
+                    t = (i - n0) / span
+                    f = f0 + (f1 - f0) * t
+                    phase += 2.0 * math.pi * f / SR
+                    s = math.sin(phase)
+                    if kind == "square":
+                        s = 1.0 if s >= 0.0 else -1.0
+                    env = min(1.0, (i - n0) / max(1.0, att * SR)) * min(1.0, (n1 - i) / max(1.0, rel * SR))
+                    buf[i] += s * env * amp
+            peak = max(abs(x) for x in buf) or 1.0
+            scale = gain / peak
+            frames = bytearray()
+            for x in buf:
+                v = int(max(-1.0, min(1.0, x * scale)) * 32767.0)
+                frames += struct.pack("<h", v)
+            with wave.open(path, "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(SR)
+                w.writeframes(bytes(frames))
+
+        THEMES = {
+            "chime": (0.50, {
+                "offline-net": [
+                    note(0.00, 0.14, 392.00),
+                    note(0.15, 0.24, 261.63, amp=0.45, rel=0.10),
+                ],
+                "offline-link": [
+                    note(0.00, 0.14, 329.63),
+                    note(0.15, 0.28, 196.00, amp=0.50, rel=0.12),
+                ],
+                "recover": [
+                    note(0.00, 0.09, 523.25),
+                    note(0.10, 0.09, 659.26),
+                    note(0.20, 0.16, 783.99, amp=0.55, rel=0.10),
+                ],
+                "dismiss": [note(0.00, 0.07, 261.63, amp=0.50)],
+            }),
+            "droplet": (0.45, {
+                "offline-net": [note(0.00, 0.16, 880.00, 392.00)],
+                "offline-link": [note(0.00, 0.22, 493.88, 174.61)],
+                "recover": [
+                    note(0.00, 0.09, 392.00, 783.99),
+                    note(0.11, 0.14, 523.25, 1046.50, amp=0.55),
+                ],
+                "dismiss": [note(0.00, 0.06, 659.26, 493.88)],
+            }),
+            "retro": (0.35, {
+                "offline-net": [
+                    note(0.00, 0.09, 493.88, kind="square"),
+                    note(0.10, 0.09, 415.30, kind="square"),
+                    note(0.20, 0.13, 349.23, kind="square"),
+                ],
+                "offline-link": [note(0.00, 0.28, 392.00, 98.00, kind="square")],
+                "recover": [
+                    note(0.00, 0.07, 329.63, kind="square"),
+                    note(0.08, 0.07, 440.00, kind="square"),
+                    note(0.16, 0.07, 554.37, kind="square"),
+                    note(0.24, 0.13, 659.26, kind="square"),
+                ],
+                "dismiss": [note(0.00, 0.05, 220.00, kind="square")],
+            }),
+        }
+
+        out = sys.argv[1]
+        for theme, (gain, events) in THEMES.items():
+            for event, notes in events.items():
+                render(os.path.join(out, theme + "-" + event + ".wav"), notes, gain)
+        print("offline-banner: synthesized %d sounds" % sum(len(e) for _, e in THEMES.values()))
+      '';
+
+      offlineBannerSounds = pkgs.runCommand "offline-banner-sounds"
+        {
+          nativeBuildInputs = [ pkgs.python3 ];
+        }
+        ''
+          mkdir -p "$out"
+          python3 ${genSoundsScript} "$out"
+          # Build-time self-check: the full 3x4 matrix landed.
+          got=$(ls "$out" | wc -l)
+          [ "$got" -eq 12 ] || { echo "FAIL: expected 12 synthesized sounds, got $got"; exit 1; }
+        '';
     in
     lib.mkIf cfg.enable {
       assertions = [
@@ -410,6 +631,10 @@
         {
           assertion = cfg.failuresToShow <= 10;
           message = "services.offline-banner: failuresToShow (${toString cfg.failuresToShow}) exceeds 10 — the banner would stay hidden for over a minute at defaults; a value this high is a typo, not a debounce";
+        }
+        {
+          assertion = !cfg.enableHistory || lib.hasPrefix "/" cfg.historyPath || lib.hasPrefix "%" cfg.historyPath;
+          message = "services.offline-banner: historyPath (\"${toString cfg.historyPath}\") must be absolute — a leading %h/%t systemd specifier is fine";
         }
       ];
 
@@ -434,16 +659,43 @@
           # mkForce: systemd's user-unit default PATH is also set via
           # environment.PATH and would collide (eval-hard error). The
           # probe is pure shell builtins + ping — bash provides sh,
-          # iputils' ping ships cap_net_raw.
+          # iputils' ping ships cap_net_raw. pw-play (pipewire) joins
+          # only when a sound theme is on; it talks to the session
+          # PipeWire over its AF_UNIX socket (already allowed).
           PATH = lib.mkForce (
-            lib.makeBinPath [
-              pkgs.bash
-              pkgs.iputils
-            ]
+            lib.makeBinPath (
+              [
+                pkgs.bash
+                pkgs.iputils
+              ]
+              ++ lib.optionals (cfg.soundTheme != "none") [ pkgs.pipewire ]
+            )
           );
-        };
+        }
+        // (
+          # Sounds: same env-contract doctrine as the probe vars. The wav
+          # dir is a store path (same derivation as restartTriggers — a
+          # re-synthesis restarts the unit). Unset when theme = "none", so
+          # bare env inspection tells sound-enabled units apart.
+          lib.optionalAttrs (cfg.soundTheme != "none") {
+            OFFLINE_BANNER_SOUND_THEME = cfg.soundTheme;
+            OFFLINE_BANNER_SOUND_VOLUME = toString cfg.soundVolume;
+            OFFLINE_BANNER_SOUNDS = toString offlineBannerSounds;
+          }
+        )
+        // (
+          # Outage ledger: %h expands like %t above; ReadWritePaths below
+          # opens the matching writable hole under the read-only home.
+          # Unset when history is disabled — the QML then never writes.
+          lib.optionalAttrs cfg.enableHistory {
+            OFFLINE_BANNER_HISTORY = cfg.historyPath;
+          }
+        );
 
-        restartTriggers = [ offlineBannerShell ];
+        restartTriggers = [
+          offlineBannerShell
+          offlineBannerSounds
+        ];
 
         serviceConfig = {
           Type = "simple";
@@ -475,6 +727,14 @@
           ReadWritePaths = [
             "%t/quickshell"
             "%t/offline-banner"
+          ]
+          # The outage ledger is PERSISTENT (survives reboots — that is
+          # its point), so it cannot live in the volatile runtime dir:
+          # exactly its parent dir under the read-only home becomes the
+          # unit's one home write hole (%h expands in this setting like
+          # %t above).
+          ++ lib.optionals cfg.enableHistory [
+            (dirOf cfg.historyPath)
           ];
           RestrictAddressFamilies = [
             "AF_UNIX"

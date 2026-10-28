@@ -112,6 +112,10 @@
                     "OFFLINE_BANNER_PROBE_HOST"
                     "OFFLINE_BANNER_PROBE_TIMEOUT"
                     "OFFLINE_BANNER_FAILURES"
+                    "OFFLINE_BANNER_SOUND_THEME"
+                    "OFFLINE_BANNER_SOUND_VOLUME"
+                    "OFFLINE_BANNER_SOUNDS"
+                    "OFFLINE_BANNER_HISTORY"
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
@@ -149,19 +153,26 @@
                     "RuntimeDirectoryMode=0700"
                     "ReadWritePaths=%t/quickshell"
                     "ReadWritePaths=%t/offline-banner"
+                    "ReadWritePaths=%h/.local/state/offline-banner"
                   ]
                 );
                 # Deliberate absence: NoNewPrivileges would strip ping's
                 # cap_net_raw file capability (see module.nix serviceConfig).
                 noNoNewPrivileges = toString (!(nixpkgs.lib.hasInfix "NoNewPrivileges" unit.text));
                 # Rename drift: the service must keep restarting on QML
-                # changes via a store path that actually holds shell.qml.
-                restartTriggersStoreQml = toString (
+                # AND sound-synthesis changes — exactly two triggers, the
+                # store QML and the sounds dir, nothing sneaks in between.
+                restartTriggersComplete = toString (
                   let
-                    trigs = enabled.config.systemd.user.services.offline-banner.restartTriggers or [ ];
+                    trigs = map toString (enabled.config.systemd.user.services.offline-banner.restartTriggers or [ ]);
                   in
-                  nixpkgs.lib.length trigs == 1 && nixpkgs.lib.hasInfix "shell.qml" (toString (builtins.head trigs))
+                  nixpkgs.lib.length trigs == 2
+                  && nixpkgs.lib.any (t: nixpkgs.lib.hasInfix "shell.qml" t) trigs
+                  && nixpkgs.lib.any (t: nixpkgs.lib.hasInfix "offline-banner-sounds" t) trigs
                 );
+                # pw-play joins the unit PATH only when a sound theme is
+                # on; the default config (chime) must carry it.
+                pipewireInUnit = toString (nixpkgs.lib.hasInfix "pipewire" unit.text);
                 badProbeOverlapAsserts = toString badStandaloneAsserts;
                 goodProbeOverlapAsserts = toString goodStandaloneAsserts;
               }
@@ -174,7 +185,8 @@
                 [ "$cacheDirSet" = "1" ] || { echo "FAIL: XDG_CACHE_HOME must point at the runtime dir (fontconfig cache under strict sandbox)"; exit 1; }
                 [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
                 [ "$noNoNewPrivileges" = "1" ] || { echo "FAIL: NoNewPrivileges must stay unset (it strips cap_net_raw from ping)"; exit 1; }
-                [ "$restartTriggersStoreQml" = "1" ] || { echo "FAIL: restartTriggers must reference the store QML (rename drift)"; exit 1; }
+                [ "$restartTriggersComplete" = "1" ] || { echo "FAIL: restartTriggers must be exactly shell.qml + the sounds store dir (rename drift)"; exit 1; }
+                [ "$pipewireInUnit" = "1" ] || { echo "FAIL: pw-play (pipewire) missing from the unit PATH with a sound theme on"; exit 1; }
                 [ "$badProbeOverlapAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
                 [ "$goodProbeOverlapAsserts" = "0" ] || { echo "FAIL: probe-overlap assertion fires on a valid config"; exit 1; }
                 touch "$out"
@@ -330,6 +342,13 @@
                 export OFFLINE_BANNER_INTERVAL=600
                 export OFFLINE_BANNER_FAILURES=2
                 export OFFLINE_BANNER_PROBE_CMD="cat $PWD/control"
+                # Sound + ledger seams: the sound override records every
+                # cue ($1 = event, $2 = wav) into sounds.log; the outage
+                # ledger lands in history.jsonl. Neither env is part of a
+                # bare run — unset, both features stay inert.
+                export OFFLINE_BANNER_SOUND_THEME=chime
+                export OFFLINE_BANNER_HISTORY="$PWD/history.jsonl"
+                export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds.log"
                 quickshell -p "$qmlDir" >qs.log 2>&1 &
                 qs_pid=$!
 
@@ -431,9 +450,45 @@
                 assert_state false
                 assert_journal_re "probe ok recovered_after=([4-9]|[1-9][0-9]+)"
                 assert_journal "banner state=hidden reason=net failures=0/2"
+
+                # Ledger: the outage above must be closed as ONE entry —
+                # from the first net failure to this recovery, both reasons
+                # seen, at least the four logged failures. state.since
+                # clears with it.
+                assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=net,link"
+                [ -s history.jsonl ] || { echo "FAIL: outage history file missing/empty"; exit 1; }
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "1" ] || { echo "FAIL: expected exactly 1 history entry, got $entries"; exit 1; }
+                jq -e '(.to > .from) and (.durationSec >= 1) and (.reasons == ["net","link"]) and (.probeFailures >= 4)' history.jsonl > /dev/null \
+                  || { echo "FAIL: history entry wrong: $(cat history.jsonl)"; exit 1; }
+                [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "null" ] \
+                  || { echo "FAIL: state.since must clear on recovery: $(cat "$state")"; exit 1; }
+
+                # Sounds fired exactly at the transitions: one cue at show
+                # (net — reason switches mid-outage do NOT re-sound, hence
+                # the negative assert below) and one at recovery.
+                assert_journal "offline-net" sounds.log
+                assert_journal "recover" sounds.log
+                assert_no_journal "offline-link" sounds.log
                 echo net > control               # failure 1 of 2 again
                 assert_state false               # debounce holds again
                 assert_state true net            # fresh outage shows again
+
+                # A fresh outage re-sounds and re-arms `since`; it stays
+                # OPEN here (no recovery probe), so it must NOT close a
+                # second ledger entry.
+                n=0
+                for i in $(seq 1 40); do
+                  n=$(grep -c "offline-net" sounds.log 2>/dev/null)
+                  n=${n:-0}
+                  [ "$n" -ge 2 ] && break
+                  sleep 0.25
+                done
+                [ "$n" -ge 2 ] || { echo "FAIL: fresh outage must re-sound (offline-net x2), got $n: $(cat sounds.log 2>/dev/null)"; exit 1; }
+                [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "set" ] \
+                  || { echo "FAIL: state.since must be set while shown: $(cat "$state")"; exit 1; }
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "1" ] || { echo "FAIL: an open outage must not close an entry (expected 1, got $entries)"; exit 1; }
 
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
@@ -441,11 +496,19 @@
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
                 rm -f "$state"
+                # Sound seam unset: the demo instance has no store dir
+                # either, so it stays silent even though the theme env
+                # inherits — demo is a fake outage and must not beep.
+                unset OFFLINE_BANNER_SOUND_CMD
                 OFFLINE_BANNER_DEMO=1 quickshell -p "$qmlDir" >qs-demo.log 2>&1 &
                 qs_pid=$!
                 assert_state true
                 [ "$(jq -r '.demo | tostring' "$state")" = "true" ] || { echo "FAIL: demo flag missing in state: $(cat "$state")"; exit 1; }
                 assert_journal "banner state=shown reason=" qs-demo.log
+
+                # Demo mode is a FAKE outage: no ledger entry, ever.
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "1" ] || { echo "FAIL: demo mode must not write history (expected 1 entry, got $entries)"; exit 1; }
 
                 kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                 echo "probe-transitions: all assertions passed" > "$out"
@@ -591,20 +654,39 @@
           # restartTriggers.
           shell-content =
             let
-              qmlDrv = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
+              triggers = enabled.config.systemd.user.services.offline-banner.restartTriggers;
+              qmlDrv = builtins.elemAt triggers 0;
+              soundsDrv = builtins.elemAt triggers 1;
               ns = enabled.config.services.offline-banner.layerNamespace;
             in
             pkgs.runCommand "offline-banner-shell-content"
               {
-                nativeBuildInputs = [ pkgs.gnugrep ];
-                inherit qmlDrv ns;
+                nativeBuildInputs = [
+                  pkgs.gnugrep
+                  pkgs.python3
+                ];
+                inherit qmlDrv soundsDrv ns;
               }
               ''
                 grep -q "WlrLayershell.namespace: \"$ns\"" "$qmlDrv/shell.qml" \
                   || { echo "FAIL: built QML lost the layerNamespace interpolation"; exit 1; }
-                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD; do
+                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_CMD OFFLINE_BANNER_HISTORY pw-play; do
                   grep -q "$marker" "$qmlDrv/shell.qml" \
                     || { echo "FAIL: built QML lost $marker"; exit 1; }
+                done
+                # The sound set is the OTHER build-time artifact: the full
+                # 3x4 theme/event matrix must exist and every file must be
+                # a valid sub-second 44.1 kHz mono WAV — catches a silently
+                # broken synthesis (bad frequencies, empty render).
+                for theme in chime droplet retro; do
+                  for event in offline-net offline-link recover dismiss; do
+                    f="$soundsDrv/$theme-$event.wav"
+                    [ -s "$f" ] || { echo "FAIL: missing sound $theme-$event.wav"; exit 1; }
+                  done
+                done
+                for f in "$soundsDrv"/*.wav; do
+                  python3 -c 'import sys, wave; w = wave.open(sys.argv[1]); assert 1000 < w.getnframes() <= 44100 and w.getframerate() == 44100 and w.getnchannels() == 1, sys.argv[1]' "$f" \
+                    || { echo "FAIL: bad wav (must be >0.02s, <=1s, 44.1kHz mono): $f"; exit 1; }
                 done
                 touch "$out"
               '';
