@@ -14,7 +14,13 @@ permissions:
 
 jobs:
   nix-check:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: the label migrated to Ubuntu 26 in October
+    # 2026, where the qemu-user-static/binfmt-support packages the aarch64
+    # emulation step needs are no longer installable (the step died in ~4 s
+    # with "Package 'qemu-user-static' has no installation candidate").
+    # 24.04 keeps the proven recipe and stops runner-image drift from
+    # reddening the pipeline unannounced.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
