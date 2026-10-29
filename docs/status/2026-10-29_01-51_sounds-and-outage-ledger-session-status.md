@@ -207,3 +207,9 @@ ROADMAP fuel (raw ideas, not refined):
    and tell me which themes/frequencies to tune (I'll re-synthesize in minutes).
 
 — Report ends. Waiting for instructions.
+
+---
+
+**Annotation 2026-10-29 (owner reply):** §g-1 ANSWERED — "on by default":
+`soundTheme = "chime"` stays; no code change; v0.2.0 release cut unblocked
+(g-2 retention and g-3 theme tuning remain open).
