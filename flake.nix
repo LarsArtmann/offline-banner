@@ -479,8 +479,13 @@
                 # second ledger entry.
                 n=0
                 for i in $(seq 1 40); do
-                  n=$(grep -c "offline-net" sounds.log 2>/dev/null)
-                  n=${n:-0}
+                  # NOTE: no shell parameter expansion here — literal
+                  # dollar-brace sequences inside this Nix indented
+                  # string get silently corrupted by the Nix lexer
+                  # (AGENTS.md hard rule); POSIX-safe guards only
+                  # (grep -c prints "0" even on no match).
+                  n=$(grep -c "offline-net" sounds.log 2>/dev/null || true)
+                  [ -z "$n" ] && n=0
                   [ "$n" -ge 2 ] && break
                   sleep 0.25
                 done
