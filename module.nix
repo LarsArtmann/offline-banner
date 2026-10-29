@@ -610,17 +610,18 @@
         print("offline-banner: synthesized %d sounds" % sum(len(e) for _, e in THEMES.values()))
       '';
 
-      offlineBannerSounds = pkgs.runCommand "offline-banner-sounds"
-        {
-          nativeBuildInputs = [ pkgs.python3 ];
-        }
-        ''
-          mkdir -p "$out"
-          python3 ${genSoundsScript} "$out"
-          # Build-time self-check: the full 3x4 matrix landed.
-          got=$(ls "$out" | wc -l)
-          [ "$got" -eq 12 ] || { echo "FAIL: expected 12 synthesized sounds, got $got"; exit 1; }
-        '';
+      offlineBannerSounds =
+        pkgs.runCommand "offline-banner-sounds"
+          {
+            nativeBuildInputs = [ pkgs.python3 ];
+          }
+          ''
+            mkdir -p "$out"
+            python3 ${genSoundsScript} "$out"
+            # Build-time self-check: the full 3x4 matrix landed.
+            got=$(ls "$out" | wc -l)
+            [ "$got" -eq 12 ] || { echo "FAIL: expected 12 synthesized sounds, got $got"; exit 1; }
+          '';
     in
     lib.mkIf cfg.enable {
       assertions = [
@@ -633,7 +634,8 @@
           message = "services.offline-banner: failuresToShow (${toString cfg.failuresToShow}) exceeds 10 — the banner would stay hidden for over a minute at defaults; a value this high is a typo, not a debounce";
         }
         {
-          assertion = !cfg.enableHistory || lib.hasPrefix "/" cfg.historyPath || lib.hasPrefix "%" cfg.historyPath;
+          assertion =
+            !cfg.enableHistory || lib.hasPrefix "/" cfg.historyPath || lib.hasPrefix "%" cfg.historyPath;
           message = "services.offline-banner: historyPath (\"${toString cfg.historyPath}\") must be absolute — a leading %h/%t systemd specifier is fine";
         }
       ];
