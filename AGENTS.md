@@ -32,6 +32,8 @@ cd website && nix shell nixpkgs#nodejs -c pnpm exec astro check && nix shell nix
 cd website && nix shell nixpkgs#nodejs nixpkgs#firebase-tools -c firebase deploy --only hosting:offline-banner --project lars-software
 ```
 
+Two pnpm rules learned the hard way (2026-10-29): **any `package.json` bump must regenerate `pnpm-lock.yaml`** — CI installs with a frozen lockfile and dies on a manifest/lock mismatch (`ERR_PNPM_OUTDATED_LOCKFILE`), which is how the Website workflow sat red for two weeks. And **TypeScript stays on 6.x**: `astro check` is a CI step and refuses to run against TypeScript 7 (`astro check does not currently support TypeScript 7.0`), so a `^7` bump in devDependencies silently removes type-checking from the gate. Also drop any `minimumReleaseAgeExclude` entries pnpm auto-appends to `website/pnpm-workspace.yaml` — the repo sets no minimum release age, so they are inert noise that rots with the next bump.
+
 Promo video (HyperFrames; NixOS needs real node + chrome libs — never bare npx):
 
 ```bash
@@ -45,7 +47,7 @@ bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hy
 ## Public presence
 
 - **Website**: https://offline-banner.lars.software (canonical) = https://offline-banner.web.app (live alias). Source in `website/` (gogenfilter baseline; banner-yellow `#e8d44d` accent on the demo's catppuccin-dark base; og:image = 1200x630 crop of the video poster). Landing video anchor `#demo` is deep-linked from the README bar.
-- **Demo video**: `website/video/index.html` is the committed composition (24 s, 1920x1080; strip/bar rebuilt in CSS from module.nix colors, transform-only, lint+check clean); render to `website/public/demo.mp4` (<3 MB). Beat structure + verification rules: website-launch skill `references/demo-video.md`.
+- **Demo video**: `website/video/index.html` is the committed composition (24 s, 1920x1080; strip/bar rebuilt in CSS from module.nix colors, transform-only; lint 0 errors with 6 advisory `nested_structure_needs_subcomposition` warnings under hyperframes 0.8.214, check passed: 0 motion errors, 20/20 WCAG AA contrast); render to `website/public/demo.mp4` (<3 MB). Beat structure + verification rules: website-launch skill `references/demo-video.md`.
 - **Deploy**: Firebase Hosting, shared `lars-software` project, hosting target `offline-banner` (site ID immutable). CI deploys on master push once the `FIREBASE_SERVICE_ACCOUNT` secret is set (deploy step is secret-gated so CI stays green meanwhile).
 - **DNS**: applied by the owner 2026-10-17 — CNAME resolves (→ `offline-banner.web.app`, A 199.36.158.100), Firebase cert ACTIVE, both URLs serve identical content (landing + demo.mp4 verified over HTTPS the same morning). Terraform source lives in `~/projects/domains/lars.software.tf`; note `tofu init` from this host hits a GCS-backend quota error, so apply is owner-side. The custom domain itself was registered via Firebase REST API (the CLI cannot).
 - **Launch posts**: Discourse + r/NixOS drafts in `docs/marketing/launch-post-drafts.md` (one narrative from the README "Why?" — do not re-invent per surface). Social preview card: `assets/branding/social-preview.png` (manual upload in repo Settings → Social preview; no API).
@@ -70,6 +72,8 @@ A reference waybar consumer for the state file ships in `contrib/offline-banner-
 Live evidence on record (2026-10-17, evo-x2 smoke): sandbox live-proven (ping cap_net_raw, runtime dirs, state file, ~23 MB RSS), journal + state file verified. Real-monitor pixel visibility still rides the SystemNix switch; headless pixels are CI-proven by `render-smoke`. Demo capture: `scripts/capture-demo.sh` (headless sway, ground-truth store QML, shellcheck+shfmt clean); assets in `docs/assets/`.
 
 Decision records: docs surface = README table + option descriptions + docs-drift gate (no optionDoc/manual render check — cost over value for 7 options, 2026-10-17). CI: branch protection requires the Checks workflow with admin bypass (direct pushes stay possible); dependabot weekly on the action pins; actionlint + zizmor clean (run on demand, not wired — 3-step workflow, both green).
+
+CI runners: the Checks job is pinned to **`ubuntu-24.04`**, not `ubuntu-latest` (2026-10-29). The label migrated to Ubuntu 26, where `qemu-user-static` has no installation candidate — the aarch64 binfmt step died in ~4 s and no nix check ran at all, twice, on an otherwise untouched tree. A red pipeline caused by a runner-image bump is invisible in the diff, so re-verify the Checks workflow whenever GitHub announces an image migration (or an aarch64 check "fails" with an apt error rather than a nix error).
 
 ## Runbooks
 
