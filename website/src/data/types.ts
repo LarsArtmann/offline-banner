@@ -1,4 +1,13 @@
-export const featureIconKeys = ["monitor", "layers", "clock", "shield", "eye", "sliders"] as const;
+export const featureIconKeys = [
+  "monitor",
+  "layers",
+  "clock",
+  "shield",
+  "eye",
+  "sliders",
+  "volume",
+  "archive",
+] as const;
 export type FeatureIcon = (typeof featureIconKeys)[number];
 
 export type AccentColor = "accent" | "blue" | "success";

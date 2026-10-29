@@ -37,4 +37,16 @@ export const features: Feature[] = [
     desc: "OFFLINE_BANNER_* env vars mirror every option — retune a running system with a drop-in, or force-show with demo mode.",
     accent: "accent",
   },
+  {
+    icon: "volume",
+    title: "Says it out loud, once",
+    desc: "Three synthesized themes, no audio files: a lower droop for link loss than for net loss, a sparkle on recovery. One cue per outage, never per probe.",
+    accent: "blue",
+  },
+  {
+    icon: "archive",
+    title: "Keeps the receipt",
+    desc: "One JSON line per completed outage — start, end, duration, reasons. Blips shorter than the debounce never make the log; demo runs never write.",
+    accent: "success",
+  },
 ];

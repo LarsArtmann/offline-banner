@@ -1,6 +1,6 @@
 ---
 title: Observability
-description: Journal lines, the JSON state file, fail-closed liveness, and a waybar consumer.
+description: Journal lines, the JSON state file, the persistent outage ledger, fail-closed liveness, and a waybar consumer.
 ---
 
 A dead banner must never be silent.
@@ -10,22 +10,57 @@ A dead banner must never be silent.
 Every transition logs a structured, grep-able line:
 
 ```console
-$ journalctl --user -u offline-banner -f | grep "banner state="
+$ journalctl --user -u offline-banner -f
 probe failed reason=net failures=1/2
 banner state=shown reason=net failures=2/2
 probe ok recovered_after=2
 banner state=hidden reason=ok failures=0/2
+outage ended from=1793110000 to=1793110135 duration=135s reasons=net
 ```
+
+The tokens are the contract — `banner state=shown|hidden|dismissed`, `probe
+ok|failed`, `outage ended` and `recovered_after=N` are stable, so
+`journalctl --user -u offline-banner | grep "banner state="` is a supported
+surface rather than a log-format accident.
 
 ## State file
 
-`$XDG_RUNTIME_DIR/offline-banner.state` holds a JSON snapshot — `active`,
-`reason`, `failures`, `failuresToShow`, `updatedAt` — rewritten on **every
-probe**.
+`$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot — `active`,
+`demo`, `reason`, `failures`, `failuresToShow`, `since`, `updatedAt` —
+rewritten on **every probe**.
+
+`since` is the current outage's start in epoch seconds (`null` while fine) —
+the live twin of a ledger entry's `from`, so a widget can say "offline for 4m"
+without parsing the journal.
 
 Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the
 unit is effectively dead — treat the banner as absent and check
 `systemctl --user is-active offline-banner`.
+
+## The outage ledger
+
+Completed outages are appended to
+`~/.local/state/offline-banner/history.jsonl` (one JSON object per line), so
+"was it just me, or did the ISP flap all night?" has an answer that survives
+reboots:
+
+```json
+{ "from": 1793110000, "to": 1793110135, "durationSec": 135, "reasons": ["net"], "probeFailures": 27 }
+```
+
+```console
+# total offline time yesterday
+$ jq -s 'map(select(.from >= 1793030400)) | map(.durationSec) | add // 0' \
+    ~/.local/state/offline-banner/history.jsonl
+135
+```
+
+The ledger is honest by construction: sub-debounce blips never become entries
+(they never showed a banner), an outage still open when the unit stops is not
+written, and demo mode never writes. Disable with `enableHistory = false`, or
+move the file with `historyPath` — see
+[Configuration](/getting-started/configuration/). The ledger's parent directory
+is the unit's only writable path under the read-only home.
 
 ## Waybar consumer
 

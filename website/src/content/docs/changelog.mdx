@@ -7,6 +7,26 @@ All notable changes are documented in the repository's
 [CHANGELOG.md](https://github.com/LarsArtmann/offline-banner/blob/master/CHANGELOG.md)
 following [Keep a Changelog](https://keepachangelog.com).
 
+## 0.2.0 — 2026-10-29
+
+The banner learns to speak and to remember.
+
+- **Sound cues** — one synthesized cue per outage transition (never per probe),
+  a lower droop for link loss than net loss, a sparkle on recovery. Three
+  build-time themes (`chime`, `droplet`, `retro`) with no audio assets, plus
+  `soundTheme`/`soundVolume`; `"none"` for silence.
+- **Persistent outage ledger** — one JSON line per completed outage in
+  `~/.local/state/offline-banner/history.jsonl`, so outages outlive reboots.
+  `enableHistory`/`historyPath`; blips, open outages, and demo runs never write.
+- **Structured journal tokens** — `banner state=…`, `probe ok|failed`, and
+  `outage ended from=… duration=…` are now the stable, grep-able surface. The
+  state file gained `since` (current outage start).
+- **New checks** — `render-smoke` proves the strip's pixels in headless sway,
+  and `shell-content` asserts the built QML keeps its namespace, env seams, and
+  the full synthesized WAV matrix.
+- A reference waybar consumer (`contrib/offline-banner-waybar`), a project
+  website, and a 24 s demo video.
+
 ## 0.1.0 — 2026-10-17
 
 Initial release: `services.offline-banner` NixOS module with v3 behavior —

@@ -36,6 +36,23 @@ and an **animated height** (InOutCubic, 450 ms). A top-anchored bar is pushed
 down beneath it frame by frame and slides back up on recovery. Nothing is
 covered; nothing underneath is unreachable.
 
+## The cue
+
+A second, audible channel for the same truth — with the same discipline: **one
+cue per outage transition, never per probe**. The banner does not nag; it
+announces. Link loss droops lower than net loss, recovery gets an ascending
+sparkle, a dismiss gets a near-inaudible tick. The cues are synthesized at build
+time (3 themes × 4 events, mono 44.1 kHz WAVs) so there are no audio assets to
+fetch and nothing to license. See [Sounds](/getting-started/configuration/#sounds).
+
+## The receipt
+
+While the banner is on screen it is a live warning; once the outage ends it
+becomes a fact. The recovery path appends `{from, to, durationSec, reasons,
+probeFailures}` to the ledger before the counters reset, so each real outage
+leaves exactly one entry — never one per probe, never one for a blip that never
+showed a banner. See [The outage ledger](/guides/observability/#the-outage-ledger).
+
 ## The startup race
 
 If the session starts with no active monitor (lid closed, headless boot),
@@ -47,7 +64,14 @@ Surfaces are created per monitor as outputs connect.
 
 - `probe-transitions` flake check — drives the **real store QML** through
   ok/net/link in headless sway and asserts hidden → debounce → show(net) →
-  reason(link) → recovery → re-arm through the state file.
+  reason(link) → recovery → re-arm through the state file, plus the sound
+  cues (via a player seam) and the ledger entry's contents.
+- `render-smoke` flake check — the pixel gate: grim-captures the strip in
+  headless sway and asserts the composited yellow is present when shown and
+  gone below the strip and after recovery.
+- `shell-content` — the **built** `shell.qml` still carries the namespace
+  interpolation, the probe env markers, the sound/history seams, and the full
+  synthesized WAV matrix.
 - `unit-verify` — `systemd-analyze verify` on the rendered unit, in-sandbox.
 - `module-contract` — every sandbox directive line, the env contract, and the
   quickshell ExecStart, asserted line-by-line.

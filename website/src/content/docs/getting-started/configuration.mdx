@@ -1,22 +1,30 @@
 ---
 title: Configuration
-description: All seven options, live tuning via drop-in, and demo mode.
+description: All eleven options, live tuning via drop-in, sound themes, the outage ledger, and demo mode.
 ---
 
-Seven options, all with honest defaults:
+Eleven options, all with honest defaults:
 
-| Option                 | Type    | Default            | Description                                                                                                                             |
-| ---------------------- | ------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `enable`               | bool    | `false`            | Enable the banner                                                                                                                       |
-| `package`              | package | `pkgs.quickshell`  | Quickshell package to run                                                                                                               |
-| `checkIntervalSeconds` | int > 0 | `5`                | Seconds between connectivity probes (env-override values ≤ 500 fall back to the 5000 ms default — sub-half-second probing is refused)   |
-| `probeHost`            | string  | `"9.9.9.9"`        | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                             |
-| `probeTimeoutSeconds`  | int > 0 | `3`                | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)                                                            |
-| `failuresToShow`       | int > 0 | `2`                | Consecutive failed probes before the banner appears (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable)  |
-| `layerNamespace`       | string  | `"offline-banner"` | WlrLayershell namespace (find the surface via e.g. `niri msg layers`)                                                                   |
+| Option                 | Type    | Default                                           | Description                                                                                                                                                            |
+| ---------------------- | ------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enable`               | bool    | `false`                                           | Enable the banner                                                                                                                                                      |
+| `package`              | package | `pkgs.quickshell`                                 | Quickshell package to run                                                                                                                                              |
+| `checkIntervalSeconds` | int > 0 | `5`                                               | Seconds between connectivity probes (env-override values ≤ 500 fall back to the 5000 ms default — sub-half-second probing is refused)                                   |
+| `probeHost`            | string  | `"9.9.9.9"`                                       | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                                                             |
+| `probeTimeoutSeconds`  | int > 0 | `3`                                               | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)                                                                                            |
+| `failuresToShow`       | int > 0 | `2`                                               | Consecutive failed probes before the banner appears (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable)                                  |
+| `layerNamespace`       | string  | `"offline-banner"`                                | WlrLayershell namespace (find the surface via e.g. `niri msg layers`)                                                                                                   |
+| `soundTheme`           | enum    | `"chime"`                                         | Synthesized cue set: `chime`, `droplet`, `retro`, or `none` for silence (see [Sounds](#sounds))                                                                         |
+| `soundVolume`          | 0–100   | `60`                                              | Cue volume percent, passed to `pw-play` as a linear factor                                                                                                              |
+| `enableHistory`        | bool    | `true`                                            | Append one JSON line per completed outage to `historyPath`                                                                                                              |
+| `historyPath`          | string  | `"%h/.local/state/offline-banner/history.jsonl"`   | Persistent outage ledger (JSON Lines); `%h`/`%t` specifiers expand, must be absolute                                                                                    |
 
-The probe-overlap assertion (`probeTimeoutSeconds < checkIntervalSeconds`) is
-checked at eval time — a bad config fails the build, not your desktop.
+Three assertions run at eval time — a bad config fails the build, not your
+desktop:
+
+- `probeTimeoutSeconds < checkIntervalSeconds` — probes must never overlap.
+- `failuresToShow ≤ 10` — anything higher is a typo, not a debounce.
+- `historyPath` must be absolute (or start with a `%h`/`%t` specifier).
 
 ## Live tuning without a rebuild
 
@@ -31,7 +39,46 @@ systemctl --user restart offline-banner   # env is read at start
 ```
 
 The env contract is asserted by the `module-contract` flake check, so it cannot
-silently drift from the options.
+silently drift from the options. Sounds and the ledger ride the same contract:
+`OFFLINE_BANNER_SOUND_THEME`/`SOUND_VOLUME`/`SOUNDS` and
+`OFFLINE_BANNER_HISTORY` are set from the options. Leave them unset — a bare
+`quickshell -p` run, a test harness, a demo — and both features are inert: no
+sound is attempted, nothing is written to your home.
+
+## Sounds
+
+The banner is silent by default only when you ask it to be. `soundTheme`
+defaults to `chime`, and the cues are synthesized at build time by a
+stdlib-only Python generator — no audio assets, no fetch, nothing to download at
+runtime:
+
+- **`chime`** — soft sine: a two-note droop on offline, an ascending sparkle on
+  recovery, a quiet tick on dismiss.
+- **`droplet`** — pitch-bent water plips.
+- **`retro`** — 8-bit square-wave power-down and level-up.
+- **`none`** — silence (and the unit stops shipping `pw-play` at all).
+
+Doctrine, not decoration: **one cue per outage transition, never per probe.**
+Link loss droops lower than net loss — pitch carries the severity, not volume.
+Playback runs `pw-play` against the session PipeWire, whose AF_UNIX socket the
+sandbox already allows; the `pipewire` binary joins the unit `PATH` only when a
+theme is on.
+
+## The outage ledger
+
+`enableHistory` (default on) appends one JSON line per **completed** outage to
+`historyPath`:
+
+```json
+{ "from": 1793110000, "to": 1793110135, "durationSec": 135, "reasons": ["net"], "probeFailures": 27 }
+```
+
+- Only outages that actually showed are recorded — blips shorter than the
+  debounce never become entries.
+- An outage still open when the unit stops is not written (it is not completed).
+- Demo mode never writes.
+- `%h`/`%t` specifiers expand, and the ledger's parent directory becomes the
+  unit's one writable path under the otherwise read-only home.
 
 ## Demo mode
 

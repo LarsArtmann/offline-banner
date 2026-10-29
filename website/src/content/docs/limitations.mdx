@@ -11,13 +11,19 @@ offline-banner if:
 - **You run GNOME or KDE.** They ship their own network indicators, and this
   module is proven on niri; other layer-shell compositors (sway, Hyprland) are
   expected but untested.
-- **You want a network monitor.** Graphs, history, per-app stats are non-goals
-  — this is one boolean, honestly derived and honestly displayed.
+- **You want a network monitor.** Traffic graphs, bandwidth accounting, and
+  per-app stats are non-goals — this is one boolean, honestly derived and
+  honestly displayed. (The outage ledger records *when* the path was down, not
+  what crossed it.)
 - **You need per-app or per-interface diagnosis.** The probe answers "is the
   path up", not "which application is misbehaving".
 - **You cannot accept a second Quickshell instance.** The banner deliberately
   runs its own Quickshell process so it never depends on your bar's plugin
   API.
+- **You run no PipeWire session and no `.local/state`.** Sound cues play
+  through `pw-play` (set `soundTheme = "none"` for a silent unit), and the
+  outage ledger writes one file under your home (`enableHistory = false`, or
+  move it with `historyPath`).
 
 ## Accepted tradeoffs
 
