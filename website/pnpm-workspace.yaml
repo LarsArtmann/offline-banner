@@ -1,2 +1,11 @@
 allowBuilds:
   esbuild: true
+
+# Supply-chain policy, declared so local resolution matches CI. pnpm 11
+# enforces a 1440-minute (24 h) minimum release age by default when installing
+# from a lockfile; without this setting, resolving locally happily picks
+# packages published minutes ago and the frozen install then dies in CI with
+# ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION. Pinning the window here makes
+# `pnpm install` choose the newest *old enough* version, so the lockfile it
+# writes is one CI accepts.
+minimumReleaseAge: 1440
