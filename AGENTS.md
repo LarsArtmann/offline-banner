@@ -48,7 +48,7 @@ bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hy
 
 - **Website**: https://offline-banner.lars.software (canonical) = https://offline-banner.web.app (live alias). Source in `website/` (gogenfilter baseline; banner-yellow `#e8d44d` accent on the demo's catppuccin-dark base; og:image = 1200x630 crop of the video poster). Landing video anchor `#demo` is deep-linked from the README bar.
 - **Demo video**: `website/video/index.html` is the committed composition (24 s, 1920x1080; strip/bar rebuilt in CSS from module.nix colors, transform-only; lint 0 errors with 6 advisory `nested_structure_needs_subcomposition` warnings under hyperframes 0.8.214, check passed: 0 motion errors, 20/20 WCAG AA contrast); render to `website/public/demo.mp4` (<3 MB). Beat structure + verification rules: website-launch skill `references/demo-video.md`.
-- **Deploy**: Firebase Hosting, shared `lars-software` project, hosting target `offline-banner` (site ID immutable). CI deploys on master push once the `FIREBASE_SERVICE_ACCOUNT` secret is set (deploy step is secret-gated so CI stays green meanwhile).
+- **Deploy**: Firebase Hosting, shared `lars-software` project, hosting target `offline-banner` (site ID immutable). CI deploys on every master push that touches `website/**` (plus `workflow_dispatch`) — the `FIREBASE_SERVICE_ACCOUNT` secret exists, and since 2026-10-29 the deploy service account `github-website-deploy@lars-software` holds `roles/serviceusage.serviceUsageViewer` (without it firebase-tools dies on a 403 reading the Hosting API state). That grant was applied via `gcloud` and is NOT in IaC yet.
 - **DNS**: applied by the owner 2026-10-17 — CNAME resolves (→ `offline-banner.web.app`, A 199.36.158.100), Firebase cert ACTIVE, both URLs serve identical content (landing + demo.mp4 verified over HTTPS the same morning). Terraform source lives in `~/projects/domains/lars.software.tf`; note `tofu init` from this host hits a GCS-backend quota error, so apply is owner-side. The custom domain itself was registered via Firebase REST API (the CLI cannot).
 - **Launch posts**: Discourse + r/NixOS drafts in `docs/marketing/launch-post-drafts.md` (one narrative from the README "Why?" — do not re-invent per surface). Social preview card: `assets/branding/social-preview.png` (manual upload in repo Settings → Social preview; no API).
 
@@ -96,11 +96,13 @@ Checklist: unit active under the full sandbox; ping works with cap_net_raw (`pro
 
 ### Release
 
-1. Gates: `nix fmt && nix flake check --all-systems` green locally, CI green on master.
-2. CHANGELOG: fold `[Unreleased]` into the new version, add the keep-a-changelog compare-link footer.
-3. Tag + push (owner-gated): `git tag -a vX.Y.Z -m "offline-banner vX.Y.Z" && git push origin vX.Y.Z`.
-4. `gh release create vX.Y.Z --verify-tag --generate-notes`, or paste the CHANGELOG section as the body.
-5. Verify: CI green on the tag; `nix flake metadata github:LarsArtmann/offline-banner/vX.Y.Z` resolves.
+1. Gates: `nix fmt && nix flake check --all-systems` green locally AND both workflows green on the HEAD commit — Checks (`gh run list --limit 3`) plus Website when `website/**` changed. A release has twice been cut within sight of a red pipeline (v0.2.0 found two); no tag until the workflow runs for the exact commit are green.
+2. Website docs must describe the tree being tagged: any option/behaviour change since the last release belongs in `website/src/content/docs/` BEFORE tagging (the `docs-drift` gate covers README + FEATURES only, never the site).
+3. CHANGELOG: fold `[Unreleased]` into the new version, add the keep-a-changelog compare-link footer.
+4. Tag + push (owner-gated): `git tag -a vX.Y.Z -m "offline-banner vX.Y.Z" && git push origin vX.Y.Z`.
+5. `gh release create vX.Y.Z --verify-tag --generate-notes`, or paste the CHANGELOG section as the body (curated: highlights, upgrade notes, CI fixes).
+6. Verify: nothing builds on the tag (no tag trigger), so re-run the gates against the tag source — `nix flake check github:LarsArtmann/offline-banner/vX.Y.Z --all-systems` — and confirm `nix flake metadata github:LarsArtmann/offline-banner/vX.Y.Z` resolves to the tagged revision.
+7. Post-release: Website deploy is CI-owned; a deploy step that starts running for the first time needs `roles/serviceusage.serviceUsageViewer` on `github-website-deploy@lars-software` (granted 2026-10-29, still not in IaC).
 
 ## Consumers
 
