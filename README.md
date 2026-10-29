@@ -29,6 +29,8 @@ And the obvious fix lies. `nmcli networking connectivity` reads NetworkManager, 
 
 A probe that cannot even run counts as a failure — fail visible, never fail silent.
 
+Sounds need a PipeWire session (`pw-play`): without one, playback fails with a single journal line per outage and everything else — banner, ledger, state — is unaffected.
+
 ## Who is this for?
 
 - **NixOS flake users on Wayland compositors** who want one line in their config, not a network applet framework.
@@ -133,7 +135,7 @@ A dead banner must never be silent:
 
 - **Journal**: every transition logs a structured, grep-able line — `probe failed reason=net failures=1/2`, `probe ok recovered_after=2`, `banner state=shown|hidden|dismissed reason=… failures=N/M`, `outage ended from=… to=… duration=…s reasons=net,link` — e.g. `journalctl --user -u offline-banner -f | grep "banner state="`.
 - **State file**: `$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `since`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`. `since` carries the current outage's start (epoch seconds, `null` while fine) for "offline for N" widgets. A reference waybar consumer ships in `contrib/offline-banner-waybar`: it shows an offline widget while active, stays empty while fine, and flips to a `stale` marker once the heartbeat exceeds `OFFLINE_BANNER_MAX_AGE` (default 15 s).
-- **Outage ledger**: `$XDG_STATE_HOME`-style `~/.local/state/offline-banner/history.jsonl` (see [Behavior](#behavior)) — one JSON line per completed outage, persisted across reboots: `jq -s 'sort_by(-.durationSec) | .[0:5]' ~/.local/state/offline-banner/history.jsonl` lists your five worst outages.
+- **Outage ledger**: `$XDG_STATE_HOME`-style `~/.local/state/offline-banner/history.jsonl` (see [Behavior](#behavior)) — one JSON line per completed outage, persisted across reboots: `jq -s 'sort_by(-.durationSec) | .[0:5]' ~/.local/state/offline-banner/history.jsonl` lists your five worst outages. An outage still open when the unit stops is not written, but the `outage ended from=… to=… duration=…s reasons=…` journal token carries the same facts — nothing is ever lost from the journal.
 - **v6 note**: `probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken v4 route the banner shows offline while v6 browsing works — an accepted tradeoff; point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials it directly).
 
 ## Provenance

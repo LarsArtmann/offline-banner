@@ -9,7 +9,8 @@
 > probe-transitions machine test, and a live sandbox smoke test on evo-x2
 > (which found and fixed the /run/user write blocker). Re-verified again
 > 2026-10-17 ~10:45: `render-smoke` pixel gate, frame-watched demo assets,
-> structured journal tokens, and the waybar consumer.
+> structured journal tokens, and the waybar consumer. Rows added 2026-10-28/29
+> (sound cues, outage ledger) with same-day machine + real-run evidence.
 
 ## Status legend
 

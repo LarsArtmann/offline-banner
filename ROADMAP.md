@@ -41,6 +41,22 @@ the planned VM test (TODO_LIST):
   only niri is proven. A Hyprland pass would turn that claim from expected
   into tested.
 
+### 4. Sound & ledger expressiveness (raw ideas, 2026-10-29)
+
+The cue/ledger machinery shipped; where it could widen without breaking the
+warning-not-page doctrine:
+
+- **More themes / per-event overrides** — birds, synthwave, an ultra-quiet
+  "subtle" set; or per-event config (silent dismiss + loud recover).
+- **Quiet-hours awareness** — respect a DND/presence signal.
+- **"Still offline" reminder** — a cue every N minutes during LONG outages
+  (doctrine tension: warning vs page — decide before building).
+- **Custom theme from a user dir** — point an option at your own wavs.
+- **Ledger analytics** — contrib stats script (totals/worst per week),
+  waybar tail widget, retention policy question (owner taste).
+- **Crash-proof paired-event ledger** — open/close event lines instead of
+  completed-outage lines (current format documented + accepted).
+
 ## Non-goals
 
 - **Not a network monitor.** One boolean, honestly derived, honestly
