@@ -17,14 +17,18 @@ Eleven options, all with honest defaults:
 | `soundTheme`           | enum    | `"chime"`                                         | Synthesized cue set: `chime`, `droplet`, `retro`, or `none` for silence (see [Sounds](#sounds))                                                                         |
 | `soundVolume`          | 0–100   | `60`                                              | Cue volume percent, passed to `pw-play` as a linear factor                                                                                                              |
 | `enableHistory`        | bool    | `true`                                            | Append one JSON line per completed outage to `historyPath`                                                                                                              |
-| `historyPath`          | string  | `"%h/.local/state/offline-banner/history.jsonl"`   | Persistent outage ledger (JSON Lines); `%h`/`%t` specifiers expand, must be absolute                                                                                    |
+| `historyPath`          | string  | `"%h/.local/state/offline-banner/history.jsonl"`   | Persistent outage ledger (JSON Lines); `%h`/`%t` specifiers expand, must be absolute, parent dir must be unit-provisioned                                              |
 
 Three assertions run at eval time — a bad config fails the build, not your
 desktop:
 
 - `probeTimeoutSeconds < checkIntervalSeconds` — probes must never overlap.
 - `failuresToShow ≤ 10` — anything higher is a typo, not a debounce.
-- `historyPath` must be absolute (or start with a `%h`/`%t` specifier).
+- `historyPath` must be absolute (or start with a `%h`/`%t` specifier), and its
+  parent directory must be one the unit provisions — `%h/.local/state/<name>`
+  or `%t/offline-banner`. ReadWritePaths cannot create a missing directory; an
+  unprovisioned parent used to kill the unit outright (status 226/NAMESPACE
+  restart loop, no banner at all — 2026-11-05 live incident).
 
 ## Live tuning without a rebuild
 
@@ -78,7 +82,9 @@ theme is on.
 - An outage still open when the unit stops is not written (it is not completed).
 - Demo mode never writes.
 - `%h`/`%t` specifiers expand, and the ledger's parent directory becomes the
-  unit's one writable path under the otherwise read-only home.
+  unit's one writable path under the otherwise read-only home. The unit also
+  creates that directory itself (`StateDirectory=`) — you never need to mkdir
+  it; shapes outside `%h/.local/state/<name>` or `%t/offline-banner` fail eval.
 
 ## Demo mode
 

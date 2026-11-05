@@ -156,6 +156,21 @@
                     "ReadWritePaths=%h/.local/state/offline-banner"
                   ]
                 );
+                # The ledger dir must be PROVISIONED, not just bound:
+                # ReadWritePaths cannot create its target (2026-11-05 live
+                # incident: without StateDirectory the unit died at
+                # status=226/NAMESPACE in a restart loop on hosts without
+                # ~/.local/state/offline-banner, and the banner was
+                # silently absent through every outage). StateDirectory
+                # (user units: rooted at ~/.local/state) creates the dir
+                # before the mount namespace is applied.
+                ledgerDirProvisioned = toString (
+                  nixpkgs.lib.all (line: nixpkgs.lib.hasInfix line unit.text) [
+                    "StateDirectory=offline-banner"
+                    "StateDirectoryMode=0700"
+                    "ReadWritePaths=%h/.local/state/offline-banner"
+                  ]
+                );
                 # Deliberate absence: NoNewPrivileges would strip ping's
                 # cap_net_raw file capability (see module.nix serviceConfig).
                 noNoNewPrivileges = toString (!(nixpkgs.lib.hasInfix "NoNewPrivileges" unit.text));
@@ -184,6 +199,7 @@
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
                 [ "$cacheDirSet" = "1" ] || { echo "FAIL: XDG_CACHE_HOME must point at the runtime dir (fontconfig cache under strict sandbox)"; exit 1; }
                 [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
+                [ "$ledgerDirProvisioned" = "1" ] || { echo "FAIL: StateDirectory must provision the ledger dir (ReadWritePaths binds but never creates — 2026-11-05 226/NAMESPACE outage)"; exit 1; }
                 [ "$noNoNewPrivileges" = "1" ] || { echo "FAIL: NoNewPrivileges must stay unset (it strips cap_net_raw from ping)"; exit 1; }
                 [ "$restartTriggersComplete" = "1" ] || { echo "FAIL: restartTriggers must be exactly shell.qml + the sounds store dir (rename drift)"; exit 1; }
                 [ "$pipewireInUnit" = "1" ] || { echo "FAIL: pw-play (pipewire) missing from the unit PATH with a sound theme on"; exit 1; }

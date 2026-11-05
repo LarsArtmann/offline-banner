@@ -129,7 +129,7 @@
     historyPath = lib.mkOption {
       type = lib.types.str;
       default = "%h/.local/state/offline-banner/history.jsonl";
-      description = "Absolute path of the persistent outage log (JSON Lines). %h/%t systemd unit specifiers expand (in unit-file Environment= and ReadWritePaths); the parent directory becomes the unit's only writable path under the read-only home";
+      description = "Absolute path of the persistent outage log (JSON Lines). %h/%t systemd unit specifiers expand (in unit-file Environment= and ReadWritePaths); the parent directory becomes the unit's only writable path under the read-only home AND must be one the unit provisions itself — %h/.local/state/<name> (created via StateDirectory=) or %t/offline-banner (created via RuntimeDirectory=). Other shapes fail eval: ReadWritePaths binds but never creates, and an unprovisioned parent kills the unit at startup (status 226/NAMESPACE restart loop — the 2026-11-05 evo-x2 outage)";
     };
   };
 
@@ -622,6 +622,21 @@
             got=$(ls "$out" | wc -l)
             [ "$got" -eq 12 ] || { echo "FAIL: expected 12 synthesized sounds, got $got"; exit 1; }
           '';
+
+      # The ledger's parent dir must be PROVISIONED by the unit, not merely
+      # bound: ReadWritePaths cannot create a missing directory (2026-11-05
+      # evo-x2 live incident — the deployed unit died at NAMESPACE setup,
+      # status 226, in a restart loop until the start limit, and the banner
+      # was silently absent through every outage). Exactly two parent shapes
+      # are provisioned: %h/.local/state/<name> (this leaf, via
+      # StateDirectory=) and %t/offline-banner (via the unconditional
+      # RuntimeDirectory=). Anything else fails eval with the assertion
+      # below instead of dying silently at runtime.
+      ledgerStateDirLeaf =
+        let
+          m = builtins.match "%h/\\.local/state/([^/]+)" (dirOf cfg.historyPath);
+        in
+        if m == null then null else builtins.head m;
     in
     lib.mkIf cfg.enable {
       assertions = [
@@ -637,6 +652,14 @@
           assertion =
             !cfg.enableHistory || lib.hasPrefix "/" cfg.historyPath || lib.hasPrefix "%" cfg.historyPath;
           message = "services.offline-banner: historyPath (\"${toString cfg.historyPath}\") must be absolute — a leading %h/%t systemd specifier is fine";
+        }
+        {
+          assertion =
+            !cfg.enableHistory || ledgerStateDirLeaf != null || dirOf cfg.historyPath == "%t/offline-banner";
+          message = ''
+            services.offline-banner: historyPath's parent ("${dirOf cfg.historyPath}") is not a directory the unit provisions — use %h/.local/state/<name> (created via StateDirectory=) or %t/offline-banner (created via RuntimeDirectory=).
+            ReadWritePaths cannot create a missing directory: an unprovisioned parent kills the unit at NAMESPACE setup (status 226) in a restart loop, and the banner never shows at all (2026-11-05 evo-x2 outage).
+          '';
         }
       ];
 
@@ -756,6 +779,20 @@
           ProtectControlGroups = true;
           ProtectProc = "invisible";
           SystemCallArchitectures = "native";
+        }
+        // lib.optionalAttrs (cfg.enableHistory && ledgerStateDirLeaf != null) {
+          # Provision the ledger dir BEFORE the mount namespace is applied:
+          # ReadWritePaths binds but never creates (2026-11-05 evo-x2: a
+          # missing ~/.local/state/offline-banner failed namespacing at
+          # status 226, the restart loop hit the start limit, and the
+          # banner was silently absent through every outage). User units
+          # root StateDirectory at ~/.local/state (live-verified on
+          # systemd 261: created 0700, writable under ProtectHome). The
+          # ReadWritePaths hole above stays — writability statement and
+          # provisioner are separate concerns, pinned separately by
+          # module-contract.
+          StateDirectory = [ ledgerStateDirLeaf ];
+          StateDirectoryMode = "0700";
         };
 
         unitConfig = {

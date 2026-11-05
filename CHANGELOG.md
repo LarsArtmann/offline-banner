@@ -14,7 +14,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
-- Nothing yet.
+- **Banner dead-on-arrival when the ledger dir is missing** — the outage ledger's `ReadWritePaths=%h/.local/state/offline-banner` hole binds but never creates its target: on hosts without the directory, systemd failed mount namespacing (status 226/NAMESPACE), the restart loop hit the start limit ~30 s into every session, and the banner was silently absent through every outage (live incident: evo-x2, since the 0.2.0-generation switch; caught 2026-11-05 when a real outage finally showed nothing). The unit now provisions the directory with `StateDirectory=` (user units root it at `~/.local/state`; created 0700 before the sandbox applies — live-verified on systemd 261), and `historyPath` shapes whose parent the unit cannot provision now fail at eval time with an explicit message instead of dying silently at runtime. `module-contract` pins all three unit lines (`StateDirectory`, `StateDirectoryMode`, the ReadWritePaths hole). Default configs are unaffected apart from the bug going away; instant unblock on affected hosts without a rebuild: `mkdir -p ~/.local/state/offline-banner && systemctl --user reset-failed offline-banner && systemctl --user start offline-banner`.
 
 ## [0.2.0] — 2026-10-29
 

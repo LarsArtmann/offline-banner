@@ -59,7 +59,7 @@ Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direc
 ## Checks
 
 Seven flake checks (green on both systems, CI-enforced via branch protection):
-- `module-contract`: unit present/absent, quickshell ExecStart, env contract (the four probe vars PLUS `SOUND_THEME/SOUND_VOLUME/SOUNDS` + `HISTORY`), pipewire in PATH with a theme on, MemoryMax, XDG_CACHE_HOME pointed at the runtime dir (specifiers DO expand in unit-file `Environment=` — verified in systemd's `config_parse_environ`), ALL sandbox directive lines (incl. the `%h/.local/state/offline-banner` home-write hole for the outage ledger), NoNewPrivileges absent (it strips ping's cap_net_raw), exactly two restartTriggers (store QML + sounds dir), probe-overlap assertion fires on a bad config.
+- `module-contract`: unit present/absent, quickshell ExecStart, env contract (the four probe vars PLUS `SOUND_THEME/SOUND_VOLUME/SOUNDS` + `HISTORY`), pipewire in PATH with a theme on, MemoryMax, XDG_CACHE_HOME pointed at the runtime dir (specifiers DO expand in unit-file `Environment=` — verified in systemd's `config_parse_environ`), ALL sandbox directive lines (incl. the `%h/.local/state/offline-banner` home-write hole for the outage ledger, PROVISIONED by `StateDirectory=` + `StateDirectoryMode=0700` — ReadWritePaths cannot create its target; 2026-11-05 evo-x2 died at 226/NAMESPACE in a boot crash loop, silently absent through every outage), NoNewPrivileges absent (it strips ping's cap_net_raw), exactly two restartTriggers (store QML + sounds dir), probe-overlap assertion fires on a bad config.
 - `unit-verify`: systemd-analyze verify on the rendered unit (sandbox recipe: LD_PRELOAD mkdir/mkdirat shim redirects /run; --user --recursive-errors=no; graphical-session.target stubbed).
 - `docs-drift`: option list derived from the module eval must appear in README + FEATURES; env-contract mention + quickstart pointers pinned.
 - `shell-content`: the BUILT shell.qml must contain the namespace interpolation, the probe env markers, AND the sound/history markers (`SOUND_THEME`, `SOUND_CMD`, `HISTORY`, `pw-play`) (the unit-text contract cannot see inside the QML; negative-tested) — plus the WAV gate: the full 3x4 synthesized theme/event matrix must exist as valid sub-second 44.1 kHz mono WAVs.
@@ -79,7 +79,7 @@ CI runners: the Checks job is pinned to **`ubuntu-24.04`**, not `ubuntu-latest` 
 
 ### Live smoke test (hardened unit without a NixOS switch)
 
-Runs the exact serviceConfig sandbox as a transient user unit. Bus-transient properties do NOT expand specifiers (the `%t` expansion above is unit-file-only), so runtime paths are literal. Ground-truth store QML dir: extract exactly as `scripts/capture-demo.sh` does (third word of the eval'd `ExecStart`).
+Runs the exact serviceConfig sandbox as a transient user unit. Bus-transient properties do NOT expand specifiers (the `%t` expansion above is unit-file-only), so runtime paths are literal. The transient therefore cannot exercise the `%h` ledger hole at all — and unit-verify cannot see its runtime failure — so only a real unit start proves provisioning (that blind spot shipped the 2026-11-05 crash loop). Ground-truth store QML dir: extract exactly as `scripts/capture-demo.sh` does (third word of the eval'd `ExecStart`).
 
 ```bash
 uid=$(id -u)
@@ -106,7 +106,7 @@ Checklist: unit active under the full sandbox; ping works with cap_net_raw (`pro
 
 ## Consumers
 
-- SystemNix (evo-x2) — CUTOVER DONE 2026-10-16 (owner-directed): consumed via the `offline-banner` input (locked fff0b61), thin wrapper sets `layerNamespace = "systemnix:offline-banner"`; evo-x2 eval green + shipped-QML parity proven. The hardened-unit live smoke test is DONE (2026-10-17, found+fixed the /run/user sandbox blocker) — the v3 switch is unblocked; its first real-monitor render proof rides the switch itself (the smoke session had zero active outputs).
+- SystemNix (evo-x2) — CUTOVER DONE 2026-10-16 (owner-directed): consumed via the `offline-banner` input (locked 2ccdf6e as of 2026-11-05 — the sound/history generation IS deployed), thin wrapper sets `layerNamespace = "systemnix:offline-banner"`. The switch shipped the ledger `ReadWritePaths` hole without a provisioned dir: the unit crash-looped at 226/NAMESPACE within ~30 s of every session start (start-limit-hit) and was silently absent through every outage until 2026-11-05, when a real outage finally exposed it (root-cause fix: StateDirectory provisioner + eval assertion; instant unblock = `mkdir -p ~/.local/state/offline-banner` + `systemctl --user reset-failed offline-banner && systemctl --user start offline-banner`). The hardened-unit live smoke test is DONE (2026-10-17, found+fixed the /run/user sandbox blocker); the first real-monitor render proof rides the post-fix unit start.
 
 ## Git
 

@@ -119,7 +119,7 @@ Startup race, by design: if the session starts with **no active monitor** (lid c
 | `soundTheme`           | enum    | `"chime"`          | Synthesized cue set: `chime`, `droplet`, `retro`, or `"none"` for silence (see [Behavior](#behavior))                          |
 | `soundVolume`          | 0–100   | `60`               | Cue volume percent (linear factor to `pw-play`; PipeWire stream volume still applies on top)                                  |
 | `enableHistory`        | bool    | `true`             | Append one JSON line per completed outage to `historyPath`                                                                     |
-| `historyPath`          | string  | `"%h/.local/state/offline-banner/history.jsonl"` | Persistent outage ledger (JSONL); `%h`/`%t` systemd specifiers expand, must be absolute |
+| `historyPath`          | string  | `"%h/.local/state/offline-banner/history.jsonl"` | Persistent outage ledger (JSONL); `%h`/`%t` systemd specifiers expand, must be absolute, parent dir must be unit-provisioned (`%h/.local/state/<name>` or `%t/offline-banner`) |
 
 ## Runtime tuning & demos
 
