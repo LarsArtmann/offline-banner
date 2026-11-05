@@ -13,6 +13,23 @@ permissions:
   contents: read
 
 jobs:
+  # Workflow linting, wired per the never-again plan (M18): both tools
+  # were "run on demand, always clean" — on-demand hygiene is hygiene
+  # nobody runs. Offline zizmor audits only (no online audit calls, no
+  # extra token scope). Nix-provided tools: same supply chain as the
+  # nix-check job, no new third-party actions.
+  workflow-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint workflows (actionlint + zizmor)
+        run: |
+          nix shell nixpkgs#actionlint nixpkgs#zizmor -c sh -c \
+            'actionlint && zizmor --no-online-audits .github/workflows'
+
   nix-check:
     # Pinned, not `ubuntu-latest`: the label migrated to Ubuntu 26 in October
     # 2026, where the qemu-user-static/binfmt-support packages the aarch64

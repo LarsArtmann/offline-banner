@@ -29,6 +29,8 @@ jobs:
         working-directory: website
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
@@ -81,6 +83,11 @@ jobs:
       HAS_DEPLOY_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -94,10 +101,13 @@ jobs:
       - name: Deploy to Firebase Hosting
         working-directory: website
         if: env.HAS_DEPLOY_KEY == 'true'
+        # The AGENTS.md recipe: firebase-tools via nix, pinned to the same
+        # nixpkgs rev as flake.lock so the deploy tool never floats (the
+        # previous unpinned `npm install -g firebase-tools` was both a
+        # zizmor adhoc-packages finding and a silent-major risk).
         run: |
-          npm install -g firebase-tools
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
-          firebase deploy --only hosting:offline-banner --project lars-software
+          nix shell github:nixos/nixpkgs/31ecbaca1bdefa45dffc409f0250bd8039ea0010#firebase-tools -c \
+            firebase deploy --only hosting:offline-banner --project lars-software
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-key.json
