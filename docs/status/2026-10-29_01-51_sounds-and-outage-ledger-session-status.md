@@ -59,6 +59,13 @@ PipeWire and appended a real ledger entry
    `%h` write hole receiving an append on a real outage. Both ride the SystemNix switch.
    Blocker: monitor-on live session. Effort: S (observational, next session/deploy).
    [TODO_LIST watch row exists]
+   > **[2026-11-05 annotation]** The ride never happened: the switch shipped with the
+   > unit crash-looping — the %h hole had no provisioner, so the unit died at
+   > 226/NAMESPACE within ~30 s of every session start and was silently absent through
+   > every outage (docs/status/2026-11-05_18-52 postmortem). The fix (ad6cac3, then
+   > hardened further: provisioning-derived holes + eval assertion + provisioning
+   > invariant + boot-level VM test) landed on master the same day; both live proofs
+   > now wait on the POST-fix unit start / next cutover.
 2. **Sound aesthetic QA** — 2 of 12 cues heard by a human (chime-offline-net,
    chime-recover). droplet×4, retro×4, chime-offline-link, chime-dismiss: validated as
    WAVs but UNHEARD. Frequencies/envelopes were chosen by reasoning. Effort: S (play all
@@ -145,6 +152,8 @@ TODO-grade (bounded):
 
 1. Live sandbox proof: pw-play + %h append on a real outage (rides SystemNix switch) —
    High / S / Quality. [row exists]
+   (2026-11-05: switch shipped dead — 226/NAMESPACE, see the annotation above; the
+   proof rides the post-fix unit start.)
 2. Website options/observability sync (4 new options, sounds/history sections) —
    High / M / Documentation. [row exists]
 3. dprint.json SECOND resurrection decision (re-drop vs adopt `.buildflow.yml`) —

@@ -27,6 +27,12 @@ click-to-dismiss, and a push-down animation that moves your bar instead of
 covering anything. It runs as its own Quickshell instance — no plugin into
 your existing shell required.
 
+Two features arrived with v0.2: transitions can chime — three sound themes
+synthesized at build time, one cue per outage (never per probe, lower pitch for
+link loss, a sparkle on recovery) — and every completed outage is appended to a
+persistent JSONL ledger, so `jq` can answer "how often did the ISP flap this
+month?" years later.
+
 Install:
 
 ```nix
@@ -37,8 +43,12 @@ inputs.offline-banner.url = "github:LarsArtmann/offline-banner";
 Honest status: behavior is machine-verified (a flake check drives the real
 store QML through ok/net/link in headless sway and asserts the state
 transitions), the systemd sandbox is contract-checked line-by-line, and it ran
-live in my fleet before the extraction. Proven on niri; other layer-shell
-compositors are expected but untested. X11 is out of scope.
+live in my fleet before the extraction. That sandbox checking earned its keep
+in November: a real outage on my own desk exposed a unit that could not create
+its writable history directory and sat dead in a restart loop — the fix is now
+guarded by an eval assertion, a computed provisioning invariant, and a boot-level
+VM test. Proven on niri; other layer-shell compositors are expected but
+untested. X11 is out of scope.
 
 Demo (24 s), docs, and options: https://offline-banner.lars.software
 Source: https://github.com/LarsArtmann/offline-banner
@@ -49,7 +59,7 @@ Feedback welcome — especially Hyprland/sway reports.
 
 ## r/NixOS post draft
 
-**Title:** offline-banner: a yellow strip on every monitor while your network is down (NixOS flake, v0.1.0)
+**Title:** offline-banner: a yellow strip on every monitor while your network is down (NixOS flake)
 
 Your VPN dies mid-call and nothing on screen tells you it's not your fault.
 This is a tiny NixOS module that fixes exactly that: a static yellow strip
@@ -61,7 +71,10 @@ down instead of covering it, and slides away on recovery.
   NetworkManager, which lies on NM-unmanaged uplinks
 - Debounced, click-to-dismiss, re-arms on recovery
 - Journal lines + JSON state file rewritten every probe (fail-closed)
-- Hardened systemd user unit; sandbox asserted by a flake check
+- Optional sound cues: three build-time-synthesized themes, one cue per outage
+- Persistent outage ledger: one jq-able JSONL entry per completed outage
+- Hardened systemd user unit; sandbox asserted line-by-line by a flake check,
+  plus a boot-level VM test after a real outage caught a provisioning bug
 - One option: `services.offline-banner.enable = true;`
 
 24 s demo + docs: https://offline-banner.lars.software

@@ -101,4 +101,8 @@ entirely — safe demos and post-deploy checks, no unroutable-IP drop-in hack.
 `probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken
 v4 route the banner shows offline while v6 browsing works — an accepted
 tradeoff. Point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials
-it directly).
+it directly):
+
+```nix
+services.offline-banner.probeHost = "2606:4700:4700::1111"; # v6-primary uplinks
+```

@@ -6,11 +6,20 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
-- Nothing yet.
+- **Boot-level VM smoke test (`packages.vm-smoke`)** — the check class that would have caught the 226/NAMESPACE incident: a full NixOS boot with a normal user whose home is CLEAN (the incident condition), autologin into the user manager, and the unit started under the real sandbox; asserts the StateDirectory leaf materializes, the unit's last death is never a namespace/exec setup failure (`ExecMainStatus` 226/203), and no `Failed at step` journal line exists. Negative-proven: reverting the provisioner fails with the exact incident signature. Deliberately outside `checks` pending the D1 decision (a tcg VM check slows every CI run by minutes).
+- **`nix run .#smoke`** — the runbook's hardened smoke transient as versioned code: every property derives from the rendered serviceConfig (whitelisted sandbox directives + env), and unit-file specifiers are substituted literally (`%h`→`$HOME`, `%t`→`$XDG_RUNTIME_DIR`) so the transient CAN exercise the `%h` ledger hole a bus transient structurally cannot. A `smoke-script` check pins the substitutions.
+- **Provisioning invariant + negative fixtures in `module-contract`** — the check recomputes "every ReadWritePaths hole maps to a provisioned dir" over the rendered config and proves its own teeth against a synthetic unprovisioned hole; the opt-out config (`soundTheme "none"` + `enableHistory false`) is permanently asserted inert and assertion-free; bad `historyPath` shapes (unprovisioned `/opt/...` parent, relative path) are gated at eval time.
+- **Link cue asserted positively** — `probe-transitions` trips a clean-start outage on `reason=link` in its own instance with a fresh sound log and asserts the link cue exactly once (same-reason failures never re-sound); until now the link cue was only negatively asserted.
+- **Waybar consumer renders the outage age** — `since` becomes text "offline 4m" ("1h6m" past an hour) and a tooltip suffix while the banner is active; stale/demo/hidden behavior unchanged and regression-tested.
+- **`scripts/play-sounds.sh` + `packages.sounds`** — audition loop over the full 3×4 cue matrix through `pw-play` with the unit's volume math; the sounds dir resolves from `$1`, the running unit, or a fresh `nix build .#sounds`. A `shell-scripts` check keeps all three copy-paste shell surfaces (consumer, audition script, demo capture) shellcheck- and shfmt-clean.
+- **CI workflow linting** — `actionlint` + `zizmor` (offline audits) run as a `workflow-lint` job in Checks instead of on demand; wiring immediately caught two credential-persistence findings and an unpinned `npm install -g` float in the deploy workflow (both fixed below).
+- Website docs: a jq ledger cookbook (outages per month, per-month totals, ten longest, reason histogram — recipes verified against synthetic data) and a v6 `probeHost` worked example (`"2606:4700:4700::1111"` for v6-primary uplinks).
 
 ### Changed
 
-- Nothing yet.
+- **Writable holes derive from provisioning** — `ReadWritePaths` is computed from the same lists that render `RuntimeDirectory`/`StateDirectory`, so a hole cannot drift away from its provisioner (the incident class). Default rendering differs only in line order inside `ReadWritePaths`; the `%t`-shaped ledger path no longer emits a duplicate hole line.
+- CI deploy installs `firebase-tools` through nix, pinned to the same nixpkgs revision as `flake.lock` (the unpinned npm float was both a zizmor finding and a silent-major risk); both workflows' checkouts set `persist-credentials: false`.
+- Launch-post drafts refreshed for v0.2 (sounds + ledger sentence, incident-honesty clause, version-agnostic titles).
 
 ### Fixed
 
