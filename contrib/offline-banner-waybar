@@ -44,4 +44,25 @@ esac
 
 tooltip="offline-banner: $why"
 [ "$(jq -r '.demo | tostring' "$state")" = "true" ] && tooltip="$tooltip (demo)"
-printf '{"text":"offline","class":"offline","tooltip":"%s"}\n' "$tooltip"
+
+# since (epoch seconds, null while fine) renders the outage's age: the
+# bar shows "offline 4m" and the tooltip spells it out. A zero/garbage
+# since falls back to the plain label instead of a bogus duration.
+text="offline"
+since=$(jq -r '.since // empty' "$state")
+case $since in
+'' | *[!0-9]*) since="" ;;
+esac
+if [ -n "$since" ] && [ "$since" -gt 0 ]; then
+	elapsed=$((now - since))
+	[ "$elapsed" -lt 0 ] && elapsed=0
+	minutes=$((elapsed / 60))
+	if [ "$minutes" -ge 60 ]; then
+		duration="$((minutes / 60))h$((minutes % 60))m"
+	else
+		duration="$((minutes))m"
+	fi
+	text="offline $duration"
+	tooltip="$tooltip (offline for $duration)"
+fi
+printf '{"text":"%s","class":"offline","tooltip":"%s"}\n' "$text" "$tooltip"

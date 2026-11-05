@@ -505,6 +505,28 @@
           # substitutions, props-file consumption (a refactor losing the
           # %h substitution would silently re-open the runbook blind spot
           # the app exists to close).
+          # Shell gates: the reference consumer and the host scripts are
+          # copy-paste surfaces users run as-is — they stay shellcheck
+          # (-S warning) clean and shfmt canonical.
+          shell-scripts =
+            pkgs.runCommand "offline-banner-shell-scripts"
+              {
+                nativeBuildInputs = [
+                  pkgs.shellcheck
+                  pkgs.shfmt
+                ];
+                contrib = ./contrib/offline-banner-waybar;
+                playSounds = ./scripts/play-sounds.sh;
+                captureDemo = ./scripts/capture-demo.sh;
+              }
+              ''
+                for f in "$contrib" "$playSounds" "$captureDemo"; do
+                  echo "gating $f"
+                  shellcheck -S warning "$f" || { echo "FAIL: shellcheck on $f"; exit 1; }
+                  shfmt -d "$f" || { echo "FAIL: shfmt on $f (run: shfmt -w $f)"; exit 1; }
+                done
+                touch "$out"
+              '';
           smoke-script =
             pkgs.runCommand "offline-banner-smoke-script"
               {
@@ -1095,10 +1117,21 @@
         }
       );
 
-      packages = forAllSystems (system: {
-        smoke = smokeRunner system;
-        vm-smoke = vmSmoke system;
-      });
+      packages = forAllSystems (
+        system:
+        let
+          enabled = evalModule system [
+            { services.offline-banner.enable = true; }
+          ];
+        in
+        {
+          smoke = smokeRunner system;
+          vm-smoke = vmSmoke system;
+          # The synthesized 3x4 sound matrix, for auditioning without a
+          # running unit (scripts/play-sounds.sh falls back to it).
+          sounds = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 1;
+        }
+      );
 
       apps = forAllSystems (system: {
         smoke = {
