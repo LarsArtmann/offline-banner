@@ -637,6 +637,21 @@
           m = builtins.match "%h/\\.local/state/([^/]+)" (dirOf cfg.historyPath);
         in
         if m == null then null else builtins.head m;
+
+      # Writability derives from provisioning (single source of truth):
+      # every ReadWritePaths hole is computed from a dir the unit
+      # PROVISIONS — RuntimeDirectory for the %t side, StateDirectory for
+      # the %h side — so a hole can no longer drift away from its
+      # provisioner (the 2026-11-05 incident was exactly a hole whose dir
+      # nothing created). module-contract additionally computes the
+      # every-hole-is-provisioned invariant over the rendered config.
+      provisionedRuntimeDirs = [
+        "offline-banner"
+        "quickshell"
+      ];
+      provisionedStateDirs = lib.optionals (cfg.enableHistory && ledgerStateDirLeaf != null) [
+        ledgerStateDirLeaf
+      ];
     in
     lib.mkIf cfg.enable {
       assertions = [
@@ -744,23 +759,18 @@
           # dirs there: quickshell's own runtime layout and the banner
           # state dir (live-verified 2026-10-17 — without this the unit
           # runs but quickshell cannot create its runtime dirs).
-          RuntimeDirectory = [
-            "offline-banner"
-            "quickshell"
-          ];
+          RuntimeDirectory = provisionedRuntimeDirs;
           RuntimeDirectoryMode = "0700";
-          ReadWritePaths = [
-            "%t/quickshell"
-            "%t/offline-banner"
-          ]
           # The outage ledger is PERSISTENT (survives reboots — that is
           # its point), so it cannot live in the volatile runtime dir:
           # exactly its parent dir under the read-only home becomes the
           # unit's one home write hole (%h expands in this setting like
-          # %t above).
-          ++ lib.optionals cfg.enableHistory [
-            (dirOf cfg.historyPath)
-          ];
+          # %t above). Both holes are DERIVED from the provisioned dirs
+          # above — %t/<dir> from RuntimeDirectory, %h/.local/state/<dir>
+          # from StateDirectory — so this list cannot name a dir the unit
+          # does not create.
+          ReadWritePaths =
+            map (d: "%t/${d}") provisionedRuntimeDirs ++ map (s: "%h/.local/state/${s}") provisionedStateDirs;
           RestrictAddressFamilies = [
             "AF_UNIX"
             "AF_INET"
@@ -788,10 +798,10 @@
           # banner was silently absent through every outage). User units
           # root StateDirectory at ~/.local/state (live-verified on
           # systemd 261: created 0700, writable under ProtectHome). The
-          # ReadWritePaths hole above stays — writability statement and
-          # provisioner are separate concerns, pinned separately by
-          # module-contract.
-          StateDirectory = [ ledgerStateDirLeaf ];
+          # ReadWritePaths hole is DERIVED from this same list (see
+          # provisionedStateDirs) — writability statement and provisioner
+          # cannot drift apart, and module-contract pins both sides.
+          StateDirectory = provisionedStateDirs;
           StateDirectoryMode = "0700";
         };
 

@@ -40,6 +40,210 @@
           inherit system;
           modules = [ offlineBannerModule ] ++ extraModules;
         };
+      # The runbook's hardened smoke test as versioned code: the module's
+      # EXACT serviceConfig sandbox as a transient user unit, with
+      # unit-file specifiers substituted literally (%h -> $HOME, %t ->
+      # $XDG_RUNTIME_DIR). A bus transient does not expand specifiers, so
+      # the substitution is what lets it exercise the %h ledger hole —
+      # the runbook recipe structurally could not, and that blind spot
+      # shipped the 2026-11-05 226/NAMESPACE crash loop (systemd-analyze
+      # verify cannot see namespace failures at all). Mandatory
+      # pre-switch gate: `nix run .#smoke --`, then follow the runbook
+      # checklist (unit active, probe ok, forced outage shows, RSS).
+      smokeRunner =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          enabled = evalModule system [ { services.offline-banner.enable = true; } ];
+          serviceConfig = enabled.config.systemd.user.services.offline-banner.serviceConfig;
+          # Sandbox directives a transient can carry verbatim (whitelist:
+          # Type/ExecStart/Restart/wantedBy are transient-hostile). List
+          # values render as one space-joined line each — unit-file list
+          # syntax — one `-p KEY=VALUE` per line, one argv element per
+          # line in the props file.
+          keepDirectives = [
+            "ProtectSystem"
+            "ProtectHome"
+            "PrivateTmp"
+            "RuntimeDirectory"
+            "RuntimeDirectoryMode"
+            "StateDirectory"
+            "StateDirectoryMode"
+            "ReadWritePaths"
+            "MemoryMax"
+            "RestrictAddressFamilies"
+            "RestrictNamespaces"
+            "LockPersonality"
+            "RestrictRealtime"
+            "RestrictSUIDSGID"
+            "ProtectClock"
+            "ProtectHostname"
+            "ProtectKernelLogs"
+            "ProtectKernelModules"
+            "ProtectKernelTunables"
+            "ProtectControlGroups"
+            "ProtectProc"
+            "SystemCallArchitectures"
+          ];
+          renderDirective =
+            name: value:
+            "-p ${name}=${
+              if builtins.isList value then nixpkgs.lib.concatStringsSep " " value else toString value
+            }";
+          propsLines =
+            map (name: renderDirective name serviceConfig.${name}) (
+              nixpkgs.lib.filter (name: nixpkgs.lib.elem name keepDirectives) (
+                nixpkgs.lib.attrNames serviceConfig
+              )
+            )
+            ++ nixpkgs.lib.mapAttrsToList (name: value: "-p Environment=${name}=${toString value}") (
+              serviceConfig.Environment or { }
+            );
+        in
+        pkgs.runCommand "offline-banner-smoke"
+          {
+            propsText = nixpkgs.lib.concatStringsSep "\n" propsLines + "\n";
+            passAsFile = [ "propsText" ];
+            qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
+          }
+          ''
+            mkdir -p "$out/bin"
+            cat > "$out/bin/offline-banner-smoke" <<'EOF'
+            #!/usr/bin/env bash
+            # Hardened smoke test: transient user unit under the rendered
+            # offline-banner sandbox, specifiers substituted (%h -> $HOME,
+            # %t -> $XDG_RUNTIME_DIR) so the %h ledger hole IS exercised.
+            # Checklist (AGENTS.md runbook): unit active, probe ok, forced
+            # outage shows + writes the ledger, demo shows, RSS << MemoryMax,
+            # fontconfig cache warnings gone. Stop with:
+            #   systemctl --user stop offline-banner-smoke
+            set -euo pipefail
+            props_file="@propsFile@"
+            qml_dir="@qmlDir@"
+            name="offline-banner-smoke"
+            runtime="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+            systemctl --user stop "$name.service" 2>/dev/null || true
+            systemctl --user reset-failed "$name.service" 2>/dev/null || true
+            args=()
+            while IFS= read -r line; do
+              [ -n "$line" ] || continue
+              line="''${line//%h/$HOME}"
+              line="''${line//%t/$runtime}"
+              args+=("$line")
+            done < "$props_file"
+            [ -z "''${OFFLINE_BANNER_SMOKE_PROBE_HOST:-}" ] ||
+              args+=(-p "Environment=OFFLINE_BANNER_PROBE_HOST=$OFFLINE_BANNER_SMOKE_PROBE_HOST")
+            [ -z "''${OFFLINE_BANNER_SMOKE_DEMO:-}" ] ||
+              args+=(-p "Environment=OFFLINE_BANNER_DEMO=1")
+            echo "offline-banner-smoke: transient '$name' under the rendered sandbox (specifiers substituted: %h -> $HOME, %t -> $runtime)"
+            exec systemd-run --user --unit="$name" ''${args[@]} -- quickshell -p "$qml_dir"
+            EOF
+            sed -e "s|@propsFile@|$propsTextPath|" -e "s|@qmlDir@|$qmlDir|" -i "$out/bin/offline-banner-smoke"
+            chmod +x "$out/bin/offline-banner-smoke"
+          '';
+
+      # The check class that would have caught the 2026-11-05 226/NAMESPACE
+      # incident: a full boot of a normal user with a CLEAN home (no
+      # ~/.local/state/offline-banner, no leaked fixture), autologin into
+      # the user manager, then the unit started under the REAL sandbox.
+      # Asserts: the StateDirectory leaf actually materialized under the
+      # clean home, the unit's last death was NOT a namespace/exec setup
+      # failure (ExecMainStatus 226/203), and the journal carries no
+      # "Failed at step" line for the unit. Deliberately NOT in `checks`
+      # pending the owner decision (D1: a tcg VM check makes every CI run
+      # minutes slower) — run locally via `nix build .#vm-smoke`, promote
+      # into checks.x86_64-linux when decided. A compositor is out of
+      # scope: quickshell may exit/restart without a Wayland display — the
+      # class-kill asserts only care that exec left the namespace-setup
+      # stage behind.
+      vmSmoke =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        nixpkgs.lib.nixos.runTest {
+          name = "offline-banner-vm-smoke";
+          hostPkgs = pkgs;
+          nodes.machine =
+            { lib, ... }:
+            {
+              imports = [ offlineBannerModule ];
+              services.offline-banner = {
+                enable = true;
+                # TEST-NET-1: probes fail deterministically in the VM
+                # (no network); probe behavior is probe-transitions'
+                # scope — this test owns the sandbox/boot path only.
+                probeHost = "192.0.2.1";
+              };
+              users.users.smoke = {
+                isNormalUser = true;
+                password = "smoke";
+              };
+              # Autologin boots the user manager (user@uid.service) —
+              # the real user-unit environment, no lingering hacks.
+              services.getty.autologinUser = "smoke";
+            };
+          testScript = ''
+            uid = machine.succeed("id -u smoke").strip()
+            machine.wait_for_unit("multi-user.target")
+            machine.wait_for_unit("getty.target")
+            machine.wait_for_unit(f"user@{uid}.service")
+
+            # Manual-start path (no graphical session in this VM — same
+            # as the origin host's first start): graphical-session.target
+            # itself refuses manual start (dependency-only), so the unit
+            # is pulled in directly.
+            machine.succeed(
+                f"su smoke -c 'XDG_RUNTIME_DIR=/run/user/{uid} "
+                "systemctl --user start offline-banner.service'"
+            )
+            machine.wait_until_succeeds(
+                f"su smoke -c 'XDG_RUNTIME_DIR=/run/user/{uid} "
+                "systemctl --user show offline-banner -p ActiveState'"
+                " | grep -q 'ActiveState='",
+                timeout=120,
+            )
+
+            # The provisioning assert (THE incident): the StateDirectory
+            # leaf must materialize under the clean home BEFORE anything
+            # binds it. ReadWritePaths binds but never creates — a
+            # missing dir dies at NAMESPACE setup, status 226, in a
+            # restart loop (2026-11-05 evo-x2).
+            machine.succeed("test -d /home/smoke/.local/state/offline-banner")
+            machine.succeed(
+                "test \"$(stat -c %U /home/smoke/.local/state/offline-banner)\" = smoke"
+            )
+
+            # Wait for at least one start attempt to reach a verdict.
+            machine.wait_until_succeeds(
+                f"su smoke -c 'XDG_RUNTIME_DIR=/run/user/{uid} "
+                "systemctl --user show offline-banner -p ExecMainStatus'"
+                " | grep -q 'ExecMainStatus='",
+                timeout=180,
+            )
+            state = machine.succeed(
+                f"su smoke -c 'XDG_RUNTIME_DIR=/run/user/{uid} "
+                "systemctl --user show offline-banner -p ExecMainStatus'"
+            ).strip()
+            # 226 = namespace setup failed (the incident class); 203 =
+            # exec step failed (binary/path drift). Anything else means
+            # quickshell actually exec'd through the full sandbox.
+            assert "ExecMainStatus=226" not in state, f"unit died in namespace setup: {state}"
+            assert "ExecMainStatus=203" not in state, f"unit failed at exec: {state}"
+
+            # Journal class-kill: no "Failed at step" line may exist for
+            # the unit, and the exec must have left a trace.
+            machine.fail(
+                "journalctl _SYSTEMD_USER_UNIT=offline-banner.service "
+                "--grep='Failed at step' | grep -q ."
+            )
+            machine.wait_until_succeeds(
+                "journalctl _SYSTEMD_USER_UNIT=offline-banner.service "
+                "--grep='Started|Main process|Quickshell|quickshell|Qt' | grep -q .",
+                timeout=120,
+            )
+          '';
+        };
     in
     {
       formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
@@ -97,6 +301,72 @@
               enable = true;
             })
           );
+          # Negative fixture, opt-out side (soundTheme none + history off):
+          # the unit must go fully inert — no sound env, no pw-play in
+          # PATH, no ledger env, no StateDirectory, no %h write hole — and
+          # fire no assertion.
+          inert = evalModule system [
+            {
+              services.offline-banner = {
+                enable = true;
+                soundTheme = "none";
+                enableHistory = false;
+              };
+            }
+          ];
+          inertUnit = inert.config.systemd.user.units."offline-banner.service";
+          goodInertAsserts = nixpkgs.lib.length (
+            failing (standaloneAssertions {
+              enable = true;
+              soundTheme = "none";
+              enableHistory = false;
+            })
+          );
+          # Negative fixture, assertion teeth: a historyPath outside the
+          # two provisioned shapes must fire the provisioning assertion at
+          # eval time (an absolute-but-unprovisioned parent fires exactly
+          # that one; a relative path additionally fails the absolute-path
+          # assertion).
+          badLedgerAsserts = nixpkgs.lib.length (
+            failing (standaloneAssertions {
+              enable = true;
+              historyPath = "/opt/ledger/history.jsonl";
+            })
+          );
+          badRelativeLedgerAsserts = nixpkgs.lib.length (
+            failing (standaloneAssertions {
+              enable = true;
+              historyPath = "ledger/history.jsonl";
+            })
+          );
+          # The computed provisioning invariant: every ReadWritePaths hole
+          # must map to a dir the unit PROVISIONS — %t/<d> via
+          # RuntimeDirectory, %h/.local/state/<s> via StateDirectory
+          # (user units root StateDirectory at ~/.local/state). The
+          # synthetic hole eval (a hand-written hole nothing provisions)
+          # must FAIL this same computation, proving the gate has teeth.
+          rwProvisioned =
+            sc:
+            let
+              provisioned =
+                map (d: "%t/${d}") (sc.RuntimeDirectory or [ ])
+                ++ map (s: "%h/.local/state/${s}") (sc.StateDirectory or [ ]);
+            in
+            nixpkgs.lib.all (hole: nixpkgs.lib.any (p: hole == p) provisioned) (sc.ReadWritePaths or [ ]);
+          rwHolesProvisioned = rwProvisioned enabled.config.systemd.user.services.offline-banner.serviceConfig;
+          holeEval = evalModule system [
+            { services.offline-banner.enable = true; }
+            (
+              { lib, ... }:
+              {
+                systemd.user.services.offline-banner.serviceConfig.ReadWritePaths = lib.mkForce [
+                  "%t/unprovisioned-hole"
+                ];
+              }
+            )
+          ];
+          rwInvariantDetectsHole =
+            !(rwProvisioned holeEval.config.systemd.user.services.offline-banner.serviceConfig);
         in
         {
           formatting = treefmtEval.${system}.config.build.check self;
@@ -190,6 +460,22 @@
                 pipewireInUnit = toString (nixpkgs.lib.hasInfix "pipewire" unit.text);
                 badProbeOverlapAsserts = toString badStandaloneAsserts;
                 goodProbeOverlapAsserts = toString goodStandaloneAsserts;
+                inertAssertsClean = toString goodInertAsserts;
+                inertUnitIsSilent = toString (
+                  nixpkgs.lib.all (marker: !(nixpkgs.lib.hasInfix marker inertUnit.text)) [
+                    "OFFLINE_BANNER_SOUND_THEME"
+                    "OFFLINE_BANNER_SOUND_VOLUME"
+                    "OFFLINE_BANNER_SOUNDS"
+                    "OFFLINE_BANNER_HISTORY"
+                    "pipewire"
+                    "StateDirectory"
+                  ]
+                );
+                inertUnitHasNoHomeHole = toString (!(nixpkgs.lib.hasInfix "ReadWritePaths=%h/" inertUnit.text));
+                badLedgerShapeAsserts = toString badLedgerAsserts;
+                badRelativeLedgerAsserts = toString badRelativeLedgerAsserts;
+                rwHolesAllProvisioned = toString rwHolesProvisioned;
+                rwHoleGateHasTeeth = toString rwInvariantDetectsHole;
               }
               ''
                 [ "$unitPresent" = "1" ] || { echo "FAIL: unit missing when enabled"; exit 1; }
@@ -205,6 +491,36 @@
                 [ "$pipewireInUnit" = "1" ] || { echo "FAIL: pw-play (pipewire) missing from the unit PATH with a sound theme on"; exit 1; }
                 [ "$badProbeOverlapAsserts" -ge 1 ] || { echo "FAIL: probeTimeout >= checkInterval must assert"; exit 1; }
                 [ "$goodProbeOverlapAsserts" = "0" ] || { echo "FAIL: probe-overlap assertion fires on a valid config"; exit 1; }
+                [ "$rwHolesAllProvisioned" = "1" ] || { echo "FAIL: a ReadWritePaths hole lacks a provisioned dir (ReadWritePaths binds but never creates — 226/NAMESPACE class)"; exit 1; }
+                [ "$rwHoleGateHasTeeth" = "1" ] || { echo "FAIL: the provisioning invariant did NOT flag the synthetic unprovisioned hole (gate has no teeth)"; exit 1; }
+                [ "$inertAssertsClean" = "0" ] || { echo "FAIL: the opt-out config (soundTheme none + history off) must not fire any assertion"; exit 1; }
+                [ "$inertUnitIsSilent" = "1" ] || { echo "FAIL: soundTheme=none + enableHistory=false must leave the unit silent and ledger-less"; exit 1; }
+                [ "$inertUnitHasNoHomeHole" = "1" ] || { echo "FAIL: history off must remove the %h write hole"; exit 1; }
+                [ "$badLedgerShapeAsserts" -ge 1 ] || { echo "FAIL: an unprovisioned historyPath parent (/opt/...) must fail the eval assertion"; exit 1; }
+                [ "$badRelativeLedgerAsserts" -ge 1 ] || { echo "FAIL: a relative historyPath must fail the absolute-path assertion"; exit 1; }
+                touch "$out"
+              '';
+          # The smoke script must stay runnable: bash syntax plus the
+          # structural markers — transient exec, BOTH specifier
+          # substitutions, props-file consumption (a refactor losing the
+          # %h substitution would silently re-open the runbook blind spot
+          # the app exists to close).
+          smoke-script =
+            pkgs.runCommand "offline-banner-smoke-script"
+              {
+                script = "${smokeRunner system}/bin/offline-banner-smoke";
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.coreutils
+                  pkgs.gnugrep
+                ];
+              }
+              ''
+                bash -n "$script"
+                grep -q "exec systemd-run --user" "$script" || { echo "FAIL: smoke script lost the systemd-run exec"; exit 1; }
+                grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
+                grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
+                grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
                 touch "$out"
               '';
           # Unit-syntax gate: systemd-analyze verify on the rendered unit —
@@ -511,6 +827,38 @@
                 entries=$(wc -l < history.jsonl)
                 [ "$entries" = "1" ] || { echo "FAIL: an open outage must not close an entry (expected 1, got $entries)"; exit 1; }
 
+                # Link-cue POSITIVE assert: trip a clean-start outage on
+                # reason=link — its own instance and a fresh sound log, so
+                # the one-cue-per-outage doctrine is asserted for the link
+                # reason too (until now only negatively: the net-tripped
+                # outage above must NOT have played it). Exact counts are
+                # deterministic here: a fresh instance's first probe is
+                # failures=1/2, and no same-reason failure ever re-sounds.
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                rm -f "$state"
+                export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-link.log"
+                echo link > control
+                quickshell -p "$qmlDir" >qs-link.log 2>&1 &
+                qs_pid=$!
+                assert_journal "probe failed reason=link failures=1/2" qs-link.log
+                assert_state true link
+                assert_journal "banner state=shown reason=link failures=2/2" qs-link.log
+                n=0
+                for i in $(seq 1 40); do
+                  n=$(grep -c "offline-link" sounds-link.log 2>/dev/null || true)
+                  [ -z "$n" ] && n=0
+                  [ "$n" -ge 1 ] && break
+                  sleep 0.25
+                done
+                [ "$n" = "1" ] || { echo "FAIL: clean link outage must cue offline-link exactly once, got $n: $(cat sounds-link.log 2>/dev/null)"; exit 1; }
+                assert_no_journal "recover" sounds-link.log
+                assert_no_journal "offline-net" sounds-link.log
+                [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "set" ] \
+                  || { echo "FAIL: link outage must arm since: $(cat "$state")"; exit 1; }
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "1" ] || { echo "FAIL: open link outage must not close a second entry (expected 1, got $entries)"; exit 1; }
+
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
                 # state write can race the fresh state file).
@@ -746,6 +1094,18 @@
               '';
         }
       );
+
+      packages = forAllSystems (system: {
+        smoke = smokeRunner system;
+        vm-smoke = vmSmoke system;
+      });
+
+      apps = forAllSystems (system: {
+        smoke = {
+          type = "app";
+          program = "${smokeRunner system}/bin/offline-banner-smoke";
+        };
+      });
 
       nixosModules = {
         offline-banner = offlineBannerModule;
