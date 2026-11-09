@@ -33,7 +33,20 @@ if [ "$((now - updated))" -gt "$max_age" ]; then
 fi
 
 active=$(jq -r '.active | tostring' "$state")
-[ "$active" = "true" ] || exit 0
+if [ "$active" != "true" ]; then
+	# Degraded phase (2026-11-09): a probe leg down while others are up —
+	# e.g. ICMP policed while TCP/DNS work. Still respect the strip's own
+	# dwell/dismissal visibility, and stay silent when fine (doctrine).
+	phase=$(jq -r '.phase // "online"' "$state")
+	[ "$phase" = "degraded" ] || exit 0
+	visible=$(jq -r '.degradedVisible | tostring' "$state")
+	[ "$visible" = "true" ] || exit 0
+	down=$(jq -r '(.degradedLegs // []) | join("+")' "$state")
+	[ -n "$down" ] || exit 0
+	printf '{"text":"degraded: %s","class":"degraded","tooltip":"offline-banner degraded: %s down, remaining legs up - network still usable"}\n' \
+		"$down" "$down"
+	exit 0
+fi
 
 reason=$(jq -r '.reason // ""' "$state")
 case "$reason" in

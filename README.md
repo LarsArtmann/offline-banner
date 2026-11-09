@@ -25,9 +25,23 @@ Because the worst moment to discover your network is down is the moment you need
 And the obvious fix lies. `nmcli networking connectivity` reads NetworkManager, and NetworkManager lies on servers and hybrid hosts: a static-IP ethernet uplink is NM-unmanaged, so NM's connectivity state reads `none` while the internet is perfectly reachable (live-verified on the origin host). offline-banner doesn't ask NetworkManager. It probes:
 
 1. **Link leg** — any real interface (lo/veth/tailscale/wireguard/docker/... excluded) with `carrier 1`, read straight from `/sys/class/net`. No carrier → *"Network link is down"*.
-2. **Internet leg** — one ICMP echo to `probeHost` (default `9.9.9.9`, an **IP, not a name**: DNS is often half-broken exactly when the banner matters, and the banner must never depend on the resolver). No echo → *"No internet connection"*.
+2. **ICMP leg** — one ICMP echo to `probeHost` (default `9.9.9.9`, an **IP, not a name**: DNS is often half-broken exactly when the banner matters, and the banner must never depend on the resolver). No echo → *"No internet connection"*.
+3. **TCP leg** — a TCP connect to `tcpProbeHost:tcpProbePort` (default `1.1.1.1:53`, an IP literal: no resolver in the path).
+4. **DNS leg** — resolving `dnsProbeName` (default `one.one.one.one`) via `getent ahostsv4`, i.e. the glibc/NSS path your applications actually use — a local-resolver outage registers here and nowhere else.
+
+Each leg debounces **independently** (`failuresToShow` consecutive failures per leg), and the legs deliberately span providers (Quad9 / Cloudflare / your resolver) so one provider's filtering mood cannot fake a whole-network outage.
 
 A probe that cannot even run counts as a failure — fail visible, never fail silent.
+
+### The phase ladder (smart display)
+
+| Phase | When | What you see |
+| ----- | ---- | ------------ |
+| **offline** | link down · or TCP+DNS both down · or all three net legs down | The yellow alarm: sound cue, ledger entry, "last online" caption |
+| **degraded** | a leg down while at least one other is up — the policed-ICMP case (browsing is fine, single pings get dropped) | A slim **info-blue** strip naming the down legs ("DEGRADED — ICMP down"), no sound, no ledger entry, auto-fades after `degradedDwellSeconds` (default 15 s; re-appears only when the set of down legs changes) |
+| **online** | all legs up | Nothing |
+
+The ladder exists because ICMP is the most policed leg in the real world: burst filtering drops single echo requests while the network is perfectly usable — a banner that treats one leg's grumpiness as "offline" cries wolf every few seconds (the 2026-11-09 origin-host flap this feature was built from).
 
 Sounds need a PipeWire session (`pw-play`): without one, playback fails with a single journal line per outage and everything else — banner, ledger, state — is unaffected.
 
@@ -56,8 +70,8 @@ Sounds need a PipeWire session (`pw-play`): without one, playback fails with a s
 
 ## How it works
 
-1. A hardened `systemd --user` unit starts with your graphical session and probes every 5 s (two legs: kernel carrier + one ICMP echo to an IP literal).
-2. `failuresToShow` consecutive failures (default 2 ≈ 10 s) open one layer-shell surface per connected monitor — a `WlrLayer.Top` strip with an **animated height** (InOutCubic, 450 ms) that pushes your bar down instead of covering it.
+1. A hardened `systemd --user` unit starts with your graphical session and probes every 5 s (four legs: kernel carrier + ICMP echo to an IP literal + TCP connect to an IP:port + a glibc resolver lookup).
+2. `failuresToShow` consecutive failures (default 2 ≈ 10 s) — **per leg** — move the phase ladder: *offline* opens one layer-shell surface per connected monitor — a `WlrLayer.Top` strip with an **animated height** (InOutCubic, 450 ms) that pushes your bar down instead of covering it; *degraded* opens the same strip slim and info-blue, naming the down legs, and auto-fades after the dwell.
 3. The caption re-evaluates "last online Nm Ns ago" every second while visible; click dismisses for the rest of *this* outage.
 4. The first clean probe slides everything back up and re-arms the banner for the next outage — a short synthesized cue marks the show, the recovery, and the dismiss (see **Sounds** below).
 5. Every transition is journaled, and a JSON state file in `XDG_RUNTIME_DIR` is rewritten every probe — a stale file means the unit is dead.
@@ -112,9 +126,13 @@ Startup race, by design: if the session starts with **no active monitor** (lid c
 | `enable`               | bool    | `false`            | Enable the banner                                                                                                              |
 | `package`              | package | `pkgs.quickshell`  | Quickshell package to run                                                                                                      |
 | `checkIntervalSeconds` | int > 0 | `5`                | Seconds between connectivity probes (env-override values ≤ 500 fall back to the 5000 ms default — sub-half-second probing is refused) |
-| `probeHost`            | string  | `"9.9.9.9"`        | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                     |
-| `probeTimeoutSeconds`  | int > 0 | `3`                | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)                                                    |
-| `failuresToShow`       | int > 0 | `2`                | Consecutive failed probes before the banner appears (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable) |
+| `probeHost`            | string  | `"9.9.9.9"`        | IP pinged for the ICMP leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                     |
+| `probeTimeoutSeconds`  | int > 0 | `3`                | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap); also caps the TCP-connect and DNS-lookup legs    |
+| `failuresToShow`       | int > 0 | `2`                | Consecutive failed probes before **each leg** counts as down (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable) |
+| `tcpProbeHost`         | string  | `"1.1.1.1"`        | IP for the TCP-connect leg (an IP literal — no resolver in the path; deliberately a different anycast provider than `probeHost`) |
+| `tcpProbePort`         | 0–65535 | `53`               | Port for the TCP-connect leg (53 = DNS-over-TCP survives nearly every firewall that passes DNS at all)                        |
+| `dnsProbeName`         | string  | `"one.one.one.one"` | Name resolved via `getent ahostsv4` — the glibc/NSS path applications use; must be an EXTERNAL name (a wildcard local zone would blind the leg) |
+| `degradedDwellSeconds` | int ≥ 0 | `15`               | Seconds the degraded (info) strip stays visible before auto-fading; 0 = sticky. Re-appears only when the set of down legs changes |
 | `layerNamespace`       | string  | `"offline-banner"` | WlrLayershell namespace (find the surface via e.g. `niri msg layers`)                                                           |
 | `soundTheme`           | enum    | `"chime"`          | Synthesized cue set: `chime`, `droplet`, `retro`, or `"none"` for silence (see [Behavior](#behavior))                          |
 | `soundVolume`          | 0–100   | `60`               | Cue volume percent (linear factor to `pw-play`; PipeWire stream volume still applies on top)                                  |
@@ -125,6 +143,8 @@ Startup race, by design: if the session starts with **no active monitor** (lid c
 
 The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}` environment variables mirror the options — a drop-in override (`systemctl --user edit offline-banner`, then restart the unit: env is read at start) retunes a live system without a rebuild, and `OFFLINE_BANNER_DEMO=1` forces the banner visible without touching the probe at all. The env contract is asserted by the `module-contract` flake check, so it cannot silently drift from the options.
 
+The tcp/dns legs ride the same contract: `OFFLINE_BANNER_TCP_HOST`, `OFFLINE_BANNER_TCP_PORT`, `OFFLINE_BANNER_DNS_NAME`, and `OFFLINE_BANNER_DEGRADED_DWELL` (ms) mirror their options and are asserted by the same check.
+
 Sounds and history ride the same contract: `OFFLINE_BANNER_SOUND_THEME`/`SOUND_VOLUME`/`SOUNDS` (the synthesized wav dir) and `OFFLINE_BANNER_HISTORY` are set from the options and gated by the same check. Unset — for a bare `quickshell -p` run, a test harness, or a demo — both features are inert: no sound is attempted and nothing is written to your home.
 
 The README demo above is the real store QML captured in headless sway (`scripts/capture-demo.sh`) — only the carrier bit is scripted, nothing about the banner is mocked.
@@ -133,8 +153,8 @@ The README demo above is the real store QML captured in headless sway (`scripts/
 
 A dead banner must never be silent:
 
-- **Journal**: every transition logs a structured, grep-able line — `probe failed reason=net failures=1/2`, `probe ok recovered_after=2`, `banner state=shown|hidden|dismissed reason=… failures=N/M`, `outage ended from=… to=… duration=…s reasons=net,link` — e.g. `journalctl --user -u offline-banner -f | grep "banner state="`.
-- **State file**: `$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `since`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`. `since` carries the current outage's start (epoch seconds, `null` while fine) for "offline for N" widgets. A reference waybar consumer ships in `contrib/offline-banner-waybar`: it shows an offline widget while active, stays empty while fine, and flips to a `stale` marker once the heartbeat exceeds `OFFLINE_BANNER_MAX_AGE` (default 15 s).
+- **Journal**: every transition logs a structured, grep-able line — `probe failed reason=net failures=1/2`, `probe ok recovered_after=2`, `banner state=shown|hidden|dismissed reason=… failures=N/M`, `banner phase=online|degraded|offline legs=…`, `leg down leg=tcp failures=1/2`, `leg ok leg=dns recovered_after=2`, `outage ended from=… to=… duration=…s reasons=net,link` — e.g. `journalctl --user -u offline-banner -f | grep "banner state="`.
+- **State file**: `$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot (`active`, `reason`, `failures`, `failuresToShow`, `since`, `phase`, `legs` (per-leg `failures`/`down`), `degradedLegs`, `degradedVisible`, `updatedAt`) rewritten on **every probe**. Fail-closed semantics: if `updatedAt` is older than ~2 probe intervals, the unit is effectively dead — treat the banner as absent and check `systemctl --user is-active offline-banner`. `since` carries the current outage's start (epoch seconds, `null` while fine) for "offline for N" widgets; `phase`/`degradedLegs`/`degradedVisible` drive degraded-aware consumers. A reference waybar consumer ships in `contrib/offline-banner-waybar`: it shows an offline widget while active, a `degraded:` widget while a leg is down and the strip is visible, stays empty while fine, and flips to a `stale` marker once the heartbeat exceeds `OFFLINE_BANNER_MAX_AGE` (default 15 s).
 - **Outage ledger**: `$XDG_STATE_HOME`-style `~/.local/state/offline-banner/history.jsonl` (see [Behavior](#behavior)) — one JSON line per completed outage, persisted across reboots: `jq -s 'sort_by(-.durationSec) | .[0:5]' ~/.local/state/offline-banner/history.jsonl` lists your five worst outages. An outage still open when the unit stops is not written, but the `outage ended from=… to=… duration=…s reasons=…` journal token carries the same facts — nothing is ever lost from the journal.
 - **v6 note**: `probeHost` defaults to an IPv4 literal. On a v6-primary uplink with a broken v4 route the banner shows offline while v6 browsing works — an accepted tradeoff; point `probeHost` at a v6 literal on v6-primary hosts (`ping` dials it directly).
 

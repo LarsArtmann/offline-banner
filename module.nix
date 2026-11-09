@@ -4,14 +4,83 @@
 # connectivity`: NetworkManager often manages WiFi only — a static-IP
 # ethernet uplink is NM-unmanaged and NM's connectivity state reads "none"
 # even while the internet is perfectly reachable (live-verified on the
-# origin host 2026-10-16). The probe is a two-leg check instead:
+# origin host 2026-10-16). The probe is a multi-leg check instead:
 #   1. any real interface (lo/veth/tailscale/wg/... excluded) with carrier 1
 #      — else "link" (cable out / wifi dead);
 #   2. an ICMP echo to the probe host (default 9.9.9.9) — else "net"
 #      (router up, WAN down). An IP, not a name: DNS can be half-broken
 #      exactly when the banner matters, and coupling the banner to the
 #      resolver would blackhole it then.
+#
+# INDEPENDENT LEGS (2026-11-09): reachability is not ONE boolean — the
+# legs are tracked separately, each with its own consecutive-failure
+# debounce (failuresToShow), because they fail for different reasons:
+#   3. tcp — a TCP connect to tcpProbeHost:tcpProbePort (default
+#      1.1.1.1:53, an IP literal: no resolver involved);
+#   4. dns — resolving dnsProbeName (default one.one.one.one) via
+#      `getent ahostsv4` — the glibc/NSS path applications actually
+#      use, so a local-resolver (dnsblockd-style) outage registers
+#      here and nowhere else.
+# The legs deliberately span providers (Quad9 / Cloudflare / whatever
+# the system resolver is): independent legs must not share one
+# provider's filtering mood. ICMP is the most policed leg — flow
+# policing drops single echo requests while browsing works fine (the
+# 2026-11-09 evo-x2 flap: single pings lost ~30-50% to the full 3 s
+# timeout while a dense single-flow ping stream passed 100% and
+# TCP/DNS were instant — the banner kept crying "offline" every few
+# seconds over a perfectly usable network).
+#
+# SMART DISPLAY — the phase ladder (2026-11-09):
+#   offline  = link down, or tcp+dns BOTH down (internet unusable for
+#              practical purposes), or all three net legs down — the
+#              yellow alarm: sound cue, outage ledger, "last online";
+#   degraded = a leg down while at least one other leg is up (the
+#              policed-ICMP case: browsing is fine) — a slim info-blue
+#              strip naming the down legs, NO sound, NO ledger entry,
+#              auto-fading after degradedDwellSeconds; it re-appears
+#              only when the SET of down legs changes (one flapping
+#              leg must not flash the strip — the every-few-seconds
+#              banner cycle is exactly what this kills);
+#   online   = all legs up.
+# Everything observable stays ADDITIVE: journal/state surfaces the
+# original single-probe contract used keep their exact tokens (the
+# SystemNix verification recipes and the probe-transition greps).
 # `ping` needs no wrapper on NixOS (nixpkgs iputils ships cap_net_raw).
+#
+# INDEPENDENT LEGS (2026-11-09): reachability is not ONE boolean — the
+# legs are tracked separately, each with its own consecutive-failure
+# debounce (failuresToShow), because they fail for different reasons:
+#   1. link — any real interface (lo/veth/tailscale/wg/... excluded)
+#      with carrier 1 (cable out / wifi dead);
+#   2. icmp — an ICMP echo to probeHost (default 9.9.9.9). An IP, not a
+#      name: DNS must not gate the banner. ICMP is the MOST POLICED leg
+#      — burst/flow policing drops single echo requests while browsing
+#      works fine (the 2026-11-09 evo-x2 flap: single pings lost ~30-50%
+#      to a full 3 s timeout while a dense single-flow ping stream
+#      passed 100% and TCP/DNS were instant);
+#   3. tcp — a TCP connect to tcpProbeHost:tcpProbePort (default
+#      1.1.1.1:53, an IP literal: no resolver involved);
+#   4. dns — resolving dnsProbeName (default one.one.one.one) via
+#      `getent ahostsv4` — the glibc/NSS path applications actually
+#      use, so a local-resolver outage shows here and nowhere else.
+# The legs deliberately span providers (Quad9 / Cloudflare / whatever
+# the system resolver is): independent legs must not share one
+# provider's filtering mood.
+#
+# SMART DISPLAY — the phase ladder (2026-11-09):
+#   offline  = link down, or tcp+dns BOTH down (internet unusable for
+#              practical purposes), or all three net legs down — the
+#              yellow alarm: sound cue, outage ledger, "last online";
+#   degraded = a leg down while at least one other leg is up (the
+#              policed-ICMP case: browsing is fine) — a slim info-blue
+#              strip naming the down legs, NO sound, NO ledger entry,
+#              auto-fading after degradedDwellSeconds; it re-appears
+#              only when the SET of down legs changes (a flapping leg
+#              must not flash the strip — the old every-7-seconds
+#              banner cycle is exactly what this kills);
+#   online   = all legs up.
+# Everything observable stays additive: the journal/state surfaces the
+# original single-probe contract used keep their tokens.
 #
 # Rendering follows the second-Quickshell-instance pattern, with ONE
 # owner-requested difference (2026-10-16): the strip lives on the TOP layer
@@ -94,7 +163,31 @@
     failuresToShow = lib.mkOption {
       type = lib.types.ints.positive;
       default = 2;
-      description = "Consecutive failed probes before the banner appears (debounce)";
+      description = "Consecutive failed probes before a leg counts as down and the banner appears (debounce) — each leg (icmp/tcp/dns) debounces independently against this value";
+    };
+
+    tcpProbeHost = lib.mkOption {
+      type = lib.types.str;
+      default = "1.1.1.1";
+      description = "IP for the TCP-connect leg — an IP literal, deliberately: the tcp leg measures raw socket reachability without touching the resolver (name lookups are the separate dnsProbeName leg). Deliberately a different anycast provider than probeHost (Quad9): independent legs must not share a single provider's filtering mood";
+    };
+
+    tcpProbePort = lib.mkOption {
+      type = lib.types.port;
+      default = 53;
+      description = "Port for the TCP-connect leg. 53 (DNS-over-TCP) survives almost every consumer firewall that passes DNS at all, while fancy ports (443-class captive portals, proxies) can lie the other way";
+    };
+
+    dnsProbeName = lib.mkOption {
+      type = lib.types.str;
+      default = "one.one.one.one";
+      description = "Name resolved by the DNS leg via `getent ahostsv4` — the glibc/NSS path applications actually use, so a local-resolver (dnsblockd-style) outage registers here and nowhere else. Must be an EXTERNAL name: a wildcard-capturing local zone would answer any string and blind the leg";
+    };
+
+    degradedDwellSeconds = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      default = 15;
+      description = "Seconds the degraded (info) strip stays visible before auto-fading; 0 = sticky while degraded. It re-appears only when the SET of down legs changes, so one flapping leg cannot flash the strip";
     };
 
     layerNamespace = lib.mkOption {
@@ -158,6 +251,26 @@
                 const parsed = raw ? parseInt(raw) : 2;
                 return parsed > 0 ? parsed : 2;
             }
+            // Leg targets (2026-11-09): TCP and DNS legs join the ICMP leg.
+            // Env unset (bare quickshell -p, tests) = the same defaults the
+            // module passes — a bare run still probes all three legs.
+            readonly property string tcpHost: Quickshell.env("OFFLINE_BANNER_TCP_HOST") || "1.1.1.1"
+            readonly property string tcpPort: Quickshell.env("OFFLINE_BANNER_TCP_PORT") || "53"
+            readonly property string dnsName: Quickshell.env("OFFLINE_BANNER_DNS_NAME") || "one.one.one.one"
+            readonly property int degradedDwellMs: {
+                const raw = Quickshell.env("OFFLINE_BANNER_DEGRADED_DWELL");
+                const parsed = raw ? parseInt(raw) : 15000;
+                return parsed >= 0 ? parsed : 15000;
+            }
+            // OFFLINE_BANNER_NET_PROBE_CMD (internal, test-only — NOT part
+            // of the public env contract): replaces the whole TCP+DNS
+            // probe script (same doctrine as OFFLINE_BANNER_PROBE_CMD for
+            // the carrier+icmp probe). It must print exactly two lines:
+            // "tcp ok|fail" then "dns ok|fail".
+            readonly property var netProbeOverride: {
+                const raw = Quickshell.env("OFFLINE_BANNER_NET_PROBE_CMD");
+                return raw ? ["sh", "-c", raw] : [];
+            }
 
             // Demo mode (OFFLINE_BANNER_DEMO=1): force the banner visible
             // with no probes at all — safe demos and post-deploy checks,
@@ -207,7 +320,58 @@
 
             property int failures: 0
             property string reason: ""
-            readonly property bool offline: root.demo || root.failures >= root.failuresToShow
+            // Independent leg tracking (2026-11-09): each leg keeps its OWN
+            // consecutive-failure counter and debounces against
+            // failuresToShow separately. failures (above) is the icmp
+            // leg's counter AND the legacy one — its journal/state tokens
+            // are the original single-probe contract, kept verbatim.
+            property int tcpFailures: 0
+            property int dnsFailures: 0
+            // Total failed PROBE EVENTS across ALL legs during the
+            // CURRENT failing run (icmp ticks + tcp ticks + dns ticks).
+            // The ledger's probeFailures reads this at close time — a
+            // leg-only outage legitimately reports 0 icmp failures but
+            // still counts its own leg events.
+            property int outageProbeFailures: 0
+            readonly property bool icmpLegDown: root.failures >= root.failuresToShow
+            readonly property bool tcpLegDown: root.tcpFailures >= root.failuresToShow
+            readonly property bool dnsLegDown: root.dnsFailures >= root.failuresToShow
+            readonly property bool linkDown: root.icmpLegDown && root.reason === "link"
+            // Phase ladder (see the header). offline deliberately fires on
+            // tcp+dns alone even with icmp green: no sockets and no names
+            // IS offline for practical purposes, however chatty the icmp
+            // leg still is.
+            readonly property bool offline: root.demo || root.linkDown
+                || (root.tcpLegDown && root.dnsLegDown)
+                || (root.icmpLegDown && root.tcpLegDown && root.dnsLegDown)
+            readonly property string phase: root.offline
+                ? "offline"
+                : ((root.icmpLegDown || root.tcpLegDown || root.dnsLegDown) ? "degraded" : "online")
+            property string previousPhase: "online"
+            readonly property var downLegs: {
+                const legs = [];
+                if (root.icmpLegDown) legs.push("icmp");
+                if (root.tcpLegDown) legs.push("tcp");
+                if (root.dnsLegDown) legs.push("dns");
+                return legs;
+            }
+            readonly property string degradedLegs: root.downLegs.join(",")
+            readonly property string degradedText: {
+                const names = root.downLegs.map(function (l) {
+                    return l === "icmp" ? "ICMP" : (l === "tcp" ? "TCP" : "DNS");
+                });
+                return names.join(" + ") + " down";
+            }
+            // Degraded strip visibility: shown on a NEW down-leg set, then
+            // auto-fades after the dwell. dismissedDegraded is the strip's
+            // own dismissal (separate from the offline banner's); BOTH
+            // re-arm when the down-leg set changes — a fresh fact may not
+            // be silenced by the previous one's dismissal.
+            property bool dismissedDegraded: false
+            property bool dwellExpired: false
+            readonly property bool degradedVisible: root.phase === "degraded"
+                && !root.dismissedDegraded
+                && !root.dwellExpired
             readonly property string reasonText: root.reason === "link"
                 ? "Network link is down"
                 : "No internet connection"
@@ -238,19 +402,29 @@
                 if (result === "ok") {
                     if (root.failures > 0)
                         console.log("[offline-banner] probe ok recovered_after=" + root.failures);
-                    // Close the outage ledger entry BEFORE the resets below
-                    // consume it — root.offline is still true here (the
-                    // binding re-evaluates on the failures reset after this
-                    // function returns), so this fires exactly once per
-                    // outage that actually showed.
-                    if (root.offline && root.firstFailedAt > 0)
-                        root.rememberOutage(Date.now() / 1000);
+                    // The outage close itself happens in onPhaseChanged
+                    // (which fires off the reset below), so the ledger's
+                    // probeFailures is outageProbeFailures — the live
+                    // all-leg counter, not this leg's snapshot.
                     root.lastOnlineAt = Date.now() / 1000;
-                    root.dismissed = false;
                     root.failures = 0;
                     root.reason = "";
-                    root.firstFailedAt = 0;
-                    root.outageReasons = [];
+                    // Dismissal re-arms on FULL recovery (no leg down), not
+                    // on any single clean probe: a dismissed banner must
+                    // not pop back just because the icmp leg blipped ok
+                    // while tcp/dns are still down (mid-outage). The RUN
+                    // clear (ledger bookkeeping) checks the RAW counters —
+                    // debounced legDown flags read false while a leg is
+                    // failing below its debounce, which would wipe a run
+                    // in progress (the tcp-1-of-2 + dns-ok wipe).
+                    if (!root.tcpLegDown && !root.dnsLegDown) {
+                        root.dismissed = false;
+                        if (root.failures === 0 && root.tcpFailures === 0 && root.dnsFailures === 0) {
+                            root.firstFailedAt = 0;
+                            root.outageReasons = [];
+                            root.outageProbeFailures = 0;
+                        }
+                    }
                     root.emitState();
                     return;
                 }
@@ -263,8 +437,100 @@
                 if (root.outageReasons.indexOf(root.reason) < 0)
                     root.outageReasons.push(root.reason);
                 root.failures = root.failures + 1;
+                root.outageProbeFailures = root.outageProbeFailures + 1;
                 console.log("[offline-banner] probe failed reason=" + root.reason + " failures=" + root.failures + "/" + root.failuresToShow);
                 root.emitState();
+            }
+
+            // TCP+DNS probe result (two lines: "tcp ok|fail", "dns ok|fail").
+            // Per-leg mirrors of applyProbe, with leg-prefixed journal
+            // tokens ("leg down/ok") so the legacy single-probe greps stay
+            // exact — see the header's additivity note.
+            function applyNetProbe(text) {
+                const lines = (text ?? "").trim().split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    const part = lines[i].trim().split(/\s+/);
+                    if (part.length !== 2)
+                        continue;
+                    if (part[0] === "tcp")
+                        root.applyLeg("tcp", part[1] === "ok");
+                    else if (part[0] === "dns")
+                        root.applyLeg("dns", part[1] === "ok");
+                }
+            }
+
+            function applyLeg(name, up) {
+                const counter = name === "tcp" ? root.tcpFailures : root.dnsFailures;
+                if (up) {
+                    if (counter > 0)
+                        console.log("[offline-banner] leg ok leg=" + name + " recovered_after=" + counter);
+                    if (name === "tcp")
+                        root.tcpFailures = 0;
+                    else
+                        root.dnsFailures = 0;
+                    // Full recovery (no leg down after this one): same
+                    // re-arm/clear contract as the probe-ok branch.
+                    if (root.failures === 0 && root.tcpFailures === 0 && root.dnsFailures === 0) {
+                        root.dismissed = false;
+                        root.firstFailedAt = 0;
+                        root.outageReasons = [];
+                        root.outageProbeFailures = 0;
+                    }
+                    root.emitState();
+                    return;
+                }
+                if (counter === 0) {
+                    // First failure of a failing RUN (any leg may arm it —
+                    // the ledger "from" is the first leg to go down).
+                    if (root.firstFailedAt === 0)
+                        root.firstFailedAt = Date.now() / 1000;
+                    if (root.outageReasons.indexOf(name) < 0)
+                        root.outageReasons.push(name);
+                }
+                if (name === "tcp")
+                    root.tcpFailures = root.tcpFailures + 1;
+                else
+                    root.dnsFailures = root.dnsFailures + 1;
+                root.outageProbeFailures = root.outageProbeFailures + 1;
+                const after = name === "tcp" ? root.tcpFailures : root.dnsFailures;
+                console.log("[offline-banner] leg down leg=" + name + " failures=" + after + "/" + root.failuresToShow);
+                root.emitState();
+            }
+
+            onPhaseChanged: {
+                // Structured phase lines — DISTINCT tokens from the banner
+                // state lines (probe-transitions greps stay exact). The
+                // legs string is RECOMPUTED from the raw counters: chained
+                // var bindings (downLegs → degradedLegs) can still hold
+                // stale values when read from inside this handler (the
+                // tcp-heal transition printed a phantom tcp in the set).
+                const legsNow = [];
+                if (root.failures >= root.failuresToShow) legsNow.push("icmp");
+                if (root.tcpFailures >= root.failuresToShow) legsNow.push("tcp");
+                if (root.dnsFailures >= root.failuresToShow) legsNow.push("dns");
+                console.log("[offline-banner] banner phase=" + root.phase + " legs=" + legsNow.join(","));
+                // The ledger close lives HERE, on the departure from
+                // offline: it is the only point every outage path (icmp,
+                // tcp/dns, or both) funnels through. root.offline was
+                // still true an instant ago, so this fires exactly once
+                // per outage that actually showed.
+                if (root.previousPhase === "offline" && root.phase !== "offline" && root.firstFailedAt > 0) {
+                    root.rememberOutage(Date.now() / 1000);
+                    root.outageProbeFailures = 0;
+                }
+                root.previousPhase = root.phase;
+                root.emitState();
+            }
+            onDownLegsChanged: {
+                // New down-leg composition = a fresh fact: reset dwell AND
+                // the degraded dismissal, so the strip re-informs. (The
+                // binding only re-evaluates when a leg CROSSES its
+                // threshold — plain failure-count creep never fires it,
+                // which is what keeps a flapping leg from flashing.)
+                root.dwellExpired = false;
+                root.dismissedDegraded = false;
+                if (root.degradedDwellMs > 0)
+                    dwellTimer.restart();
             }
 
             // Observability (2026-10-17): the journal lines above plus the
@@ -279,16 +545,26 @@
                     "offline-banner-state",
                     (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/offline-banner/state",
                     JSON.stringify({
-                        active: root.offline && !root.dismissed,
-                        demo: root.demo,
-                        reason: root.reason,
-                        failures: root.failures,
-                        failuresToShow: root.failuresToShow,
-                        // Outage start (epoch sec) while offline, else null —
-                        // the live twin of the ledger's "from"; waybar-style
-                        // consumers can show "offline for N" off this.
-                        since: root.offline && root.firstFailedAt > 0 ? Math.floor(root.firstFailedAt) : null,
-                        updatedAt: Math.floor(Date.now() / 1000)
+                    active: root.offline && !root.dismissed,
+                    demo: root.demo,
+                    reason: root.reason,
+                    failures: root.failures,
+                    failuresToShow: root.failuresToShow,
+                    // Outage start (epoch sec) while offline, else null —
+                    // the live twin of the ledger's "from"; waybar-style
+                    // consumers can show "offline for N" off this.
+                    since: root.offline && root.firstFailedAt > 0 ? Math.floor(root.firstFailedAt) : null,
+                    // Phase ladder + per-leg detail (2026-11-09). Additive:
+                    // every pre-legs key above keeps its name and shape.
+                    phase: root.phase,
+                    legs: {
+                    icmp: { failures: root.failures, down: root.icmpLegDown },
+                    tcp: { failures: root.tcpFailures, down: root.tcpLegDown },
+                    dns: { failures: root.dnsFailures, down: root.dnsLegDown }
+                    },
+                    degradedLegs: root.downLegs,
+                    degradedVisible: root.degradedVisible,
+                    updatedAt: Math.floor(Date.now() / 1000)
                     })
                 ];
                 stateWrite.running = true;
@@ -331,7 +607,7 @@
                         to: Math.floor(toEpoch),
                         durationSec: duration,
                         reasons: root.outageReasons,
-                        probeFailures: root.failures
+                        probeFailures: root.outageProbeFailures
                     })
                 ];
                 historyWrite.running = true;
@@ -385,6 +661,30 @@
                 }
             }
 
+            Process {
+                id: netProbe
+
+                // The TCP+DNS legs (2026-11-09). Two output lines, exact
+                // format: "tcp ok|fail" then "dns ok|fail". The TCP leg
+                // dials an IP literal through bash's /dev/tcp (no resolver
+                // in the path); the DNS leg walks getent → glibc/NSS (what
+                // applications see). `timeout` (coreutils) caps both — a
+                // silently filtered connect would hang forever otherwise,
+                // and the probe timeout is the SAME probeTimeoutSeconds
+                // the icmp leg uses. OFFLINE_BANNER_NET_PROBE_CMD (test
+                // seam) replaces the whole script.
+                command: root.netProbeOverride.length > 0 ? root.netProbeOverride : ["sh", "-c",
+                    "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" bash -c 'exec 3<>\"/dev/tcp/$OFFLINE_BANNER_TCP_HOST/$OFFLINE_BANNER_TCP_PORT\"' 2>/dev/null; then echo tcp ok; else echo tcp fail; fi; " +
+                    "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" getent ahostsv4 \"$OFFLINE_BANNER_DNS_NAME\" >/dev/null 2>&1; then echo dns ok; else echo dns fail; fi"]
+                running: !root.demo
+
+                stdout: StdioCollector {
+                    id: netProbeOut
+
+                    onStreamFinished: root.applyNetProbe(netProbeOut.text)
+                }
+            }
+
             Timer {
                 interval: root.intervalMs
                 running: true
@@ -392,11 +692,27 @@
                 triggeredOnStart: true
 
                 onTriggered: {
-                    // A still-running probe (ping up to -W timeout) is
-                    // never stomped; the next tick catches it instead.
+                    // A still-running probe (ping up to -W timeout, or a
+                    // tcp+dns pass up to 2x that) is never stomped; the
+                    // next tick catches it instead.
                     if (!root.demo && !probe.running)
                         probe.running = true;
+                    if (!root.demo && !netProbe.running)
+                        netProbe.running = true;
                 }
+            }
+
+            // Degraded-strip dwell: the info strip auto-fades after
+            // degradedDwellMs unless that is 0 (sticky). Restarted by
+            // onDownLegsChanged on every NEW down-leg set.
+            Timer {
+                id: dwellTimer
+
+                interval: root.degradedDwellMs
+                repeat: false
+                running: root.phase === "degraded" && root.degradedDwellMs > 0
+
+                onTriggered: root.dwellExpired = true
             }
 
             // Rewritten by emitState() on every probe and every transition
@@ -444,13 +760,21 @@
                     required property var modelData
 
                     readonly property int shownHeight: Math.max(52, Math.round(modelData.height * 0.032))
+                    // The degraded info strip is deliberately SLIMMER than
+                    // the offline alarm: it is an FYI (one leg down,
+                    // network still usable), not a warning.
+                    readonly property int degradedHeight: Math.max(30, Math.round(modelData.height * 0.02))
+                    readonly property bool offlineShown: root.offline && !root.dismissed
+                    readonly property bool stripShown: banner.offlineShown || root.degradedVisible
                     // Animated height drives BOTH the surface size and its
                     // exclusive zone (ExclusionMode.Auto): a top-anchored
                     // exclusive bar is repositioned by the compositor on
                     // every animation frame — the slow slide-down; it
                     // slides back up on recovery as the height animates
                     // to 0.
-                    property real animHeight: (root.offline && !root.dismissed) ? banner.shownHeight : 0
+                    property real animHeight: banner.stripShown
+                        ? (banner.offlineShown ? banner.shownHeight : banner.degradedHeight)
+                        : 0
                     Behavior on animHeight {
                         NumberAnimation {
                             duration: 450
@@ -459,8 +783,8 @@
                     }
 
                     screen: modelData
-                    visible: (root.offline && !root.dismissed) || banner.animHeight > 1
-                    updatesEnabled: (root.offline && !root.dismissed) || banner.animHeight > 1
+                    visible: banner.stripShown || banner.animHeight > 1
+                    updatesEnabled: banner.stripShown || banner.animHeight > 1
 
                     WlrLayershell.namespace: "${cfg.layerNamespace}"
                     WlrLayershell.layer: WlrLayer.Top
@@ -477,13 +801,22 @@
 
                     Rectangle {
                         anchors.fill: parent
-                        color: "#f2f9e2af"
+                        // Yellow = offline alarm (the doctrine); info-blue
+                        // = degraded (a leg down, network still usable).
+                        // The blue is chosen far outside render-smoke's
+                        // banner-yellow pixel range on purpose.
+                        color: banner.offlineShown ? "#f2f9e2af" : "#dbe4f2af"
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
 
-                            onClicked: root.dismissed = true
+                            onClicked: {
+                                if (banner.offlineShown)
+                                    root.dismissed = true;
+                                else
+                                    root.dismissedDegraded = true;
+                            }
                         }
 
                         Column {
@@ -492,19 +825,23 @@
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "⚠  OFFLINE — " + root.reasonText
+                                text: banner.offlineShown
+                                    ? "⚠  OFFLINE — " + root.reasonText
+                                    : "⚠  DEGRADED — " + root.degradedText
                                 color: "#1e1e2e"
-                                font.pixelSize: Math.max(15, Math.round(modelData.height * 0.012))
+                                font.pixelSize: Math.max(13, Math.round(modelData.height * (banner.offlineShown ? 0.012 : 0.009)))
                                 font.weight: Font.Black
                                 font.letterSpacing: 2
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "last online " + root.lastOnlineAgo + " ago  ·  click to dismiss"
+                                text: banner.offlineShown
+                                    ? "last online " + root.lastOnlineAgo + " ago  ·  click to dismiss"
+                                    : "other legs up — network still usable  ·  click to dismiss"
                                 color: "#1e1e2e"
                                 opacity: 0.75
-                                font.pixelSize: Math.max(11, Math.round(modelData.height * 0.007))
+                                font.pixelSize: Math.max(10, Math.round(modelData.height * 0.006))
                                 font.weight: Font.DemiBold
                             }
                         }
@@ -689,6 +1026,13 @@
           OFFLINE_BANNER_PROBE_HOST = cfg.probeHost;
           OFFLINE_BANNER_PROBE_TIMEOUT = toString cfg.probeTimeoutSeconds;
           OFFLINE_BANNER_FAILURES = toString cfg.failuresToShow;
+          # TCP/DNS legs (2026-11-09): same env-contract doctrine as the
+          # four vars above — drop-in retunable, asserted by
+          # module-contract, inert-safe defaults in the QML.
+          OFFLINE_BANNER_TCP_HOST = cfg.tcpProbeHost;
+          OFFLINE_BANNER_TCP_PORT = toString cfg.tcpProbePort;
+          OFFLINE_BANNER_DNS_NAME = cfg.dnsProbeName;
+          OFFLINE_BANNER_DEGRADED_DWELL = toString cfg.degradedDwellSeconds;
           # fontconfig/Qt cache under the sandbox: ProtectSystem=strict +
           # ProtectHome=read-only make $HOME/.cache unwritable (live smoke
           # showed fontconfig cache-write warnings). %t expands in unit-file
@@ -698,14 +1042,17 @@
           XDG_CACHE_HOME = "%t/offline-banner/cache";
           # mkForce: systemd's user-unit default PATH is also set via
           # environment.PATH and would collide (eval-hard error). The
-          # probe is pure shell builtins + ping — bash provides sh,
-          # iputils' ping ships cap_net_raw. pw-play (pipewire) joins
-          # only when a sound theme is on; it talks to the session
-          # PipeWire over its AF_UNIX socket (already allowed).
+          # probes are shell builtins + ping (iputils, cap_net_raw) +
+          # `timeout` (coreutils) + `getent` (glibc) for the tcp/dns legs;
+          # bash provides sh. pw-play (pipewire) joins only when a sound
+          # theme is on; it talks to the session PipeWire over its AF_UNIX
+          # socket (already allowed).
           PATH = lib.mkForce (
             lib.makeBinPath (
               [
                 pkgs.bash
+                pkgs.coreutils
+                pkgs.glibc
                 pkgs.iputils
               ]
               ++ lib.optionals (cfg.soundTheme != "none") [ pkgs.pipewire ]

@@ -382,10 +382,24 @@
                     "OFFLINE_BANNER_PROBE_HOST"
                     "OFFLINE_BANNER_PROBE_TIMEOUT"
                     "OFFLINE_BANNER_FAILURES"
+                    "OFFLINE_BANNER_TCP_HOST"
+                    "OFFLINE_BANNER_TCP_PORT"
+                    "OFFLINE_BANNER_DNS_NAME"
+                    "OFFLINE_BANNER_DEGRADED_DWELL"
                     "OFFLINE_BANNER_SOUND_THEME"
                     "OFFLINE_BANNER_SOUND_VOLUME"
                     "OFFLINE_BANNER_SOUNDS"
                     "OFFLINE_BANNER_HISTORY"
+                  ]
+                );
+                # The tcp/dns legs' tools must be IN the unit PATH (timeout
+                # from coreutils, getent from glibc) — the probe script
+                # cannot fall back to the host default PATH (mkForce'd).
+                legToolsInPath = toString (
+                  nixpkgs.lib.all (tool: nixpkgs.lib.hasInfix tool unit.text) [
+                    "coreutils"
+                    "glibc"
+                    "iputils"
                   ]
                 );
                 memoryMaxSet = toString (nixpkgs.lib.hasInfix "MemoryMax" unit.text);
@@ -482,6 +496,7 @@
                 [ "$unitAbsent" = "1" ] || { echo "FAIL: unit present when disabled"; exit 1; }
                 [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
                 [ "$envContractInUnit" = "1" ] || { echo "FAIL: OFFLINE_BANNER_* env contract missing from the unit"; exit 1; }
+                [ "$legToolsInPath" = "1" ] || { echo "FAIL: leg probe tools (coreutils/glibc/iputils) missing from the unit PATH"; exit 1; }
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
                 [ "$cacheDirSet" = "1" ] || { echo "FAIL: XDG_CACHE_HOME must point at the runtime dir (fontconfig cache under strict sandbox)"; exit 1; }
                 [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
@@ -696,6 +711,16 @@
                 export OFFLINE_BANNER_INTERVAL=600
                 export OFFLINE_BANNER_FAILURES=2
                 export OFFLINE_BANNER_PROBE_CMD="cat $PWD/control"
+                # TCP+DNS leg stub (2026-11-09): same seam doctrine — the
+                # main sequence pins both legs UP so its asserts keep their
+                # original single-probe semantics verbatim (icmp/link only);
+                # the leg scenario below owns the independent-tracking
+                # behavior. (Without the stub the sandbox has no network:
+                # both legs would fail from boot and the phase ladder would
+                # diverge from everything asserted below.)
+                export OFFLINE_BANNER_NET_PROBE_CMD="cat $PWD/control-net"
+                printf 'tcp ok\ndns ok\n' > control-net
+                export OFFLINE_BANNER_DEGRADED_DWELL=15000
                 # Sound + ledger seams: the sound override records every
                 # cue ($1 = event, $2 = wav) into sounds.log; the outage
                 # ledger lands in history.jsonl. Neither env is part of a
@@ -725,7 +750,7 @@
                     sleep 0.3
                   done
                   echo "FAIL: expected active=$want''${want_reason:+ reason=$want_reason}, last state: $(cat "$state" 2>/dev/null || echo MISSING)" >&2
-                  echo "--- qs.log ---" >&2; tail -20 qs.log >&2
+                  echo "--- qs.log ---" >&2; tail -80 qs.log >&2
                   exit 1
                 }
 
@@ -742,7 +767,7 @@
                     sleep 0.25
                   done
                   echo "FAIL: journal line '$pattern' not found in $f" >&2
-                  tail -20 "$f" >&2
+                  tail -80 "$f" >&2
                   exit 1
                 }
                 # Regex twin of assert_journal for mid-sequence counter
@@ -758,7 +783,7 @@
                     sleep 0.25
                   done
                   echo "FAIL: journal pattern '$pattern' not found in $f" >&2
-                  tail -20 "$f" >&2
+                  tail -80 "$f" >&2
                   exit 1
                 }
                 assert_no_journal() {
@@ -774,8 +799,20 @@
                 echo net > control               # failure 1 of 2
                 assert_state false               # debounce holds
                 assert_journal "probe failed reason=net failures=1/2"
+                # failure 2 of 2: the icmp leg crosses its threshold, but
+                # tcp/dns are pinned UP — the ladder says DEGRADED, never
+                # offline. Policed icmp alone must not cry offline; this
+                # is the exact regression the 2026-11-09 legs fix owns.
+                assert_state false
+                assert_journal "banner phase=degraded legs=icmp"
+                assert_no_journal "banner state=shown"
+                [ "$(jq -r '.degradedVisible | tostring' "$state")" = "true" ] \
+                  || { echo "FAIL: degraded strip must be visible on an icmp-only outage: $(cat "$state")"; exit 1; }
+                # TCP+DNS go down too — all net legs down means OFFLINE.
+                printf 'tcp fail\ndns fail\n' > control-net
                 assert_state true net            # failure 2 of 2: shows
-                assert_journal "banner state=shown reason=net failures=2/2"
+                assert_journal_re "banner state=shown reason=net failures=[0-9]+/2"
+                assert_journal "banner phase=offline legs=icmp,tcp,dns"
                 # Heartbeat = the state file is REWRITTEN on every probe.
                 # updatedAt itself has second granularity (fine for the
                 # ~2-interval staleness contract) but two probes 600 ms
@@ -800,20 +837,27 @@
                 # switch can read 4/2, 8/2, or higher. Assert the
                 # transition (reason back to net, counter past 3).
                 assert_journal_re "probe failed reason=net failures=([4-9]|[1-9][0-9]+)/2"
+                printf 'tcp ok\ndns ok\n' > control-net   # legs heal first (degraded again)
+                assert_journal_re "leg ok leg=tcp recovered_after=[0-9]+"
                 echo ok > control                # recovery: hides + re-arms
                 assert_state false
                 assert_journal_re "probe ok recovered_after=([4-9]|[1-9][0-9]+)"
-                assert_journal "banner state=hidden reason=net failures=0/2"
+                # The hide line fires on whichever probe flips offline
+                # (the leg heal leaves offline into DEGRADED — 2-of-3 legs
+                # down is not offline by the ladder — the final probe ok
+                # leaves it into online); the counter is the icmp leg's at
+                # that instant, so assert the transition, not a count.
+                assert_journal_re "banner state=hidden reason=net failures=[0-9]+/2"
 
                 # Ledger: the outage above must be closed as ONE entry —
-                # from the first net failure to this recovery, both reasons
-                # seen, at least the four logged failures. state.since
-                # clears with it.
-                assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=net,link"
+                # from the first net failure to this recovery, ALL FOUR
+                # reasons seen (net first, then the legs, then link), at
+                # least the four logged failures. state.since clears with it.
+                assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=net,tcp,dns,link"
                 [ -s history.jsonl ] || { echo "FAIL: outage history file missing/empty"; exit 1; }
                 entries=$(wc -l < history.jsonl)
                 [ "$entries" = "1" ] || { echo "FAIL: expected exactly 1 history entry, got $entries"; exit 1; }
-                jq -e '(.to > .from) and (.durationSec >= 1) and (.reasons == ["net","link"]) and (.probeFailures >= 4)' history.jsonl > /dev/null \
+                jq -e '(.to > .from) and (.durationSec >= 1) and (.reasons == ["net","tcp","dns","link"]) and (.probeFailures >= 4)' history.jsonl > /dev/null \
                   || { echo "FAIL: history entry wrong: $(cat history.jsonl)"; exit 1; }
                 [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "null" ] \
                   || { echo "FAIL: state.since must clear on recovery: $(cat "$state")"; exit 1; }
@@ -824,8 +868,9 @@
                 assert_journal "offline-net" sounds.log
                 assert_journal "recover" sounds.log
                 assert_no_journal "offline-link" sounds.log
-                echo net > control               # failure 1 of 2 again
-                assert_state false               # debounce holds again
+                echo net > control               # icmp fails again
+                assert_state false               # icmp-only -> degraded again
+                printf 'tcp fail\ndns fail\n' > control-net   # legs down: fresh OFFLINE
                 assert_state true net            # fresh outage shows again
 
                 # A fresh outage re-sounds and re-arms `since`; it stays
@@ -881,6 +926,108 @@
                 entries=$(wc -l < history.jsonl)
                 [ "$entries" = "1" ] || { echo "FAIL: open link outage must not close a second entry (expected 1, got $entries)"; exit 1; }
 
+                # --- Leg scenario (2026-11-09): ICMP vs TCP/DNS tracked
+                # independently. Own instance + fresh sound log so the
+                # one-cue-per-outage doctrine is asserted per phase
+                # transition. DEGRADED_DWELL short (3 s) so the fade is
+                # testable.
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                rm -f "$state"
+                export OFFLINE_BANNER_DEGRADED_DWELL=3000
+                export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-legs.log"
+                echo ok > control
+                printf 'tcp ok\ndns ok\n' > control-net
+                quickshell -p "$qmlDir" >qs-legs.log 2>&1 &
+                qs_pid=$!
+                assert_state false
+                assert_journal "banner phase=online legs=" qs-legs.log
+
+                # TCP-only failure: DEGRADED, never offline — this is the
+                # policed-ICMP/probe-loss class the banner used to cry
+                # "offline" about every few seconds. No sound, no ledger.
+                printf 'tcp fail\ndns ok\n' > control-net
+                assert_state false
+                assert_journal "banner phase=degraded legs=tcp" qs-legs.log
+                assert_journal "leg down leg=tcp failures=1/2" qs-legs.log
+                assert_journal "leg down leg=tcp failures=2/2" qs-legs.log
+                assert_no_journal "offline-net" sounds-legs.log
+                assert_no_journal "recover" sounds-legs.log
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "1" ] || { echo "FAIL: a degraded phase must not write a ledger entry (expected 1, got $entries)"; exit 1; }
+
+                # Dwell: the strip auto-fades while the down-leg set is
+                # UNCHANGED, then STAYS faded (no re-show on unchanged set).
+                for i in $(seq 1 40); do
+                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    [ "$vis" = "false" ] && break
+                    sleep 0.25
+                done
+                [ "$vis" = "false" ] || { echo "FAIL: degraded strip never auto-faded (degradedVisible=$vis): $(cat "$state" 2>/dev/null)"; exit 1; }
+                sleep 0.7
+                vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                [ "$vis" = "false" ] || { echo "FAIL: degraded strip re-showed on an UNCHANGED leg set (flash class): $(cat "$state")"; exit 1; }
+
+                # DNS fails too: tcp+dns down with icmp green = OFFLINE —
+                # no sockets and no names IS an outage for practical
+                # purposes, however healthy the icmp leg still is.
+                printf 'tcp fail\ndns fail\n' > control-net
+                assert_state true
+                assert_journal "banner state=shown reason= failures=0/2" qs-legs.log
+                assert_journal "banner phase=offline legs=tcp,dns" qs-legs.log
+                n=0
+                for i in $(seq 1 40); do
+                    n=$(grep -c "offline-net" sounds-legs.log 2>/dev/null || true)
+                    [ -z "$n" ] && n=0
+                    [ "$n" -ge 1 ] && break
+                    sleep 0.25
+                done
+                [ "$n" = "1" ] || { echo "FAIL: leg-triggered offline must cue exactly once, got $n: $(cat sounds-legs.log 2>/dev/null)"; exit 1; }
+                assert_no_journal "offline-link" sounds-legs.log
+
+                # TCP recovers: back to DEGRADED (dns only) — new down-leg
+                # set re-shows the strip (dwell/dismissal reset).
+                printf 'tcp ok\ndns fail\n' > control-net
+                assert_journal "banner phase=degraded legs=dns" qs-legs.log
+                assert_journal_re "leg ok leg=tcp recovered_after=[0-9]+" qs-legs.log
+                for i in $(seq 1 40); do
+                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    [ "$vis" = "true" ] && break
+                    sleep 0.25
+                done
+                [ "$vis" = "true" ] || { echo "FAIL: a NEW down-leg set must re-show the degraded strip (degradedVisible=$vis)"; exit 1; }
+
+                # DNS recovers: ONLINE — the ledger closes exactly once,
+                # reasons=tcp,dns, probeFailures=0 (icmp never failed).
+                printf 'tcp ok\ndns ok\n' > control-net
+                assert_journal "banner phase=online legs=" qs-legs.log
+                assert_journal "recover" sounds-legs.log
+                assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=tcp,dns" qs-legs.log
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "2" ] || { echo "FAIL: leg outage must close exactly one new entry (expected 2, got $entries): $(cat history.jsonl)"; exit 1; }
+                tail -1 history.jsonl | jq -e '(.reasons == ["tcp","dns"]) and (.probeFailures >= 2) and (.durationSec >= 1)' > /dev/null \
+                    || { echo "FAIL: leg ledger entry wrong: $(tail -1 history.jsonl)"; exit 1; }
+                # State polls, not single reads: the journal line is
+                # console.log (immediate) while the state file is written
+                # by a spawned sh process — a read right after the journal
+                # match can still see the pre-transition write.
+                ph=""
+                for i in $(seq 1 40); do
+                    ph=$(jq -r '.phase | tostring' "$state" 2>/dev/null || echo "")
+                    [ "$ph" = "online" ] && break
+                    sleep 0.25
+                done
+                [ "$ph" = "online" ] \
+                    || { echo "FAIL: state.phase must read online after recovery: $(cat "$state")"; exit 1; }
+                since=""
+                for i in $(seq 1 40); do
+                    since=$(jq -r '.since | if . == null then "null" else "set" end' "$state" 2>/dev/null || echo "")
+                    [ "$since" = "null" ] && break
+                    sleep 0.25
+                done
+                [ "$since" = "null" ] \
+                    || { echo "FAIL: state.since must clear after a leg-outage recovery: $(cat "$state")"; exit 1; }
+
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
                 # state write can race the fresh state file).
@@ -899,7 +1046,7 @@
 
                 # Demo mode is a FAKE outage: no ledger entry, ever.
                 entries=$(wc -l < history.jsonl)
-                [ "$entries" = "1" ] || { echo "FAIL: demo mode must not write history (expected 1 entry, got $entries)"; exit 1; }
+                [ "$entries" = "2" ] || { echo "FAIL: demo mode must not write history (expected 2 entries — main + leg scenario —, got $entries)"; exit 1; }
 
                 kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                 echo "probe-transitions: all assertions passed" > "$out"
@@ -961,6 +1108,11 @@
                 export OFFLINE_BANNER_INTERVAL=600
                 export OFFLINE_BANNER_FAILURES=2
                 export OFFLINE_BANNER_PROBE_CMD="cat $PWD/control"
+                # TCP+DNS leg stubs + a SHORT dwell: the degraded phase is
+                # pixel-tested below (info-blue strip, then auto-fade).
+                export OFFLINE_BANNER_NET_PROBE_CMD="cat $PWD/control-net"
+                printf 'tcp ok\ndns ok\n' > control-net
+                export OFFLINE_BANNER_DEGRADED_DWELL=4000
                 quickshell -p "$qmlDir" >qs.log 2>&1 &
                 qs_pid=$!
 
@@ -973,7 +1125,7 @@
                     sleep 0.25
                   done
                   echo "FAIL: state never became active=$want" >&2
-                  echo "--- qs.log ---" >&2; tail -20 qs.log >&2
+                  echo "--- qs.log ---" >&2; tail -80 qs.log >&2
                   exit 1
                 }
                 # Strip pixel color range (see comment above); %[pixel:p{}]
@@ -1004,13 +1156,51 @@
                     grim -o HEADLESS-1 frame.png
                     if [ "$want" = yellow ]; then
                       pixel_is_yellow frame.png "$x" "$y" && return 0
+                    elif [ "$want" = blue ]; then
+                      pixel_is_blue frame.png "$x" "$y" && return 0
+                    elif [ "$want" = not-blue ]; then
+                      pixel_is_blue frame.png "$x" "$y" || return 0
                     else
                       pixel_is_yellow frame.png "$x" "$y" || return 0
                     fi
                     sleep 0.25
                   done
                   echo "FAIL: pixel ($x,$y) never became $want after 10s" >&2
-                  echo "--- qs.log ---" >&2; tail -20 qs.log >&2
+                  echo "--- qs.log ---" >&2; tail -80 qs.log >&2
+                  exit 1
+                }
+                # Degraded-strip color (#dbe4f2af, info-blue) as ACTUALLY
+                # rendered by the software (pixman) pipeline: captured live
+                # at srgb(196,208,150) — the compositor transform crushes
+                # blue heavily (raw b=242 renders b=150), so the matcher
+                # keys on the measured tan-blue band, which stays disjoint
+                # from the yellow range above (r 225+ vs 215 max).
+                pixel_is_blue() {
+                  magick "$1" -format "%[pixel:p{$2,$3}]" info: | awk -F'[(,)]' \
+                    '{ r = $2 + 0; g = $3 + 0; b = $4 + 0
+                       exit !(r >= 185 && r <= 215 && g >= 198 && g <= 222 && b >= 140 && b <= 162 && r - b >= 35) }'
+                }
+                assert_blue() {
+                  pixel_is_blue "$@" \
+                    || { echo "FAIL: expected degraded blue at ($2,$3) in $1, got $(magick "$1" -format "%[pixel:p{$2,$3}]" info:)"; exit 1; }
+                }
+                assert_not_blue() {
+                  if pixel_is_blue "$@"; then
+                    echo "FAIL: unexpected degraded blue at ($2,$3) in $1"
+                    exit 1
+                  fi
+                }
+                # State-file poll for the degraded strip's visibility (the
+                # dwell is time-based; the state key is its truth).
+                wait_degraded_visible() {
+                  local want="$1" i vis
+                  for i in $(seq 1 40); do
+                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    [ "$vis" = "$want" ] && return 0
+                    sleep 0.25
+                  done
+                  echo "FAIL: degradedVisible never became $want: $(cat "$state" 2>/dev/null)" >&2
+                  echo "--- qs.log ---" >&2; tail -80 qs.log >&2
                   exit 1
                 }
 
@@ -1019,7 +1209,27 @@
                 grim -o HEADLESS-1 hidden.png
                 assert_not_yellow hidden.png 20 10
 
+                # DEGRADED phase (2026-11-09): tcp-only failure -> the slim
+                # info-blue strip appears, the yellow alarm must NOT.
+                printf 'tcp fail\ndns ok\n' > control-net
+                wait_active false
+                wait_degraded_visible true
+                wait_pixel blue 20 10
+                sleep 1.2
+                grim -o HEADLESS-1 degraded.png
+                assert_blue degraded.png 20 10
+                assert_not_yellow degraded.png 20 10
+                assert_not_yellow degraded.png 640 700
+                # The dwell (4 s) auto-fades the strip while the leg set is
+                # unchanged — the info strip must not sit there forever.
+                wait_degraded_visible false
+                wait_pixel not-blue 20 10
+
+                # ICMP fails on top, and DNS joins TCP (all net legs down):
+                # the YELLOW alarm — offline requires more than one leg's
+                # grumpiness (that is the whole point of the ladder).
                 echo net > control            # 2 consecutive failures -> show
+                printf 'tcp fail\ndns fail\n' > control-net
                 wait_active true
                 wait_pixel yellow 20 10       # strip entering the frame
                 sleep 1.2                     # let the 450 ms push-down fully settle
@@ -1027,12 +1237,15 @@
                 assert_yellow shown.png 20 10
                 assert_not_yellow shown.png 640 700   # strip is localized, not a wash
 
-                echo ok > control             # recovery -> slide back up
+                # Recovery: icmp ok AND tcp ok -> fully online, nothing shows.
+                echo ok > control
+                printf 'tcp ok\ndns ok\n' > control-net
                 wait_active false
                 wait_pixel not-yellow 20 10   # strip leaving the frame
                 sleep 1.2
                 grim -o HEADLESS-1 recovered.png
                 assert_not_yellow recovered.png 20 10
+                assert_not_blue recovered.png 20 10
 
                 kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                 echo "render-smoke: banner hidden -> shown -> recovered, pixel-verified" > "$out"
@@ -1061,7 +1274,7 @@
               ''
                 grep -q "WlrLayershell.namespace: \"$ns\"" "$qmlDrv/shell.qml" \
                   || { echo "FAIL: built QML lost the layerNamespace interpolation"; exit 1; }
-                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_CMD OFFLINE_BANNER_HISTORY pw-play; do
+                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD OFFLINE_BANNER_TCP_HOST OFFLINE_BANNER_TCP_PORT OFFLINE_BANNER_DNS_NAME OFFLINE_BANNER_DEGRADED_DWELL OFFLINE_BANNER_NET_PROBE_CMD OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_CMD OFFLINE_BANNER_HISTORY pw-play tcp fail dns ok; do
                   grep -q "$marker" "$qmlDrv/shell.qml" \
                     || { echo "FAIL: built QML lost $marker"; exit 1; }
                 done
