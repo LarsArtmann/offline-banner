@@ -497,17 +497,26 @@
                 root.emitState();
             }
 
+            // Raw-counter legs computation. CHANGE HANDLERS AND EMITSTATE
+            // MUST USE THIS, not the downLegs/degradedLegs/degradedVisible
+            // bindings: chained var/computed bindings can still hold stale
+            // values mid-cascade (CI-proven 2026-11-09: the state write at
+            // the phase flip carried phase=degraded with
+            // degradedVisible=false — the journal self-corrects never, the
+            // state file only on the NEXT probe, and a poll in between
+            // reads the lie).
+            function rawDownLegs() {
+                const legs = [];
+                if (root.failures >= root.failuresToShow) legs.push("icmp");
+                if (root.tcpFailures >= root.failuresToShow) legs.push("tcp");
+                if (root.dnsFailures >= root.failuresToShow) legs.push("dns");
+                return legs;
+            }
+
             onPhaseChanged: {
                 // Structured phase lines — DISTINCT tokens from the banner
-                // state lines (probe-transitions greps stay exact). The
-                // legs string is RECOMPUTED from the raw counters: chained
-                // var bindings (downLegs → degradedLegs) can still hold
-                // stale values when read from inside this handler (the
-                // tcp-heal transition printed a phantom tcp in the set).
-                const legsNow = [];
-                if (root.failures >= root.failuresToShow) legsNow.push("icmp");
-                if (root.tcpFailures >= root.failuresToShow) legsNow.push("tcp");
-                if (root.dnsFailures >= root.failuresToShow) legsNow.push("dns");
+                // state lines (probe-transitions greps stay exact).
+                const legsNow = root.rawDownLegs();
                 console.log("[offline-banner] banner phase=" + root.phase + " legs=" + legsNow.join(","));
                 // The ledger close lives HERE, on the departure from
                 // offline: it is the only point every outage path (icmp,
@@ -539,6 +548,13 @@
             // rewritten on every probe, so an `updatedAt` older than ~2
             // intervals means the unit is effectively dead (fail closed).
             function emitState() {
+                // legs/visibility come from rawDownLegs(), NOT the
+                // bindings — see the rawDownLegs comment (the CI-proven
+                // stale mid-cascade write).
+                const legsNow = root.rawDownLegs();
+                const degradedVisibleNow = root.phase === "degraded"
+                    && !root.dismissedDegraded
+                    && !root.dwellExpired;
                 stateWrite.command = [
                     "sh", "-c",
                     "printf '%s' \"$2\" > \"$1\"",
@@ -558,12 +574,12 @@
                     // every pre-legs key above keeps its name and shape.
                     phase: root.phase,
                     legs: {
-                    icmp: { failures: root.failures, down: root.icmpLegDown },
-                    tcp: { failures: root.tcpFailures, down: root.tcpLegDown },
-                    dns: { failures: root.dnsFailures, down: root.dnsLegDown }
+                    icmp: { failures: root.failures, down: legsNow.indexOf("icmp") >= 0 },
+                    tcp: { failures: root.tcpFailures, down: legsNow.indexOf("tcp") >= 0 },
+                    dns: { failures: root.dnsFailures, down: legsNow.indexOf("dns") >= 0 }
                     },
-                    degradedLegs: root.downLegs,
-                    degradedVisible: root.degradedVisible,
+                    degradedLegs: legsNow,
+                    degradedVisible: degradedVisibleNow,
                     updatedAt: Math.floor(Date.now() / 1000)
                     })
                 ];

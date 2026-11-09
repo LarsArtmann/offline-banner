@@ -806,7 +806,15 @@
                 assert_state false
                 assert_journal "banner phase=degraded legs=icmp"
                 assert_no_journal "banner state=shown"
-                [ "$(jq -r '.degradedVisible | tostring' "$state")" = "true" ] \
+                # Poll, don't single-read: the state write is a spawned sh
+                # process and can lag the journal line (CI-proven).
+                vis=""
+                for i in $(seq 1 40); do
+                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    [ "$vis" = "true" ] && break
+                    sleep 0.25
+                done
+                [ "$vis" = "true" ] \
                   || { echo "FAIL: degraded strip must be visible on an icmp-only outage: $(cat "$state")"; exit 1; }
                 # TCP+DNS go down too — all net legs down means OFFLINE.
                 printf 'tcp fail\ndns fail\n' > control-net
