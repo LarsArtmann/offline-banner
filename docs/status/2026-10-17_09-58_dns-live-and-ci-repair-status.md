@@ -43,7 +43,7 @@
 6. Re-run `astro check` + visual QA on docs pages in dark mode / mobile viewport.
 7. Port a11y-guard + lighthouse jobs into website.yml.
 8. After the SystemNix v3 switch: real-monitor render proof (rides that switch).
-9. Consider `nix flake check --all-systems` as a required CI context check for the *Checks* workflow name (branch protection already requires it — verified by the "Bypassed rule" push notices).
+9. Consider `nix flake check --all-systems` as a required CI context check for the _Checks_ workflow name (branch protection already requires it — verified by the "Bypassed rule" push notices).
 10. Optional: 9:16 / voiceover video variants (demand-gated, per open question 3 of the 08-37 retro).
 
 ## g) Unanswerable questions for the owner

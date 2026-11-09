@@ -7,17 +7,20 @@
 ## Direct answers: forgot / better / improve
 
 **What did I forget?**
+
 1. **The AGENTS git rule "check `git log` immediately before committing"** — I knew the daemon commits every few minutes, ran a multi-commit chain without the precheck inside it, and got raced: the daemon had committed the plan file, so my soft-reset landed on the wrong commit and produced `4842332` (website fix + plan file under a `fix(website)` message, docs commit never ran, push aborted). Caught only because the `&&` chain stopped on the empty second commit and my `git show --stat` verifications were inside the chain. Repaired atomically before push — but it was luck-assisted discipline, not discipline.
 2. **The pushed plan file contains a thinko artifact**: task F13 reads "Fold CHANGELOG [Unreleased] → [0.2.0.1… no: 0.2.1]" — my mid-sentence self-correction, committed to a public repo. I never re-read the file after writing it.
 3. **S1–S4 (the TS7 hardening solutions) live only in chat** — not harvested into TODO_LIST/plan; if this session dies, they die with it.
 4. First TS7 gate-string grep silently searched nothing (rg does not follow the `node_modules` symlinks); I treated "no output" as "not found" once before noticing and re-running against the real `.pnpm` paths.
 
 **What could I have done better?**
+
 1. One atomic git chain INCLUDING `git log --oneline -1` as step zero — the race window was minutes wide and I knew it existed.
 2. Re-read the plan file once before committing it (the F13 artifact and any formatting would have surfaced).
 3. Noticed the parallel executor earlier: `flake.nix`/`module.nix` changed under me between my push and this report request; I only discovered it because the status-report protocol made me run `git status` fresh.
 
 **What could we still improve?**
+
 1. **Multi-writer coordination** — there are now up to THREE writers on this tree (me, the auto-commit daemon, and a parallel plan executor). Without a handshake (one executor at a time, or branch-per-executor), commits WILL collide; today it was only luck that my push went out before their edits landed.
 2. Commit-race-proof procedure (precheck-in-chain), post-write re-read of public docs, and immediate harvesting of in-chat proposals.
 3. `rg --follow` (or `.pnpm` real paths) discipline for node_modules greps.
@@ -96,4 +99,4 @@ M02 (release), M03 (SystemNix lock bump + switch), M04/M05 (live-proof evening /
 
 ---
 
-*Point-in-time snapshot, 2026-11-05 19:25 CET. Historical — never rewritten; harvest forward via docs-health.*
+_Point-in-time snapshot, 2026-11-05 19:25 CET. Historical — never rewritten; harvest forward via docs-health._

@@ -64,7 +64,7 @@ Feedback welcome — especially Hyprland/sway reports.
 Your VPN dies mid-call and nothing on screen tells you it's not your fault.
 This is a tiny NixOS module that fixes exactly that: a static yellow strip
 appears on every connected monitor ~10 s after the network is actually gone,
-tells you *why* (link down vs no internet) and *how long*, pushes your bar
+tells you _why_ (link down vs no internet) and _how long_, pushes your bar
 down instead of covering it, and slides away on recovery.
 
 - Two-leg probe (kernel carrier + one ICMP to an IP literal) — never

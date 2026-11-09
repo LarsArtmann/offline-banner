@@ -30,8 +30,8 @@ mocked; only the carrier bit is.
    hand-copies wrong). Verified: 191-line de-indented QML with interpolation applied.
    Live in scripts/capture-demo.sh:38-69.
 3. **Headless render risk retired** — quickshell (0.3.2) + `QT_QUICK_BACKEND=software`
-   + `WLR_BACKENDS=headless WLR_RENDERER=pixman sway` renders; bar + foot + sockets +
-   `wf-recorder` + `grim` + ffmpeg all mechanically work end to end.
+   - `WLR_BACKENDS=headless WLR_RENDERER=pixman sway` renders; bar + foot + sockets +
+     `wf-recorder` + `grim` + ffmpeg all mechanically work end to end.
 4. **Demo scene files** — scripts/demo/bar/shell.qml (desktop bar with exclusive zone,
    the thing the banner pushes down; clock replaced by static "12:47" after a
    `formatDateTime` API warning), scripts/demo/sway.conf (1920x1080, `#1e1e2e` bg,

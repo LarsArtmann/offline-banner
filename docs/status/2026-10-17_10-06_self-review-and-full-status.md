@@ -60,11 +60,12 @@
 4. **Daemon contract in team terms:** the auto-commit daemon is commit-only; humans/agents own push and message quality. Already in AGENTS.md — keep squashing unpushed heuristic commits into real ones.
 5. **Claim freshness gating:** today's launch claims (domain live, CI green) are prose in TODO_LIST/CHANGELOG. Either accept prose (it IS a snapshot) or add a cheap gate later; consciously decided, not drifted.
 6. **Fleet-wide pattern hygiene:** the `secrets`-in-`if` bug is probably copy-pasted across Lars's website workflows (gogenfilter baseline was the source of this one). One grep across projects → one fix pattern (env-flag gate) everywhere.
-7. **Check-cadence budgeting:** the check runs probes at 600 ms (`OFFLINE_BANNER_INTERVAL=600` ms) which *maximizes* race windows; a 1500–2000 ms cadence would slow the test slightly and shrink the race surface — worth doing when the check next changes.
+7. **Check-cadence budgeting:** the check runs probes at 600 ms (`OFFLINE_BANNER_INTERVAL=600` ms) which _maximizes_ race windows; a 1500–2000 ms cadence would slow the test slightly and shrink the race surface — worth doing when the check next changes.
 
 ## f) UP TO 50 THINGS WE SHOULD GET DONE NEXT (sorted by impact; 🚢 = owner console action, ⚙️ = session-automatable, 📋 = ROADMAP fuel / demand-gated)
 
 **Launch completion**
+
 1. 🚢 Add `FIREBASE_SERVICE_ACCOUNT` repo secret → arms the proven deploy job.
 2. ⚙️ Watch one real CI deploy end-to-end once armed (verify the secret path, not just the skip path).
 3. 🚢 Upload `assets/branding/social-preview.png` (Settings → Social preview).
@@ -118,7 +119,7 @@
 39. ⚙️ Re-check TODO_LIST for rows obsoleted by today (e.g., any remaining "verify website CI" row from the 08-37 harvest) — I updated 3 rows but did not re-read the whole file.
 40. 📋 If launch posts go out: monitor issues/discourse replies for the first 48 h; keep the honest-status framing (niri-proven) in replies.
 
-*(Items 41–50 intentionally unused — the above is the honest list; padding would be noise. Items marked 📋 are ROADMAP fuel, not commitments.)*
+_(Items 41–50 intentionally unused — the above is the honest list; padding would be noise. Items marked 📋 are ROADMAP fuel, not commitments.)_
 
 ## g) UP TO 3 QUESTIONS I CANNOT FIGURE OUT MYSELF
 

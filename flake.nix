@@ -165,7 +165,7 @@
           name = "offline-banner-vm-smoke";
           hostPkgs = pkgs;
           nodes.machine =
-            { lib, ... }:
+            { ... }:
             {
               imports = [ offlineBannerModule ];
               services.offline-banner = {

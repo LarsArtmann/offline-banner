@@ -1,11 +1,11 @@
 # Execution-Closure Status Report — return-state triage, render proof verified, docs pass
 
-*Point-in-time snapshot, 2026-10-17 10:40 CEST, HEAD `9c178b7`, working tree clean
+_Point-in-time snapshot, 2026-10-17 10:40 CEST, HEAD `9c178b7`, working tree clean
 (daemon committed everything mid-session). Scope: ONLY this session's run — the
 standing execution mandate applied to the closure work queued by
 `2026-10-17_09-36_check-extension-and-render-proof-status.md`. Sections follow
 the a–g dispatch shape. When bringing this report current, use docs-health
-ANNOTATE.*
+ANNOTATE._
 
 ## a) FULLY DONE (verified, not claimed)
 
@@ -175,6 +175,7 @@ ANNOTATE.*
 ## f) Up to 50 things to get done next
 
 **Now (small, from this session's leftovers):**
+
 1. Apply the drafted annotations (01:59 §b/§f/§g + 09:36 §f/§g; specs in this
    session's transcript, dry-run validated) + run `check-rows` on both files.
 2. Final gates: `nix fmt && nix flake check --all-systems`; confirm docs-drift
@@ -198,21 +199,21 @@ ANNOTATE.*
 
 **Next (small-medium):**
 11. render-smoke determinism audit (TODO row; doctrine codified by the 10:06
-    session) before it flakes in CI like probe-transitions did.
+session) before it flakes in CI like probe-transitions did.
 12. render-smoke hardening: second pixel row (strip edge), hidden-vs-shown
-    pixel-diff floor, link-reason via sysroot injection, artifact upload on
-    failure.
+pixel-diff floor, link-reason via sysroot injection, artifact upload on
+failure.
 13. Structured journal: startup line with `interval=` + `probe_host=` for
-    config forensics.
+config forensics.
 14. Consumer polish: `-i/--once`, `--max-age` flag, exit codes documented.
 15. CI: split checks into named jobs (per-gate badges).
 16. Nix output cache to cut ~60 s CI runs.
 17. probe-transitions: assert absence of Qt/fatal errors in qs.log (negative
-    leg).
+leg).
 18. webp fallback `<picture>`/poster for markdown clients.
 19. README architecture diagram (mermaid).
 20. Multi-monitor proof via a faked second headless output (fold into
-    render-smoke or keep live).
+render-smoke or keep live).
 21. Drop-in retune test — owner-executable (`systemctl --user edit` flow).
 22. Reboot auto-start proof — schedule with owner.
 23. v0.1.1 cut if §g-1 answers "tag now" (release runbook is mechanical).
@@ -237,12 +238,12 @@ ANNOTATE.*
 40. Optional context line in the banner (probe expressiveness theme).
 41. `FileView` state writes (fewer processes; API verification needed).
 42. Firewall for the stale-socket hygiene observed today (4 niri sockets, 3
-    dead) — likely upstream niri cleanup behavior, watch only.
+dead) — likely upstream niri cleanup behavior, watch only.
 43. Investigate whether the displayless niri session should be reclaimed or
-    reaped (see §g-2).
+reaped (see §g-2).
 44. `.hyperframes/` policy check after the website session's churn settles.
 45. Consider `trash-cli` tmpfs behavior documentation (worked on /run today;
-    record that in lessons if it generalizes).
+record that in lessons if it generalizes).
 
 **Standing non-goals (re-listed so they stay visible):**
 46. DNS-leg probe. 47. Multi-host probeHost. 48. ExecReload live-retune.
@@ -268,8 +269,8 @@ ANNOTATE.*
 
 ---
 
-*Verified evidence anchors: render-smoke `4cff63a`; consumer `767728b`;
+_Verified evidence anchors: render-smoke `4cff63a`; consumer `767728b`;
 deflakes `cade264`/`39d51bf`/`8a14308`; dprint deletion `6d429aa` → zombie
 `dabd06f` → re-execution staged this session; lessons `4f6dd31` (crush-config);
 doc updates daemon-committed through `9c178b7`. Annotation specs drafted but
-NOT applied (§b-1). Point-in-time snapshot; use docs-health ANNOTATE.*
+NOT applied (§b-1). Point-in-time snapshot; use docs-health ANNOTATE._

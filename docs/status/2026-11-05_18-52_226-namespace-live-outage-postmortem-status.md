@@ -9,6 +9,7 @@
 ## Direct answers: what was forgotten / what could be better / what to improve
 
 **What did I forget (this session + the lineage that produced the bug)?**
+
 1. The 2026-10-28 session shipped the ledger hole with a warning literally printed in FEATURES.md — "NOT yet live-proven: the %h ReadWritePaths home-write hole under the real sandbox" — and then nobody executed that proof when the SystemNix switch made it live. The gap was documented and still escaped.
 2. No check class anywhere asserted "the unit STARTS on a machine with a normal home". unit-verify is syntax-only, module-contract greps unit text, probe/render checks run the QML directly with the sandbox and systemd absent. Green across the board; dead in reality.
 3. This session: I edited `website/src/content/docs/getting-started/configuration.mdx` and did NOT run `astro check`/build locally — the exact "let CI find it" pattern the v0.2.0 postmortem already flagged once.
@@ -17,12 +18,14 @@
 6. The `docs/status` series (v0.2.0 postmortem, sounds+ledger report) carries "rides the SystemNix switch" claims that this incident invalidates — not yet annotated (docs-health ANNOTATE).
 
 **What could I have done better?**
+
 1. Verify-before-implement ordering: run the one-line live probe of a mechanism BEFORE writing code against it (worked when it happened, but it happened mid-stream, not upfront).
 2. The moment the journal showed `status=226/NAMESPACE`, the full diagnosis was one ReadWritePaths-line away; I took the scenic route through live mechanism testing (valuable — it selected the fix — but the user was sitting on an active outage).
 3. Squash-hygiene: the daemon swept my files into `f6b0b86` and I noticed only via an empty `git status`; AGENTS says check `git log` immediately before committing. Process worked, timing didn't.
 4. I handed the user two manual commands instead of asking for explicit permission to run them via a non-banned path — the banner sat dead ~10 extra minutes while I worked the repo fix.
 
 **What could we still improve?**
+
 1. Verification must include one runtime-start proof of the REAL unit: the NixOS VM test is the only mechanism that observes systemd's exec-time namespace setup (detailed in §f).
 2. Structural prevention beats detection: derive ReadWritePaths from the provisioned dirs so an unprovisioned writable hole is unwritable, not just forbidden.
 3. Post-switch checklists are worthless as prose. Codify: `nix run .#smoke` (the runbook as a flake app) with literal-path substitution so it can exercise `%h` holes — today's runbook structurally cannot.
@@ -83,6 +86,7 @@
 ## f) Top 40 things to get done next (impact-ordered; §f harvest candidates)
 
 **P0 — incident closure (this week)**
+
 1. Push `ad6cac3` (owner-gated) so CI runs on the exact fix commit.
 2. Fold CHANGELOG, tag + release v0.2.1 per the release runbook (both workflows green on the HEAD commit first).
 3. Bump SystemNix's offline-banner lock to v0.2.1 and switch — the true fix proof (StateDirectory provisioning on a real host).
@@ -138,4 +142,4 @@
 
 ---
 
-*Point-in-time snapshot, 2026-11-05 18:52 CET. Historical — never rewritten; harvest forward via docs-health.*
+_Point-in-time snapshot, 2026-11-05 18:52 CET. Historical — never rewritten; harvest forward via docs-health._
