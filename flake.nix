@@ -754,6 +754,25 @@
                   exit 1
                 }
 
+                # assert_state_jq EXPR WANT MSG — poll a jq expression over
+                # the state file until it equals WANT. The state write is a
+                # spawned sh process: it can lag the journal line (a read
+                # right after a journal match sees the pre-transition state)
+                # and, pre-atomic-rename, could even catch the file empty
+                # mid-truncate (CI-proven x86_64 2026-11-10). Single reads of
+                # this file are therefore never evidence — poll, like
+                # assert_state does.
+                assert_state_jq() {
+                  local expr="$1" want="$2" msg="$3" i got
+                  for i in $(seq 1 40); do
+                    got=$(jq -r "$expr" "$state" 2>/dev/null || echo "")
+                    [ "$got" = "$want" ] && return 0
+                    sleep 0.25
+                  done
+                  echo "FAIL: $msg (jq '$expr' never read '$want', last state: $(cat "$state" 2>/dev/null || echo MISSING))" >&2
+                  exit 1
+                }
+
                 # Journal asserts: quickshell's console.log lands in the log
                 # files (stderr), one structured line per transition.
                 # POLLING (not a one-shot grep): the state-file asserts can
@@ -867,8 +886,7 @@
                 [ "$entries" = "1" ] || { echo "FAIL: expected exactly 1 history entry, got $entries"; exit 1; }
                 jq -e '(.to > .from) and (.durationSec >= 1) and (.reasons == ["net","tcp","dns","link"]) and (.probeFailures >= 4)' history.jsonl > /dev/null \
                   || { echo "FAIL: history entry wrong: $(cat history.jsonl)"; exit 1; }
-                [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "null" ] \
-                  || { echo "FAIL: state.since must clear on recovery: $(cat "$state")"; exit 1; }
+                assert_state_jq '.since | if . == null then "null" else "set" end' "null" "state.since must clear on recovery"
 
                 # Sounds fired exactly at the transitions: one cue at show
                 # (net — reason switches mid-outage do NOT re-sound, hence
@@ -897,8 +915,7 @@
                   sleep 0.25
                 done
                 [ "$n" -ge 2 ] || { echo "FAIL: fresh outage must re-sound (offline-net x2), got $n: $(cat sounds.log 2>/dev/null)"; exit 1; }
-                [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "set" ] \
-                  || { echo "FAIL: state.since must be set while shown: $(cat "$state")"; exit 1; }
+                assert_state_jq '.since | if . == null then "null" else "set" end' "set" "state.since must be set while shown"
                 entries=$(wc -l < history.jsonl)
                 [ "$entries" = "1" ] || { echo "FAIL: an open outage must not close an entry (expected 1, got $entries)"; exit 1; }
 
@@ -913,6 +930,12 @@
                 wait "$qs_pid" 2>/dev/null || true
                 rm -f "$state"
                 export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-link.log"
+                # control-net MUST reset here: the main sequence left
+                # `tcp fail/dns fail` on disk, and a fresh instance inheriting
+                # it goes offline via tcp+dns BEFORE link reaches 2/2 — the
+                # shown line then reads failures=1/2 and the exact asserts
+                # below are unreachable (CI-proven aarch64 2026-11-10).
+                printf 'tcp ok\ndns ok\n' > control-net
                 echo link > control
                 quickshell -p "$qmlDir" >qs-link.log 2>&1 &
                 qs_pid=$!
@@ -929,8 +952,7 @@
                 [ "$n" = "1" ] || { echo "FAIL: clean link outage must cue offline-link exactly once, got $n: $(cat sounds-link.log 2>/dev/null)"; exit 1; }
                 assert_no_journal "recover" sounds-link.log
                 assert_no_journal "offline-net" sounds-link.log
-                [ "$(jq -r '.since | if . == null then "null" else "set" end' "$state")" = "set" ] \
-                  || { echo "FAIL: link outage must arm since: $(cat "$state")"; exit 1; }
+                assert_state_jq '.since | if . == null then "null" else "set" end' "set" "link outage must arm since"
                 entries=$(wc -l < history.jsonl)
                 [ "$entries" = "1" ] || { echo "FAIL: open link outage must not close a second entry (expected 1, got $entries)"; exit 1; }
 

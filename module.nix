@@ -557,7 +557,12 @@
                     && !root.dwellExpired;
                 stateWrite.command = [
                     "sh", "-c",
-                    "printf '%s' \"$2\" > \"$1\"",
+                    // Atomic rename (tmp + mv): a plain truncate-write has a
+                    // window where readers (waybar polls, the probe-transitions
+                    // asserts) see an EMPTY state file — CI-proven x86_64
+                    // 2026-11-10. mv within the same directory is rename(2),
+                    // so consumers only ever see a complete old or new state.
+                    "printf '%s' \"$2\" > \"$1.tmp\" && mv -f \"$1.tmp\" \"$1\"",
                     "offline-banner-state",
                     (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/offline-banner/state",
                     JSON.stringify({
