@@ -1064,7 +1064,10 @@
           # mkForce: systemd's user-unit default PATH is also set via
           # environment.PATH and would collide (eval-hard error). The
           # probes are shell builtins + ping (iputils, cap_net_raw) +
-          # `timeout` (coreutils) + `getent` (glibc) for the tcp/dns legs;
+          # `timeout` (coreutils) + `getent` (pkgs.getent — glibc.bin does
+          # NOT ship getent in this nixpkgs: it is its own package; the
+          # dns leg ran permanently-fail on a PATH-phantom until 2026-11-10,
+          # CI-unprovable because the test seams stub the whole probe).
           # bash provides sh. pw-play (pipewire) joins only when a sound
           # theme is on; it talks to the session PipeWire over its AF_UNIX
           # socket (already allowed).
@@ -1073,7 +1076,7 @@
               [
                 pkgs.bash
                 pkgs.coreutils
-                pkgs.glibc
+                pkgs.getent
                 pkgs.iputils
               ]
               ++ lib.optionals (cfg.soundTheme != "none") [ pkgs.pipewire ]

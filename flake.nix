@@ -393,12 +393,14 @@
                   ]
                 );
                 # The tcp/dns legs' tools must be IN the unit PATH (timeout
-                # from coreutils, getent from glibc) — the probe script
-                # cannot fall back to the host default PATH (mkForce'd).
+                # from coreutils, getent from the standalone pkgs.getent —
+                # glibc.bin does NOT ship it in this nixpkgs, the
+                # 2026-11-10 live PATH-phantom) — the probe script cannot
+                # fall back to the host default PATH (mkForce'd).
                 legToolsInPath = toString (
                   nixpkgs.lib.all (tool: nixpkgs.lib.hasInfix tool unit.text) [
                     "coreutils"
-                    "glibc"
+                    "getent"
                     "iputils"
                   ]
                 );
