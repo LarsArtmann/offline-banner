@@ -373,6 +373,17 @@
           module-contract =
             pkgs.runCommand "offline-banner-module-contract"
               {
+                # The rendered unit TEXT as a build input: the PATH-phantom
+                # gate below RESOLVES tools against it (a name-grep cannot).
+                # writeText (not toFile): the unit text references
+                # restartTriggers derivations, which toFile may not.
+                unitTextFile = pkgs.writeText "offline-banner.service" unit.text;
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.coreutils
+                  pkgs.gnugrep
+                  pkgs.gnused
+                ];
                 unitPresent = toString (enabled.config.systemd.user.units ? "offline-banner.service");
                 unitAbsent = toString (!(disabled.config.systemd.user.units ? "offline-banner.service"));
                 quickshellInExecStart = toString (nixpkgs.lib.hasInfix "quickshell" unit.text);
@@ -498,7 +509,20 @@
                 [ "$unitAbsent" = "1" ] || { echo "FAIL: unit present when disabled"; exit 1; }
                 [ "$quickshellInExecStart" = "1" ] || { echo "FAIL: ExecStart does not use quickshell"; exit 1; }
                 [ "$envContractInUnit" = "1" ] || { echo "FAIL: OFFLINE_BANNER_* env contract missing from the unit"; exit 1; }
-                [ "$legToolsInPath" = "1" ] || { echo "FAIL: leg probe tools (coreutils/glibc/iputils) missing from the unit PATH"; exit 1; }
+                [ "$legToolsInPath" = "1" ] || { echo "FAIL: leg probe tools (coreutils/getent/iputils) missing from the unit PATH"; exit 1; }
+                # PATH-phantom gate (2026-11-10 live bug): the string assert
+                # above proves the tool NAME appears in the unit text, not
+                # that the RENDERED PATH resolves it — glibc.bin stopped
+                # shipping getent in this nixpkgs, the dns leg failed every
+                # real probe for a day, and every check stayed green because
+                # the test seams stub the whole probe. Resolve for real.
+                path_line=$(grep -o 'PATH=[^"]*' "$unitTextFile" | head -1 | sed 's/^PATH=//')
+                [ -n "$path_line" ] || { echo "FAIL: no PATH= line found in the unit text"; exit 1; }
+                for tool in timeout getent ping; do
+                  if ! PATH="$path_line" command -v "$tool" > /dev/null 2>&1; then
+                    echo "FAIL: unit PATH cannot resolve '$tool' (PATH-phantom class — the rendered PATH must contain the real binary)"; exit 1
+                  fi
+                done
                 [ "$memoryMaxSet" = "1" ] || { echo "FAIL: MemoryMax missing"; exit 1; }
                 [ "$cacheDirSet" = "1" ] || { echo "FAIL: XDG_CACHE_HOME must point at the runtime dir (fontconfig cache under strict sandbox)"; exit 1; }
                 [ "$sandboxInUnit" = "1" ] || { echo "FAIL: sandbox hardening missing from the unit"; exit 1; }
