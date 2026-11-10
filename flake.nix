@@ -568,6 +568,85 @@
                 done
                 touch "$out"
               '';
+          waybar-consumer =
+            pkgs.runCommand "offline-banner-waybar-consumer"
+              {
+                contrib = ./contrib/offline-banner-waybar;
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.coreutils
+                  pkgs.jq
+                ];
+              }
+              ''
+                export XDG_RUNTIME_DIR="$PWD/runtime"
+                mkdir -p "$XDG_RUNTIME_DIR/offline-banner"
+                state="$XDG_RUNTIME_DIR/offline-banner/state"
+                consumer="$contrib"
+                now=$(date +%s)
+                fails=0
+                # run_fixture NAME EXPECTED_STDOUT_REGEXP — feeds a fabricated
+                # state file, runs the consumer, greps stdout for the regexp
+                # (empty expected = must print NOTHING). The 2026-11-05
+                # manual fixture battery, scripted (self-review item #30) so
+                # it cannot rot; the degraded shapes are the 2026-11-09
+                # ladder contract.
+                run_fixture() {
+                  local name="$1" expect="$2" out
+                  out=$(XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" sh "$consumer" 2>&1 || true)
+                  if [ -z "$expect" ]; then
+                    if [ -n "$out" ]; then
+                      echo "FAIL [$name]: expected NO output, got: $out"
+                      fails=$((fails + 1))
+                    fi
+                  elif ! printf '%s' "$out" | grep -qE -- "$expect"; then
+                    echo "FAIL [$name]: output does not match '$expect'; got: $out"
+                    fails=$((fails + 1))
+                  fi
+                }
+                state_write() {
+                  printf '%s' "$1" > "$state"
+                }
+
+                rm -f "$state"
+                run_fixture "missing-state" ""
+
+                state_write "{\"active\":true,\"updatedAt\":$((now - 60))}"
+                run_fixture "stale-heartbeat" '"class":"stale"'
+
+                state_write "{\"active\":false,\"phase\":\"online\",\"degradedVisible\":false,\"updatedAt\":$now}"
+                run_fixture "fine-online" ""
+
+                state_write "{\"active\":false,\"phase\":\"degraded\",\"degradedVisible\":true,\"degradedLegs\":[\"icmp\"],\"updatedAt\":$now}"
+                run_fixture "degraded-visible-icmp" '"text":"degraded: icmp","class":"degraded"'
+
+                state_write "{\"active\":false,\"phase\":\"degraded\",\"degradedVisible\":true,\"degradedLegs\":[\"tcp\",\"dns\"],\"updatedAt\":$now}"
+                run_fixture "degraded-two-legs" '"text":"degraded: tcp\+dns"'
+
+                state_write "{\"active\":false,\"phase\":\"degraded\",\"degradedVisible\":false,\"degradedLegs\":[\"icmp\"],\"updatedAt\":$now}"
+                run_fixture "degraded-faded" ""
+
+                state_write "{\"active\":true,\"reason\":\"net\",\"since\":null,\"demo\":false,\"updatedAt\":$now}"
+                run_fixture "offline-plain" '"text":"offline","class":"offline","tooltip":"offline-banner: no internet"}$'
+
+                state_write "{\"active\":true,\"reason\":\"net\",\"since\":$((now - 240)),\"demo\":false,\"updatedAt\":$now}"
+                run_fixture "offline-since-4m" '"text":"offline 4m".*\(offline for 4m\)'
+
+                state_write "{\"active\":true,\"reason\":\"net\",\"since\":$((now - 4000)),\"demo\":false,\"updatedAt\":$now}"
+                run_fixture "offline-since-1h6m" '"text":"offline 1h6m"'
+
+                state_write "{\"active\":true,\"reason\":\"net\",\"since\":null,\"demo\":true,\"updatedAt\":$now}"
+                run_fixture "offline-demo" '"tooltip":"offline-banner: no internet \(demo\)"'
+
+                state_write "{\"active\":true,\"reason\":\"net\",\"since\":\"garbage\",\"demo\":false,\"updatedAt\":$now}"
+                run_fixture "offline-garbage-since" '"text":"offline"'
+
+                state_write "{\"active\":true,\"reason\":\"link\",\"since\":null,\"demo\":false,\"updatedAt\":$now}"
+                run_fixture "offline-link-reason" '"tooltip":"offline-banner: no link"}$'
+
+                [ "$fails" = "0" ] || { echo "FAIL: $fails waybar-consumer fixture(s) failed"; exit 1; }
+                touch "$out"
+              '';
           smoke-script =
             pkgs.runCommand "offline-banner-smoke-script"
               {
@@ -1083,6 +1162,35 @@
                 done
                 [ "$since" = "null" ] \
                     || { echo "FAIL: state.since must clear after a leg-outage recovery: $(cat "$state")"; exit 1; }
+
+                # Sticky dwell (2026-11-10): DEGRADED_DWELL=0 means the
+                # strip NEVER auto-fades while the down-leg set is
+                # unchanged — it stays until the set CHANGES or the phase
+                # leaves degraded. Contrast with the leg scenario above
+                # (dwell=3000 fades): here the visible flag must survive
+                # well past any dwell arithmetic (6+ probe cycles).
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                rm -f "$state"
+                export OFFLINE_BANNER_DEGRADED_DWELL=0
+                echo ok > control
+                printf 'tcp fail\ndns ok\n' > control-net
+                quickshell -p "$qmlDir" >qs-sticky.log 2>&1 &
+                qs_pid=$!
+                assert_state false
+                assert_journal "banner phase=degraded legs=tcp" qs-sticky.log
+                for i in $(seq 1 40); do
+                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    [ "$vis" = "true" ] && break
+                    sleep 0.25
+                done
+                [ "$vis" = "true" ] || { echo "FAIL: sticky-dwell strip never became visible: $(cat "$state")"; exit 1; }
+                sleep 5
+                vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                [ "$vis" = "true" ] || { echo "FAIL: dwell=0 strip auto-faded (sticky contract broken): $(cat "$state")"; exit 1; }
+                entries=$(wc -l < history.jsonl)
+                [ "$entries" = "2" ] || { echo "FAIL: sticky-dwell degraded phase must not write a ledger entry (expected 2, got $entries)"; exit 1; }
+                export OFFLINE_BANNER_DEGRADED_DWELL=3000
 
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
