@@ -1,6 +1,6 @@
 ---
 title: Observability
-description: Journal lines, the JSON state file, the persistent outage ledger, fail-closed liveness, and a waybar consumer.
+description: Journal lines, the JSON state file, the phase keys, the persistent outage ledger, fail-closed liveness, and a bar consumer.
 ---
 
 A dead banner must never be silent.
@@ -13,21 +13,41 @@ Every transition logs a structured, grep-able line:
 $ journalctl --user -u offline-banner -f
 probe failed reason=net failures=1/2
 banner state=shown reason=net failures=2/2
+banner phase=degraded legs=tcp          # a leg down, others up — the silent strip
+banner phase=offline legs=icmp,tcp,dns  # the alarm
 probe ok recovered_after=2
 banner state=hidden reason=ok failures=0/2
 outage ended from=1793110000 to=1793110135 duration=135s reasons=net
 ```
 
-The tokens are the contract — `banner state=shown|hidden|dismissed`, `probe
-ok|failed`, `outage ended` and `recovered_after=N` are stable, so
-`journalctl --user -u offline-banner | grep "banner state="` is a supported
-surface rather than a log-format accident.
+The tokens are the contract — `banner state=shown|hidden|dismissed`, `banner
+phase=online|degraded|offline`, `probe ok|failed`, `outage ended` and
+`recovered_after=N` are stable, so `journalctl --user -u offline-banner | grep
+"banner state="` is a supported surface rather than a log-format accident.
+Sound failures surface too: a non-zero `pw-play` exit is echoed into the
+journal as `[offline-banner] sound: pw-play exit=N wav=…`.
 
 ## State file
 
-`$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot — `active`,
-`demo`, `reason`, `failures`, `failuresToShow`, `since`, `updatedAt` —
-rewritten on **every probe**.
+`$XDG_RUNTIME_DIR/offline-banner/state` holds a JSON snapshot, rewritten
+atomically (tmp + rename — readers never see a torn write) on **every probe**:
+
+```json
+{
+  "active": true, "demo": false, "reason": "net", "failures": 2, "failuresToShow": 2, "since": 1793110000,
+  "phase": "offline",
+  "legs": { "icmp": {"failures": 2, "down": true}, "tcp": {"failures": 3, "down": true}, "dns": {"failures": 0, "down": false} },
+  "degradedLegs": ["icmp"], "degradedVisible": false, "updatedAt": 1793110010
+}
+```
+
+The legacy keys keep their names and shapes; the phase-ladder keys (`phase`,
+`legs`, `degradedLegs`, `degradedVisible`) are additive. Consumers must read
+the phase keys, never infer from the legacy fields — a mid-cascade write can
+briefly carry stale per-leg detail (the journal self-corrects, a cached read
+does not). `phase` is `online`, `degraded`, or `offline`;
+`degradedVisible` respects the strip's own dwell/dismissal state, so a widget
+should render the degraded pill only while it is true.
 
 `since` is the current outage's start in epoch seconds (`null` while fine) —
 the live twin of a ledger entry's `from`, so a widget can say "offline for 4m"
@@ -84,13 +104,20 @@ $ jq -s 'sort_by(-.durationSec)[:10] | map({when: (.from | todateiso8601), durat
 $ jq -r '.reasons[]' ~/.local/state/offline-banner/history.jsonl | sort | uniq -c
 ```
 
-## Waybar consumer
+## Bar consumer
 
 A reference consumer ships in
-[`contrib/offline-banner-waybar`](https://github.com/LarsArtmann/offline-banner/tree/master/contrib/offline-banner-waybar):
+[`contrib/offline-banner-waybar`](https://github.com/LarsArtmann/offline-banner/tree/master/contrib/offline-banner-waybar)
+(POSIX sh + jq; render the ladder in any bar that speaks waybar custom modules,
+or drive it from a desktop-shell plugin):
 
-- shows an offline widget while `active` is true,
-- stays empty while fine,
+- shows an offline widget while `active` is true — `offline 4m` ("1h6m" past
+  an hour) from the `since` key,
+- shows a `degraded: <legs>` pill while the strip is visibly degraded and
+  stays empty while fine,
 - flips to a `stale` marker once the heartbeat exceeds
   `OFFLINE_BANNER_MAX_AGE` (default 15 s) — the freshness heartbeat made
-  visible.
+  visible: a dead unit says so instead of staying silent.
+
+Its full rendering matrix is pinned by the `waybar-consumer` flake check (12
+fabricated-state fixtures), so the script you copy-paste cannot rot silently.

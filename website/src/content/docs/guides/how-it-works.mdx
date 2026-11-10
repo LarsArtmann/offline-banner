@@ -1,6 +1,6 @@
 ---
 title: How It Works
-description: The two-leg probe, the debounce, the push-down animation, and the startup race.
+description: The four-leg probe, the phase ladder, the debounce, the push-down animation, and the startup race.
 ---
 
 ## The probe
@@ -9,18 +9,44 @@ offline-banner never asks NetworkManager — `nmcli networking connectivity`
 reads `none` on NM-unmanaged uplinks (static-IP ethernet, bridges) while the
 internet is perfectly reachable. Live-verified on the origin host.
 
-Instead, every `checkIntervalSeconds` it runs a two-leg shell check:
+Instead, every `checkIntervalSeconds` it runs a four-leg check — the legs
+deliberately span providers and failure modes, so one provider's filtering
+mood cannot fake a whole-network outage:
 
 1. **Link leg** — any real interface (lo/veth/tailscale/wireguard/docker/...
    excluded) with `carrier 1`, read straight from `/sys/class/net`. No carrier
    → *"Network link is down"*.
-2. **Internet leg** — one ICMP echo to `probeHost` (default `9.9.9.9`, an IP,
-   not a name: DNS is often half-broken exactly when the banner matters, and
-   the banner must never depend on the resolver). No echo → *"No internet
-   connection"*.
+2. **ICMP leg** — one ping to `probeHost` (default `9.9.9.9`, an IP, not a
+   name). The original internet check — and the leg networks police hardest:
+   the origin host's gateway dropped 30–50 % of single pings while every other
+   leg was instant.
+3. **TCP leg** — a raw socket connect to `tcpProbeHost:tcpProbePort` (default
+   `1.1.1.1:53`) through bash's `/dev/tcp`: no resolver in the path, capped by
+   `timeout` so a silently filtered connect cannot hang the probe.
+4. **DNS leg** — `getent ahostsv4 dnsProbeName` (default `one.one.one.one`):
+   the glibc/NSS path applications actually use, so a local-resolver outage
+   registers here and nowhere else.
 
 A probe that cannot even run counts as a failure — fail visible, never fail
 silent.
+
+## The phase ladder
+
+Each leg debounces independently against `failuresToShow`; the phase is the
+ladder over the down-leg set:
+
+- **offline** — link down, or tcp+dns both down, or all three net legs down.
+  The yellow alarm, exactly as before: sound, ledger, push-down strip.
+- **degraded** — a leg down while another net leg is up: the
+  policed-ICMP class, a usable network with one limb numb. A slim info strip
+  names the down legs — **no sound, no ledger entry** — and fades after
+  `degradedDwellSeconds` (default 15 s, `0` = sticky), re-appearing only when
+  the SET of down legs changes so one flapping leg cannot flash it.
+
+Machine-tested: a probe-transitions scenario walks degraded → offline →
+partial recovery → online and asserts the ledger entry's `reasons=["tcp","dns"]`,
+the dwell fade, and no-sound-while-degraded; a sticky-dwell scenario pins the
+`0` semantics; a render-smoke pixel gate proves the blue strip's show/fade.
 
 ## The debounce
 
@@ -64,8 +90,14 @@ Surfaces are created per monitor as outputs connect.
 
 - `probe-transitions` flake check — drives the **real store QML** through
   ok/net/link in headless sway and asserts hidden → debounce → show(net) →
-  reason(link) → recovery → re-arm through the state file, plus the sound
-  cues (via a player seam) and the ledger entry's contents.
+  reason(link) → recovery → re-arm through the state file, plus the leg
+  ladder (degraded/offline/partial-recovery and the sticky-dwell pin), the
+  sound cues (via a player seam) and the ledger entry's contents. Its
+  state-file asserts POLL (`assert_state_jq`) and its aarch64 CI run is
+  verified locally on binfmt emulation before every push.
+- `waybar-consumer` — 12 fabricated-state fixtures pinning the contrib
+  consumer's rendering matrix (the script users copy-paste verbatim cannot
+  rot silently).
 - `render-smoke` flake check — the pixel gate: grim-captures the strip in
   headless sway and asserts the composited yellow is present when shown and
   gone below the strip and after recovery.
@@ -74,4 +106,8 @@ Surfaces are created per monitor as outputs connect.
   synthesized WAV matrix.
 - `unit-verify` — `systemd-analyze verify` on the rendered unit, in-sandbox.
 - `module-contract` — every sandbox directive line, the env contract, and the
-  quickshell ExecStart, asserted line-by-line.
+  quickshell ExecStart, asserted line-by-line — including an EXECUTION gate
+  that resolves `timeout`/`getent`/`ping` against the rendered unit PATH
+  (`command -v`, not name-grep): the 2026-11-10 live deploy shipped a PATH
+  whose getent did not exist and every name-grep check stayed green while the
+  dns leg failed all probes.

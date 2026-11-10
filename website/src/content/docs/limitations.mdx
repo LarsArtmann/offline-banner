@@ -12,9 +12,10 @@ offline-banner if:
   module is proven on niri; other layer-shell compositors (sway, Hyprland) are
   expected but untested.
 - **You want a network monitor.** Traffic graphs, bandwidth accounting, and
-  per-app stats are non-goals — this is one boolean, honestly derived and
-  honestly displayed. (The outage ledger records *when* the path was down, not
-  what crossed it.)
+  per-app stats are non-goals — this is one honest question ("can I reach the
+  internet?") answered by four independent legs and displayed as a ladder
+  (offline / degraded / fine). (The outage ledger records *when* the path was
+  down, not what crossed it.)
 - **You need per-app or per-interface diagnosis.** The probe answers "is the
   path up", not "which application is misbehaving".
 - **You cannot accept a second Quickshell instance.** The banner deliberately
@@ -28,8 +29,16 @@ offline-banner if:
 ## Accepted tradeoffs
 
 - **IPv4-default probe**: on a v6-primary uplink with a broken v4 route the
-  banner shows offline while v6 browsing works. Point `probeHost` at a v6
-  literal on v6-primary hosts (see [Configuration](/getting-started/configuration/)).
+  banner shows offline while v6 browsing works. Point `probeHost` (and the tcp
+  leg's host) at v6 literals on v6-primary hosts (see
+  [Configuration](/getting-started/configuration/)).
+- **A single stuck leg can escalate to offline.** The offline rule includes
+  "tcp + dns both down" — if one of those legs wedges while a real outage hits
+  the other, the alarm fires. The legs run independent debounces on
+  independent providers precisely to make that shape rare (it has happened
+  exactly once, through a deploy-time PATH bug — now gated by an execution
+  check that resolves every probe binary against the rendered unit PATH), and
+  a two-consecutive-probe tightening is a known option if it ever recurs.
 - **First render on a monitor-on session**: pixel visibility on real monitors
   rode the origin deployment; the behavior itself is machine-verified by the
   `probe-transitions` check (see [How it works](/guides/how-it-works/)).

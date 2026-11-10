@@ -160,6 +160,12 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          # The store QML the VM's unit boots (same restartTriggers input
+          # the unit resolves) — for the static additive-keys grep below.
+          enabled = evalModule system [
+            { services.offline-banner.enable = true; }
+          ];
+          qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
         in
         nixpkgs.lib.nixos.runTest {
           name = "offline-banner-vm-smoke";
@@ -242,6 +248,21 @@
                 "--grep='Started|Main process|Quickshell|quickshell|Qt' | grep -q .",
                 timeout=120,
             )
+
+            # Additive state-keys contract, STATICALLY (2026-11-10). The VM
+            # has no compositor, so the unit cannot run to a live state
+            # write here: quickshell needs the Wayland layer-shell backend,
+            # and without WAYLAND_DISPLAY Qt falls back to xcb and aborts
+            # (offscreen is equally unavailable — the QML refuses to load
+            # with "No PanelWindow backend loaded"). Live-state semantics
+            # belong to probe-transitions, which asserts the key SHAPES
+            # under headless sway. This boot test pins the REALIZED QML it
+            # boots for the ladder keys instead: a refactor dropping one
+            # fails here before any consumer can silently break.
+            machine.succeed("grep -q 'phase:' ${qmlDir}/shell.qml")
+            machine.succeed("grep -q 'degradedLegs' ${qmlDir}/shell.qml")
+            machine.succeed("grep -q 'degradedVisible' ${qmlDir}/shell.qml")
+            machine.succeed("grep -q 'updatedAt' ${qmlDir}/shell.qml")
           '';
         };
     in
@@ -919,6 +940,20 @@
                 }
 
                 assert_state false               # clean ok probes: stays hidden
+                # Additive-keys shape contract (the 2026-11-09 legs): the
+                # legacy keys keep their names AND the ladder keys exist
+                # with their types — a refactor dropping an additive key
+                # would pass every transition assert until a consumer
+                # silently renders nothing. Pinned at the clean start (a
+                # deterministic position, per the CI-timing doctrine).
+                assert_state_jq '.phase' "online" "phase key lost or wrong at clean start"
+                assert_state_jq '.legs | type' "object" "legs key lost"
+                assert_state_jq '.legs.icmp | type' "object" "legs.icmp lost"
+                assert_state_jq '.legs.tcp | type' "object" "legs.tcp lost"
+                assert_state_jq '.legs.dns | type' "object" "legs.dns lost"
+                assert_state_jq '.degradedLegs | type' "array" "degradedLegs key lost"
+                assert_state_jq '.degradedVisible | type' "boolean" "degradedVisible key lost"
+                assert_state_jq '.updatedAt | type' "number" "updatedAt key lost"
                 assert_no_journal "probe failed"  # nothing failed yet
                 echo net > control               # failure 1 of 2
                 assert_state false               # debounce holds

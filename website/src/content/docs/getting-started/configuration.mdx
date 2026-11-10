@@ -1,9 +1,9 @@
 ---
 title: Configuration
-description: All eleven options, live tuning via drop-in, sound themes, the outage ledger, and demo mode.
+description: All thirteen options, live tuning via drop-in, the phase ladder, sound themes, the outage ledger, and demo mode.
 ---
 
-Eleven options, all with honest defaults:
+Thirteen options, all with honest defaults:
 
 | Option                 | Type    | Default                                           | Description                                                                                                                                                            |
 | ---------------------- | ------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -12,7 +12,11 @@ Eleven options, all with honest defaults:
 | `checkIntervalSeconds` | int > 0 | `5`                                               | Seconds between connectivity probes (env-override values ≤ 500 fall back to the 5000 ms default — sub-half-second probing is refused)                                   |
 | `probeHost`            | string  | `"9.9.9.9"`                                       | IP pinged for the internet leg (keep it an IP, not a name; IPv4 literal by default — see the v6 note below)                                                             |
 | `probeTimeoutSeconds`  | int > 0 | `3`                                               | ping timeout (asserted `< checkIntervalSeconds` — probes must never overlap)                                                                                            |
-| `failuresToShow`       | int > 0 | `2`                                               | Consecutive failed probes before the banner appears (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable)                                  |
+| `failuresToShow`       | int > 0 | `2`                                               | Consecutive failed probes before a leg counts as down and the banner appears (debounce; bounded ≤ 10 so a fat-fingered value can't make the banner unreachable) — each leg debounces independently against it                                  |
+| `tcpProbeHost`         | string  | `"1.1.1.1"`                                       | IP for the TCP-connect leg — deliberately an IP literal (raw socket reachability, no resolver) and deliberately a different anycast provider than `probeHost` (Quad9 vs Cloudflare), so one provider's filtering mood cannot fake a whole-network outage |
+| `tcpProbePort`         | port    | `53`                                              | Port for the TCP-connect leg (53 = DNS-over-TCP survives almost every consumer firewall that passes DNS at all; fancy ports can lie the other way)                                                                                       |
+| `dnsProbeName`         | string  | `"one.one.one.one"`                               | Name the DNS leg resolves via `getent ahostsv4` — the glibc/NSS path applications actually use, so a local-resolver outage registers here and nowhere else. Must be an EXTERNAL name (a wildcard-capturing local zone would blind the leg) |
+| `degradedDwellSeconds` | int ≥ 0 | `15`                                              | Seconds the degraded (info) strip stays visible before auto-fading; `0` = sticky while degraded. It re-appears only when the SET of down legs changes, so one flapping leg cannot flash the strip                                          |
 | `layerNamespace`       | string  | `"offline-banner"`                                | WlrLayershell namespace (find the surface via e.g. `niri msg layers`)                                                                                                   |
 | `soundTheme`           | enum    | `"chime"`                                         | Synthesized cue set: `chime`, `droplet`, `retro`, or `none` for silence (see [Sounds](#sounds))                                                                         |
 | `soundVolume`          | 0–100   | `60`                                              | Cue volume percent, passed to `pw-play` as a linear factor                                                                                                              |
@@ -30,9 +34,29 @@ desktop:
   unprovisioned parent used to kill the unit outright (status 226/NAMESPACE
   restart loop, no banner at all — 2026-11-05 live incident).
 
+## The phase ladder
+
+The legs exist because ICMP — the leg most banners rely on — is also the leg
+networks police hardest. The origin host's gateway dropped 30–50 % of single
+pings while TCP and DNS were instant, and a single-leg banner cried *offline*
+over a perfectly usable network. The ladder keeps the alarm honest:
+
+- **offline** (the yellow alarm, sound + ledger) — the link died, or the two
+  non-ICMP legs (tcp + dns) are BOTH down, or all three net legs are down. A
+  network you genuinely cannot use.
+- **degraded** (a slim info strip, silent, no ledger entry) — some legs down
+  while at least one net leg is up: usable-but-impaired. The strip names the
+  down legs, fades after `degradedDwellSeconds`, and re-appears only when the
+  SET of down legs changes.
+
+The legs deliberately span providers and resolvers (Quad9 ping, Cloudflare
+TCP connect, the system resolver via glibc/NSS) — see
+[How it works](/guides/how-it-works/#the-probe).
+
 ## Live tuning without a rebuild
 
-The unit's `OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES}`
+The unit's
+`OFFLINE_BANNER_{INTERVAL,PROBE_HOST,PROBE_TIMEOUT,FAILURES,TCP_HOST,TCP_PORT,DNS_NAME,DEGRADED_DWELL}`
 environment variables mirror the options. A drop-in override retunes a live
 system without a rebuild:
 

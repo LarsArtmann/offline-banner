@@ -604,7 +604,16 @@
                 const wav = (dir || "") + "/" + root.soundTheme + "-" + event + ".wav";
                 soundPlay.command = override.length > 0
                     ? override.concat(["offline-banner-sound", event, wav])
-                    : ["pw-play", "--volume", root.soundVolumeArg, wav];
+                    // Default path wrapped so a pw-play failure stops being
+                    // invisible: the exit code echoes through stderr, and the
+                    // stderr collector below logs it into the unit journal
+                    // (the 2026-11-10 live cue fired with audibility
+                    // unconfirmable — nothing reached the journal).
+                    : ["sh", "-c",
+                        "pw-play --volume \"$2\" \"$3\"; rc=$?; " +
+                        "[ \"$rc\" -ne 0 ] && echo \"pw-play exit=$rc wav=$3\"; " +
+                        "exit \"$rc\"",
+                        "offline-banner-sound", root.soundVolumeArg, wav];
                 soundPlay.running = true;
             }
 
@@ -750,6 +759,12 @@
                 id: soundPlay
 
                 running: false
+                stderr: StdioCollector {
+                    onStreamFinished: {
+                        if (this.text.trim().length > 0)
+                            console.log("[offline-banner] sound: " + this.text.trim());
+                    }
+                }
             }
 
             // Outage-ledger appends, started by rememberOutage() on

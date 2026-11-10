@@ -7,7 +7,11 @@ All notable changes are documented in the repository's
 [CHANGELOG.md](https://github.com/LarsArtmann/offline-banner/blob/master/CHANGELOG.md)
 following [Keep a Changelog](https://keepachangelog.com).
 
-## 0.2.0 — 2026-10-29
+## Unreleased
+
+The banner learns which limb is numb: reachability stops being one boolean.
+
+- **Four independent probe legs + the phase ladder** — icmp (the original\n  ping) is joined by a tcp leg (raw connect, IP literal, different anycast\n  provider) and a dns leg (`getent`, the resolver applications actually use).\n  A leg down while others are up is **degraded**: a silent info strip naming\n  the down legs, auto-fading after `degradedDwellSeconds` — no alarm, no\n  ledger. The yellow offline alarm now means a genuinely unusable network.\n  Born live: one host's gateway policed ICMP so hard a single-leg banner\n  cried offline 206 times in 8 hours over a usable network.\n- **Additive state keys** — `phase`, `legs`, `degradedLegs`, `degradedVisible`\n  ride the state file and journal (`banner phase=… legs=…`); a bar consumer\n  renders the ladder, and a `waybar-consumer` check pins its full rendering\n  matrix with 12 fabricated-state fixtures.\n- **The PATH-phantom gate** — the first live deploy of the legs shipped a unit\n  PATH whose `getent` did not exist and every name-grep check stayed green\n  while the dns leg failed every probe. The module-contract check now\n  RESOLVES `timeout`/`getent`/`ping` against the rendered PATH.\n- **CI-honesty fixes** — state writes are atomic (tmp + rename); the\n  probe-transition harness polls state reads (`assert_state_jq`) and resets\n  its scenario control files, closing the emulated-aarch64 flake class.\n\n## 0.2.0 — 2026-10-29
 
 The banner learns to speak and to remember.
 
