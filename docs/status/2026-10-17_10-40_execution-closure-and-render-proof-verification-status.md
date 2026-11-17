@@ -89,18 +89,18 @@ ANNOTATE._
 
 ## b) PARTIALLY DONE
 
-1. **The ANNOTATE pass itself is NOT applied.** Dry-run validated only. Drafted
-   specs awaiting application: 01:59 §b items 1/3/4 (done-verdicts), §f items
-   1, 5–17, 28, 48–50 (done), §g 1–3 (routed answers: MIT owner-confirmed /
-   zero-outputs answered / gauge answered by the waybar consumer); my 09:36
-   §f items 1–10, 26–30 and §g 1–3 (all three resolved this session). Items
-   2/4/18–27/29–47 of 01:59 §f stay deliberately untouched (open/roadmap).
-2. **Final gates not run since the doc edits** — `nix fmt` +
-   `nix flake check --all-systems` pending; in particular `docs-drift` is
-   unverified after the FEATURES row changes (option names were preserved, but
-   unverified is unverified).
-3. **check-rows completeness gate** not run (belongs after the annotations
-   land).
+1. ~~**The ANNOTATE pass itself is NOT applied.** Dry-run validated only. Drafted~~ done — applied — the 01:59/09:36 annotations landed 2026-10-17; the 2026-11-17 sweep completed the set and archived the four fully-resolved reports
+   ~~specs awaiting application: 01:59 §b items 1/3/4 (done-verdicts), §f items~~
+   ~~1, 5–17, 28, 48–50 (done), §g 1–3 (routed answers: MIT owner-confirmed /~~
+   ~~zero-outputs answered / gauge answered by the waybar consumer); my 09:36~~
+   ~~§f items 1–10, 26–30 and §g 1–3 (all three resolved this session). Items~~
+   ~~2/4/18–27/29–47 of 01:59 §f stay deliberately untouched (open/roadmap).~~
+2. ~~**Final gates not run since the doc edits** — `nix fmt` +~~ done — superseded — CI has run the gates green on every push since (docs edits ride the same CI)
+   ~~`nix flake check --all-systems` pending; in particular `docs-drift` is~~
+   ~~unverified after the FEATURES row changes (option names were preserved, but~~
+   ~~unverified is unverified).~~
+3. ~~**check-rows completeness gate** not run (belongs after the annotations~~ done — check-rows ran over every annotated file in the 2026-11-17 pass
+   ~~land).~~
 4. **Q2 latitude is owner-ratified only retroactively**: the standing mandate
    said "execute until done" and the 09:36 report stated trash-after-confirmation
    as the default; I executed. If you wanted the 01:44 state file kept for
@@ -110,9 +110,9 @@ ANNOTATE._
 
 ## c) NOT STARTED
 
-1. Applying the drafted annotations (§b-1) + `check-rows` gate + possible
-   archive decisions for fully-resolved reports.
-2. Final gates (`nix fmt`, `nix flake check --all-systems`).
+1. ~~Applying the drafted annotations (§b-1) + `check-rows` gate + possible~~ done — the 2026-11-17 sweep applied the drafted annotations and archived the four resolved reports
+   ~~archive decisions for fully-resolved reports.~~
+2. ~~Final gates (`nix fmt`, `nix flake check --all-systems`).~~ done — superseded — the CI gate runs them on every push (docs-drift included)
 3. `wlrctl` install + click-dismiss recon (01:59 §f-2 — the named missing tool).
 4. Live-monitor render proof (rides the SystemNix switch; recon says the
    current session is displayless by circumstance).
@@ -120,8 +120,8 @@ ANNOTATE._
    retune test (both owner-executable; runbook in AGENTS).
 6. render-smoke hardening: determinism audit (new TODO row), second pixel row,
    link-reason visual state, artifact upload on failure.
-7. v0.1.1 decision/cut (see §g-1).
-8. `pnpm update` in website/ (see §g-3).
+7. ~~v0.1.1 decision/cut (see §g-1).~~ done — superseded — the journal tokens shipped in v0.2.0 (2026-10-29); the next tag is v0.2.1 (TODO row)
+8. ~~`pnpm update` in website/ (see §g-3).~~ done — by-events — dependabot self-resolved (0 open alerts 2026-11-05); the website deps were later regenerated under the age gate
 9. Launch-post posting (owner-gated; the 10:06 session's §g-2 question stands).
 10. Longer demo recovery window so the webp shows the full 450 ms slide-up
     (current encode clips it to 4 frames ≈160 ms; visible but tight).
@@ -176,30 +176,30 @@ ANNOTATE._
 
 **Now (small, from this session's leftovers):**
 
-1. Apply the drafted annotations (01:59 §b/§f/§g + 09:36 §f/§g; specs in this
-   session's transcript, dry-run validated) + run `check-rows` on both files.
-2. Final gates: `nix fmt && nix flake check --all-systems`; confirm docs-drift
-   after the FEATURES edit.
-3. Consider archiving the 01:59 report once annotated (every numbered item
-   would carry a verdict or stay visibly open — archive only if NOTHING is
-   left open; §b-2/§b-5 and §f items 2/4/18–27/29–47 are still open, so it
-   stays put for now).
+1. ~~Apply the drafted annotations (01:59 §b/§f/§g + 09:36 §f/§g; specs in this~~ done — annotations applied 2026-10-17 and completed 2026-11-17
+   ~~session's transcript, dry-run validated) + run `check-rows` on both files.~~
+2. ~~Final gates: `nix fmt && nix flake check --all-systems`; confirm docs-drift~~ done — superseded — CI green on every push (checks.yml)
+   ~~after the FEATURES edit.~~
+3. ~~Consider archiving the 01:59 report once annotated (every numbered item~~ done — confirmed — the 01:59 report stays put (open tails remain); the four RESOLVED reports were archived 2026-11-17 instead
+   ~~would carry a verdict or stay visibly open — archive only if NOTHING is~~
+   ~~left open; §b-2/§b-5 and §f items 2/4/18–27/29–47 are still open, so it~~
+   ~~stays put for now).~~
 4. Demo capture: extend the post-recovery tail (sleep 4.5 → ~7 s) so the webp
    shows the full slide-up; re-verify frames.
-5. `git log` watch: confirm the daemon commits the staged dprint deletion
-   under a sane message (it did — verify in the push review).
+5. ~~`git log` watch: confirm the daemon commits the staged dprint deletion~~ done — verified — the history carries real messages for this session work
+   ~~under a sane message (it did — verify in the push review).~~
 6. Deploy the lessons: trigger a home-manager switch so `4f6dd31` reaches
    `~/.config/crush/references/lessons.md`.
-7. Dependabot: run `pnpm update` in website/ once the website session is idle
-   (20 alerts, non-gating).
+7. ~~Dependabot: run `pnpm update` in website/ once the website session is idle~~ done — by-events — dependabot self-resolved (0 alerts 2026-11-05)
+   ~~(20 alerts, non-gating).~~
 8. wlrctl install + click-dismiss recon against the live banner (half of T18).
-9. SystemNix relock prep: `git diff fff0b61..a91a77a` review draft (the diff
-   the switch owner is asked to read — pre-summarize it honestly).
+9. ~~SystemNix relock prep: `git diff fff0b61..a91a77a` review draft (the diff~~ done — superseded — SystemNix consumed master directly through the 2026-11-10 cutover waves (lock now 320be2a; gen 995 live)
+   ~~the switch owner is asked to read — pre-summarize it honestly).~~
 10. README waybar config snippet for the consumer (consumer polish item).
 
 **Next (small-medium):**
-11. render-smoke determinism audit (TODO row; doctrine codified by the 10:06
-session) before it flakes in CI like probe-transitions did.
+11. ~~render-smoke determinism audit (TODO row; doctrine codified by the 10:06~~ done — 2026-11-05 — audited; the doctrine was already applied
+~~session) before it flakes in CI like probe-transitions did.~~
 12. render-smoke hardening: second pixel row (strip edge), hidden-vs-shown
 pixel-diff floor, link-reason via sysroot injection, artifact upload on
 failure.
@@ -216,7 +216,7 @@ leg).
 render-smoke or keep live).
 21. Drop-in retune test — owner-executable (`systemctl --user edit` flow).
 22. Reboot auto-start proof — schedule with owner.
-23. v0.1.1 cut if §g-1 answers "tag now" (release runbook is mechanical).
+23. ~~v0.1.1 cut if §g-1 answers "tag now" (release runbook is mechanical).~~ done — superseded — v0.2.0 shipped the tokens (2026-10-29); v0.2.1 pending (TODO row)
 
 **ROADMAP fuel / demand-gated (unchanged):**
 24. Live-monitor render proof (rides the switch).
@@ -252,7 +252,7 @@ record that in lessons if it generalizes).
 
 ## g) Three questions I cannot answer myself
 
-1. **Cut v0.1.1 before the SystemNix relock?** The journal-token change is a
+1. **Cut v0.1.1 before the SystemNix relock?** The journal-token change is a **→ answered-by-events — v0.2.0 shipped the journal tokens (2026-10-29); the pending tag is v0.2.1 (TODO row)**
    user-visible contract change sitting in `[Unreleased]` (my stated default,
    taken). But SystemNix's relock instruction now points at a moving HEAD
    (`a91a77a`); tagging v0.1.1 first would give the switch a frozen,
@@ -262,7 +262,7 @@ record that in lessons if it generalizes).
    banner unit runs under it). Should that session be reclaimed (re-login to
    get the real-monitor proof for free), reaped, or left as the standing
    headless testbed?
-3. **Website lockfile ownership**: `pnpm update` in website/ would address 20
+3. **Website lockfile ownership**: `pnpm update` in website/ would address 20 **→ answered-by-events — dependabot self-resolved (0 alerts 2026-11-05); website deps regenerated under the age gate (2026-11-10)**
    dependabot alerts, but that subtree has an active session. Is website/
    yours/another session's until further notice, or may any session run
    dependency updates there?

@@ -38,8 +38,8 @@
 
 1. Social preview upload (console-only, no API) — file staged at `assets/branding/social-preview.png`.
 2. Posting the launch drafts (owner accounts).
-3. `FIREBASE_SERVICE_ACCOUNT` secret on the repo.
-4. DNS apply + cert wait + post-apply verification of https://offline-banner.lars.software.
+3. ~~`FIREBASE_SERVICE_ACCOUNT` secret on the repo.~~ done — 2026-10-29 — the secret landed, deploy armed, first CI deploy green; STALE 2026-11-10 (deploy auth fails — TODO row tracks rotation)
+4. ~~DNS apply + cert wait + post-apply verification of https://offline-banner.lars.software.~~ done — 2026-10-17 — owner applied DNS; cert ACTIVE; verified end-to-end the same morning
 5. Click-to-dismiss shown in motion anywhere (video scene 3 or a capture-demo segment) — the README headline behavior remains un-animated.
 6. Multi-monitor demo footage (two headless outputs) — "every monitor" is the #1 claim and the only visual proof is one monitor.
 7. Real-monitor capture of any kind (rides the SystemNix switch).
@@ -87,7 +87,7 @@
 5. 👤 Post the r/NixOS draft
 6. Check `gh run list --workflow website.yml` — first run must be green (notice step, not red) — DONE 2026-10-17 (green after the secrets-in-if fix)
 7. Untrack `.hyperframes/`: add `website/video/.hyperframes/` to .gitignore + `git rm -r --cached website/video/.hyperframes` — DONE 2026-10-17
-8. `nix flake check --all-systems` once (aarch64, release-runbook discipline)
+8. ~~`nix flake check --all-systems` once (aarch64, release-runbook discipline)~~ done — all-systems checks green on every push since (CI standard)
 9. Mobile visual QA: 375 px + 768 px screenshots of landing + a docs page
 10. Docs dark-theme eyeball pass (Starlight chrome + dracula code)
 
@@ -98,7 +98,7 @@
 14. `pnpm audit` locally once; triage anything high
 15. Decide + document the /og/*.png route's consumers (referenced for docs pages or a ghost system?)
 16. Spot-check pagefind search UI on the live site
-17. CHANGELOG compare-link footers (Unreleased + 0.1.0) per keep-a-changelog
+17. ~~CHANGELOG compare-link footers (Unreleased + 0.1.0) per keep-a-changelog~~ done — compare-link footer at the CHANGELOG bottom (2026-10-17)
 18. Test `nix run .#deploy` from website/flake.nix once
 19. Dependabot: triage the incoming website.yml action-pin PRs
 20. Document (or unify) the two pnpm-workspace.yaml files
@@ -137,7 +137,7 @@
 47. og:image for the docs pages: wire Starlight head to the generated per-page images (if e15 says they're wanted)
 48. Add the website + video to FEATURES.md as project-infra rows or explicitly exclude (decide the inventory boundary)
 49. Rename `docs/assets/offline-banner-demo.webp` usage note: README image caption could link the capture recipe (f25 of the old report, still open)
-50. After DNS + secret + upload land: re-run this report's §f1-6 verifications and close the two open TODO rows
+50. After DNS + secret + upload land: re-run this report's §f1-6 verifications and close the two open TODO rows **→ half-closed — DNS + secret done (2026-10-29); the upload + verify half is TODO row (FIREBASE/social)**
 
 ## g) Questions I cannot answer myself
 

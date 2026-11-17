@@ -24,18 +24,18 @@
 
 ## b) PARTIALLY DONE
 
-1. **Demo asset regeneration (§f-48)** — the re-run regenerated `docs/assets/offline-banner-demo.png` (03:04, 24 KB) but the webp encode never completed; worse, the run REUSED the script's cached ground-truth QML from 00:06 (`$work/shell.qml` cache in `capture-demo.sh`), so even the fresh PNG has stale provenance. Visually irrelevant (journal lines are non-visual) but the §f-48 provenance point wants a cache-clean re-run. The background job record still shows "running" at 09:36 — almost certainly a hung/stale job, to be killed before any retry.
-2. **Demo webp watch (§f-1)** — frames not extracted/viewed: I deliberately waited for the regeneration to avoid watching a stale-provenance asset, and the regeneration itself stalled (§b-1). Still open, still cheap (ffmpeg frame-dump + view).
-3. **Scratch cleanup (§f-49)** — the leftover list grew but nothing was trashed yet: `/run/user/1000/offline-banner.state` (new find, same family), `/tmp/qsprobe`, `/tmp/uvroot`, plus `/tmp/offline-banner-demo/` from the stalled capture.
-4. **CHANGELOG `[Unreleased]`** — content settled in this session (journal token format, cache fix, render-smoke, consumer, seven checks) but not written to CHANGELOG.md; deferred to the docs-health pass together with the keep-a-changelog compare-link footer (§f-16).
+1. ~~**Demo asset regeneration (§f-48)** — the re-run regenerated `docs/assets/offline-banner-demo.png` (03:04, 24 KB) but the webp encode never completed; worse, the run REUSED the script's cached ground-truth QML from 00:06 (`$work/shell.qml` cache in `capture-demo.sh`), so even the fresh PNG has stale provenance. Visually irrelevant (journal lines are non-visual) but the §f-48 provenance point wants a cache-clean re-run. The background job record still shows "running" at 09:36 — almost certainly a hung/stale job, to be killed before any retry.~~ done — resolved same day — regeneration completed 10:14 from fresh ground truth + the stale-cache root cause fixed (`9ab577b`)
+2. ~~**Demo webp watch (§f-1)** — frames not extracted/viewed: I deliberately waited for the regeneration to avoid watching a stale-provenance asset, and the regeneration itself stalled (§b-1). Still open, still cheap (ffmpeg frame-dump + view).~~ done — closed — 179 frames inspected (push-down + slide-up visible), 10:40 session
+3. ~~**Scratch cleanup (§f-49)** — the leftover list grew but nothing was trashed yet: `/run/user/1000/offline-banner.state` (new find, same family), `/tmp/qsprobe`, `/tmp/uvroot`, plus `/tmp/offline-banner-demo/` from the stalled capture.~~ done — all four scratch paths trashed 2026-10-17 (live unit dir kept)
+4. ~~**CHANGELOG `[Unreleased]`** — content settled in this session (journal token format, cache fix, render-smoke, consumer, seven checks) but not written to CHANGELOG.md; deferred to the docs-health pass together with the keep-a-changelog compare-link footer (§f-16).~~ done — CHANGELOG [Unreleased] written 2026-10-17 with the compare-link footer
 
 ## c) NOT STARTED
 
-1. **docs-health pass** — TODO_LIST/FEATURES updates for this session's outcomes; the 01:59 report's own footer asks for ANNOTATE when brought current; this report also needs indexing in `docs/status/README.md`.
-2. **Global lessons write-up (§f-50)** — the quartet (nix-sandbox /run, bus-prop specifier non-expansion, jq `// empty` swallowing false, negative-tests-mutate-semantics) plus two new candidates from this session (poll-or-perish for async harness asserts; lint false positives need an isolated repro before suppression) → crush-config `references/lessons.md` via commit.
-3. **SystemNix cross-repo annotation (§f-7)** — `docs/todo/desktop.md` smoke-gate-done note; untouched.
-4. **Dependabot PR triage (§f-8)** — `gh pr list` never run.
-5. **Treefmt shfmt wiring** — consciously decided AGAINST for now (2 shell files, standalone linters clean; formatter gates CI and is nix-only by recorded decision) — revisit only if shell code grows; recorded here, not in AGENTS (reversible).
+1. ~~**docs-health pass** — TODO_LIST/FEATURES updates for this session's outcomes; the 01:59 report's own footer asks for ANNOTATE when brought current; this report also needs indexing in `docs/status/README.md`.~~ done — 2026-10-17 (10:40 session — TODO/FEATURES/index updated)
+2. ~~**Global lessons write-up (§f-50)** — the quartet (nix-sandbox /run, bus-prop specifier non-expansion, jq `// empty` swallowing false, negative-tests-mutate-semantics) plus two new candidates from this session (poll-or-perish for async harness asserts; lint false positives need an isolated repro before suppression) → crush-config `references/lessons.md` via commit.~~ done at `4f6dd31`
+3. ~~**SystemNix cross-repo annotation (§f-7)** — `docs/todo/desktop.md` smoke-gate-done note; untouched.~~ done — SystemNix desktop.md annotated (smoke gate DONE, relock pointer)
+4. ~~**Dependabot PR triage (§f-8)** — `gh pr list` never run.~~ done — 0 open PRs, non-gating alerts (triaged twice, still 0 alerts 2026-11-05)
+5. ~~**Treefmt shfmt wiring** — consciously decided AGAINST for now (2 shell files, standalone linters clean; formatter gates CI and is nix-only by recorded decision) — revisit only if shell code grows; recorded here, not in AGENTS (reversible).~~ done — recorded as the standing decision in this report §f-10
 6. **Real-monitor render proof, reboot auto-start, multi-monitor, click-dismiss** — unchanged, externally gated (see §a-10); recon confirmed zero outputs again at ~03:00.
 
 ## d) TOTALLY FUCKED UP (process failures — nothing shipped broken)
@@ -83,7 +83,7 @@
 20. CI: split checks into named jobs for per-gate badges (§f-21 of the 01:59 report, unchanged).
 21. Nix output cache to cut the ~60 s CI runs (unchanged).
 22. Wire actionlint+zizmor into CI if the workflow grows (unchanged; note: another session's "website CI" commit suggests the workflow grew — triage first).
-23. `webp` fallback `<picture>`/poster for markdown clients (unchanged).
+23. ~~`webp` fallback `<picture>`/poster for markdown clients (unchanged).~~ done at `9ace19a`
 24. README architecture diagram (mermaid) (unchanged).
 25. Screenshot artifact upload on render-smoke failure (gha artifact) so pixel failures are debuggable from CI.
 

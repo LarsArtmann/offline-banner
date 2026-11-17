@@ -24,13 +24,13 @@
 
 ## b) PARTIALLY DONE
 
-1. **Custom domain resolution** — Firebase side is done (domain registered, records demanded); the Namecheap side is staged but NOT applied: `tofu init` cannot load the GCS backend state from this host (`UserProjectAccountProblem` — the host gcloud identity lacks quota/billing access; the firebase CLI identity works but `tofu` uses ADC). Until apply + 10-60 min cert provisioning, https://offline-banner.web.app serves everything and the README/docs link the lars.software URL (which resolves after apply).
-2. **CI deploys** — workflow merged but the deploy job will notice-skip until `FIREBASE_SERVICE_ACCOUNT` exists on the repo (the shared key is owner-managed).
+1. ~~**Custom domain resolution** — Firebase side is done (domain registered, records demanded); the Namecheap side is staged but NOT applied: `tofu init` cannot load the GCS backend state from this host (`UserProjectAccountProblem` — the host gcloud identity lacks quota/billing access; the firebase CLI identity works but `tofu` uses ADC). Until apply + 10-60 min cert provisioning, https://offline-banner.web.app serves everything and the README/docs link the lars.software URL (which resolves after apply).~~ done — resolved 2026-10-17 — owner applied DNS; cert ACTIVE; lars.software live end-to-end (verified the same morning)
+2. ~~**CI deploys** — workflow merged but the deploy job will notice-skip until `FIREBASE_SERVICE_ACCOUNT` exists on the repo (the shared key is owner-managed).~~ done — resolved 2026-10-29 — the secret landed and the first CI deploy ran green (run 40859693610); STALE again 2026-11-10 (deploy auth fails; TODO row tracks rotation)
 
 ## c) NOT STARTED (deliberate)
 
-1. Social preview upload (manual console action, no API) — file staged in assets/branding/.
-2. Posting the launch drafts (owner's voice account).
+1. Social preview upload (manual console action, no API) — file staged in assets/branding/. **→ TODO_LIST FIREBASE/social row (owner console, still open)**
+2. ~~Posting the launch drafts (owner's voice account).~~ done — still owner-gated — drafts refreshed 2026-11-05 (sounds + ledger + version-agnostic titles), unposted
 3. 9:16 vertical cut + TTS voiceover (distribution tier 2/3 — demand-gated per demo-video.md).
 4. og:image `--verify` pass (script's post-upload check needs the image live on GitHub first).
 
@@ -49,12 +49,12 @@
 
 ## f) Next tasks (proposal-ready)
 
-1. Owner: apply DNS (`cd ~/projects/domains && tofu apply -target=namecheap_domain_records.lars_software`), then poll cert → CERT_ACTIVE, then `fetch` https://offline-banner.lars.software and flip any remaining web.app references if desired.
-2. Owner: add `FIREBASE_SERVICE_ACCOUNT` (shared lars-software key) to repo secrets → CI deploy arms.
-3. Owner: upload `assets/branding/social-preview.png` in Settings → Social preview; run the skill's `--verify LarsArtmann/offline-banner` after.
+1. ~~Owner: apply DNS (`cd ~/projects/domains && tofu apply -target=namecheap_domain_records.lars_software`), then poll cert → CERT_ACTIVE, then `fetch` https://offline-banner.lars.software and flip any remaining web.app references if desired.~~ done — 2026-10-17 — DNS applied; cert ACTIVE; site verified
+2. ~~Owner: add `FIREBASE_SERVICE_ACCOUNT` (shared lars-software key) to repo secrets → CI deploy arms.~~ done — 2026-10-29 — secret added, first deploy green; stale again 2026-11-10 (row tracks it)
+3. Owner: upload `assets/branding/social-preview.png` in Settings → Social preview; run the skill's `--verify LarsArtmann/offline-banner` after. **→ TODO_LIST FIREBASE/social row (upload + post-upload verify)**
 4. Owner: post the two launch drafts; cross-link the Discourse topic from the README (one line).
 5. Dependabot will open pin PRs for the two new actions in website.yml — review like the checks.yml pins.
-6. When the SystemNix switch lands (real-monitor proof), retake `demo-poster.png` from a real-monitor capture if the headless colors differ visibly.
+6. ~~When the SystemNix switch lands (real-monitor proof), retake `demo-poster.png` from a real-monitor capture if the headless colors differ visibly.~~ done — by-events — dependabot self-resolved (0 open alerts 2026-11-05)
 7. ROADMAP fuel: 9:16 vertical cut; per-page OG images already exist — consider a "watch the demo" GIF teaser for the README (≤ 6 s, 480p) if Discord/Telegram sharing becomes a real channel.
 
 ## g) Questions I cannot answer myself

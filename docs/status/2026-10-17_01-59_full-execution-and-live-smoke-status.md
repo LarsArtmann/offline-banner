@@ -47,8 +47,8 @@
 2. Multi-monitor pixel proof (T18) — needs ≥1 active output.
 3. Click-dismiss harness via virtual pointer (T18) — tools not even attempted (`wlrctl`/`ydotool`).
 4. SystemNix switch execution (v3 rides it) — sibling repo, owner-gated.
-5. SystemNix desktop-TODO annotation that the smoke gate is now DONE (cross-repo handoff nicety).
-6. Dependabot PR triage (no PRs opened yet; when they come, someone must merge them).
+5. ~~SystemNix desktop-TODO annotation that the smoke gate is now DONE (cross-repo handoff nicety).~~ done — by-events — the SystemNix switch shipped through the 2026-11-10 cutover waves (gen 995 live on the legs build)
+6. ~~Dependabot PR triage (no PRs opened yet; when they come, someone must merge them).~~ done — triaged 2026-10-17 (0 open PRs, non-gating alerts) and again 2026-11-05 (0 open alerts)
 7. ROADMAP non-goals — untouched by design (DNS-leg, multi-host probeHost, ExecReload retune, second-compositor proof).
 
 ## d) TOTALLY FUCKED UP (process failures — none shipped broken, all found+fixed, but each cost real cycles)
@@ -101,7 +101,7 @@
 20. Virtual-pointer harness (wlrctl/ydotool) as a flake check if niri/wlroots headless supports it.
 21. `checks` split in CI into named jobs (formatting / contract / unit-verify / docs-drift / shell-content / probe-transitions) for per-gate badges.
 22. Nix output cache (cachix or GHA cache) to cut the ~60 s CI runs.
-23. Wire actionlint+zizmor into CI if the workflow grows past ~5 steps (currently on-demand, both clean).
+23. ~~Wire actionlint+zizmor into CI if the workflow grows past ~5 steps (currently on-demand, both clean).~~ done at `9ace19a`
 24. `webp` fallback (`<picture>`/poster) for markdown clients that don't render webp.
 25. README architecture diagram (mermaid: probe → QML state → layer surfaces).
 

@@ -35,15 +35,15 @@
 
 ## f) Next items
 
-1. Owner: add `FIREBASE_SERVICE_ACCOUNT` repo secret (arms CI deploys).
-2. Owner: upload `assets/branding/social-preview.png` (Settings → Social preview).
-3. Triage/merge Dependabot PRs for the 19 alerts (or `pnpm update` in `website/`).
+1. ~~Owner: add `FIREBASE_SERVICE_ACCOUNT` repo secret (arms CI deploys).~~ done — 2026-10-29 — secret added, deploy armed and proven green (run 40859693610); STALE 2026-11-10 (deploy auth fails — TODO row tracks rotation)
+2. Owner: upload `assets/branding/social-preview.png` (Settings → Social preview). **→ TODO FIREBASE/social row (manual console upload)**
+3. ~~Triage/merge Dependabot PRs for the 19 alerts (or `pnpm update` in `website/`).~~ done — by-events — 0 open alerts (2026-11-05), no open PRs
 4. Owner: post the Discourse + r/NixOS drafts (or green-light posting).
-5. Check whether gogenfilter's website workflow carries the same `secrets`-in-`if` pattern; fix fleet-wide if so.
+5. ~~Check whether gogenfilter's website workflow carries the same `secrets`-in-`if` pattern; fix fleet-wide if so.~~ done — verified 2026-11-17 — gogenfilter gates via job-level env (`FIREBASE_SERVICE_ACCOUNT:` env key), not secrets-in-if; the bug class is absent there
 6. Re-run `astro check` + visual QA on docs pages in dark mode / mobile viewport.
 7. Port a11y-guard + lighthouse jobs into website.yml.
 8. After the SystemNix v3 switch: real-monitor render proof (rides that switch).
-9. Consider `nix flake check --all-systems` as a required CI context check for the _Checks_ workflow name (branch protection already requires it — verified by the "Bypassed rule" push notices).
+9. ~~Consider `nix flake check --all-systems` as a required CI context check for the _Checks_ workflow name (branch protection already requires it — verified by the "Bypassed rule" push notices).~~ done — accepted as-is — branch protection requires the Checks workflow, which runs --all-systems
 10. Optional: 9:16 / voiceover video variants (demand-gated, per open question 3 of the 08-37 retro).
 
 ## g) Unanswerable questions for the owner

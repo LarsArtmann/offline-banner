@@ -30,7 +30,7 @@
 1. **CI deploy armament** — workflow green and skip path proven; actual deploy runs only once `FIREBASE_SERVICE_ACCOUNT` is added (console-only, owner).
 2. **Dependabot alerts** — 19 on master (13 high / 5 moderate / 1 low; devalue, fast-uri, js-yaml, sharp, … mostly transitive/dev in `website/pnpm-lock.yaml`). Version PRs flowing; unreviewed. CI `pnpm audit` is continue-on-error, so nothing gates. Not quantified further: I never ran `gh pr list` to count open Dependabot PRs.
 3. **Docs-drift protection for today's claims** — the flake gate pins option names + env contract + quickstart strings; the new prose claims (domain live, CI green) live in TODO_LIST/CHANGELOG without a freshness gate. Partially protected only.
-4. **§f harvest** — this report's list lands in TODO_LIST only for the 3 items added today; the 08-37 retro's 50-item list remains unharvested (documented debt, see e/f).
+4. ~~**§f harvest** — this report's list lands in TODO_LIST only for the 3 items added today; the 08-37 retro's 50-item list remains unharvested (documented debt, see e/f).~~ done — completed across later passes — the 10:40 session harvested the 08-37-class items, `74e1145` harvested the never-again plan, and the 2026-11-17 docs-health sweep harvested the remainder
 
 ## c) NOT STARTED
 
@@ -76,9 +76,9 @@
 **CI / infrastructure**
 7. ⚙️ Check gogenfilter's website workflow for the same `secrets`-in-`if` bug; fix fleet-wide if present.
 8. ⚙️ Add actionlint (and zizmor, already used on-demand) as a step in checks.yml so workflow parse errors fail BEFORE deploy-stage confusion.
-9. ⚙️ Raise `OFFLINE_BANNER_INTERVAL` in probe-transitions (600 → 1500+ ms) to shrink race windows; re-verify locally + CI.
-10. ⚙️ Apply the determinism audit to `render-smoke` (pixel gate also sleeps-and-polls) before it flakes.
-11. ⚙️ Triage the 19 Dependabot alerts: review/open PRs, merge the safe ones.
+9. ~~⚙️ Raise `OFFLINE_BANNER_INTERVAL` in probe-transitions (600 → 1500+ ms) to shrink race windows; re-verify locally + CI.~~ done at `9ace19a`
+10. ~~⚙️ Apply the determinism audit to `render-smoke` (pixel gate also sleeps-and-polls) before it flakes.~~ done — 2026-11-05 — audited; the doctrine was already applied (wait_pixel transition polls); no change needed
+11. ~~⚙️ Triage the 19 Dependabot alerts: review/open PRs, merge the safe ones.~~ done — by-events — 0 open alerts (2026-11-05)
 12. ⚙️ Configure Dependabot grouping/auto-merge for patch+minor website updates.
 13. ⚙️ Flip `pnpm audit` from continue-on-error to enforcing once the alert count is 0.
 14. ⚙️ Confirm branch protection still wants admin bypass on direct master pushes (each push logs "Bypassed rule violations") — tighten or accept deliberately.
@@ -100,9 +100,9 @@
 26. ⚙️ Note the hyperframes version pin in `website/video/` docs (0.8.163 lockfile vs newer in npx cache; retro item #32).
 
 **Docs / knowledge**
-27. ⚙️ HARVEST: pull §f items from the 08-30, 08-37, 09-58 and this report into TODO_LIST (ready) / ROADMAP (fuel); retire rows they obsolete.
+27. ~~⚙️ HARVEST: pull §f items from the 08-30, 08-37, 09-58 and this report into TODO_LIST (ready) / ROADMAP (fuel); retire rows they obsolete.~~ done — completed across later passes (10:40 session, 74e1145, 2026-11-17 sweep)
 28. ⚙️ ROADMAP: record the domain-live milestone and the remaining launch state.
-29. ⚙️ Update FEATURES.md if any claim shifted (docs-drift gate is green, so likely no-op — verify once).
+29. ~~⚙️ Update FEATURES.md if any claim shifted (docs-drift gate is green, so likely no-op — verify once).~~ done — re-verified 2026-11-17 — docs-drift green + every row re-confirmed against code
 30. ⚙️ Add the pre-push ritual as a checklist in AGENTS.md Commands section.
 31. 📋 Consider a tiny "launch runbook" doc consolidating: deploy paths, domain, secret name, posting drafts (today's knowledge is spread across AGENTS/TODO/reports).
 
@@ -116,7 +116,7 @@
 36. ⚙️ Ratify or restrict agent push-to-master in writing (ties to g-1).
 37. ⚙️ Carried: answer the two unanswered 08-37 questions (posting timing, video tiers) — folded into items 5/6/24/25 decisions.
 38. ⚙️ Keep squashing unpushed daemon heuristic commits into real messages (standing habit, now documented).
-39. ⚙️ Re-check TODO_LIST for rows obsoleted by today (e.g., any remaining "verify website CI" row from the 08-37 harvest) — I updated 3 rows but did not re-read the whole file.
+39. ~~⚙️ Re-check TODO_LIST for rows obsoleted by today (e.g., any remaining "verify website CI" row from the 08-37 harvest) — I updated 3 rows but did not re-read the whole file.~~ done — TODO_LIST fully re-read and refreshed in the 2026-11-17 sweep
 40. 📋 If launch posts go out: monitor issues/discourse replies for the first 48 h; keep the honest-status framing (niri-proven) in replies.
 
 _(Items 41–50 intentionally unused — the above is the honest list; padding would be noise. Items marked 📋 are ROADMAP fuel, not commitments.)_
