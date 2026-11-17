@@ -77,7 +77,7 @@ M02 (release), M03 (SystemNix lock bump + switch), M04/M05 (live-proof evening /
 14. ~~render-smoke determinism audit (M17).~~ done — 2026-11-05 — audited; the doctrine was already applied (wait_pixel)
 15. ~~actionlint + zizmor wired (M18).~~ done at `9ace19a`
 16. S3 pre-commit manifest-lock hook.
-17. S4 ci-watch scheduled workflow.
+17. S4 ci-watch scheduled workflow. **→ TODO website-CI quality-jobs row (S4 ci-watch)**
 18. astro 7.4.6 + the pnpm update round under the age gate (M23 — also carries the exit-1 fix #18589). **→ rides the intentional pnpm update round (never-again M23 procedure); blocked upstream on TS 7.1 anyway**
 19. ~~IAM grant → Terraform (M19).~~ done — encoded d161aee (apply owner-side)
 20. ~~play-sounds.sh + audition all 12 cues (M20).~~ done — scripts/play-sounds.sh + packages.sounds shipped (569a4fe); the audition itself stays owner ears
