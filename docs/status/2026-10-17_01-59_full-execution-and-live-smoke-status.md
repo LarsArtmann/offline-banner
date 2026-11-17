@@ -130,7 +130,7 @@
 47. CI: aarch64 job on a real arm runner (availablility permitting) to drop the qemu caveat.
 48. ~~Demo capture: regenerate assets from the CURRENT QML (assets predate today's observability/demo changes — content identical visually but provenance stale).~~ done — regenerated 2026-10-17 10:14 from fresh ground-truth QML (stale-cache guard removed; capture re-run green)
 49. ~~Trash scratch state: `/run/user/1000/offline-banner` from the smoke, `/tmp/qsprobe`, `/tmp/uvroot` (session leftovers).~~ done — trashed 2026-10-17 — /tmp scratch + stale /run state FILE; live dir /run/user/1000/offline-banner/ kept (real unit heartbeat)
-50. ~~Global lessons: write the "sandbox has no /run / bus-props don't expand %t / jq-//-swallows-false / negative-tests-mutate-semantics" quartet into the crush-config lessons file (cross-project value).~~ done at `4f6dd31`
+50. ~~Global lessons: write the "sandbox has no /run / bus-props don't expand %t / jq-//-swallows-false / negative-tests-mutate-semantics" quartet into the crush-config lessons file (cross-project value).~~ done — landed in the crush-config repo (commit 4f6dd31 there)
 
 ## g) Three questions I cannot answer myself
 

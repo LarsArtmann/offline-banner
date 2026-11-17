@@ -38,10 +38,10 @@ All carried in `TODO_LIST.md`, untouched this session (I stayed scoped to the ni
 - ~~**IPv4-only probe blind spot** (v6-up/v4-down false "offline") — `[ready]`, needs v6 leg or a documented tradeoff~~ done — documented tradeoff; `probeHost` accepts a v6 literal
 - ~~**demo mode** (`OFFLINE_BANNER_DEMO=1`) — `[ready]`~~ done at `f1dacf7`
 - ~~**claim cleanup** ("DMS plugins cannot render layer-shell" is reasoned, never tested; iface-list cross-ref to SystemNix dual-wan QML) — `[ready]`~~ done 2026-10-17 (claim softened; cross-ref added)
-- ~~**live-verification debts**: reboot auto-start, multi-monitor proof, click-to-dismiss — `[watch]`~~ **→ TODO_LIST live-verification debts row**
+- **live-verification debts**: reboot auto-start, multi-monitor proof, click-to-dismiss — `[watch]` **→ TODO_LIST live-verification debts row**
 - ~~**LICENSE decision** — `[blocked:user]`~~ done — MIT, owner-confirmed 2026-10-17
 - ~~**SystemNix cutover** — unblocked (repo pushed 2026-10-16) but not executed~~ done 2026-10-16 (thin wrapper + namespace)
-- ~~**origin-host live tunables** — `[watch]`~~ **→ ROADMAP theme 2 (live retuning / ExecReload)**
+- **origin-host live tunables** — `[watch]` **→ ROADMAP theme 2 (live retuning / ExecReload)**
 
 ## d) TOTALLY FUCKED UP
 

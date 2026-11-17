@@ -32,7 +32,7 @@
 ## c) NOT STARTED
 
 1. ~~**docs-health pass** — TODO_LIST/FEATURES updates for this session's outcomes; the 01:59 report's own footer asks for ANNOTATE when brought current; this report also needs indexing in `docs/status/README.md`.~~ done — 2026-10-17 (10:40 session — TODO/FEATURES/index updated)
-2. ~~**Global lessons write-up (§f-50)** — the quartet (nix-sandbox /run, bus-prop specifier non-expansion, jq `// empty` swallowing false, negative-tests-mutate-semantics) plus two new candidates from this session (poll-or-perish for async harness asserts; lint false positives need an isolated repro before suppression) → crush-config `references/lessons.md` via commit.~~ done at `4f6dd31`
+2. ~~**Global lessons write-up (§f-50)** — the quartet (nix-sandbox /run, bus-prop specifier non-expansion, jq `// empty` swallowing false, negative-tests-mutate-semantics) plus two new candidates from this session (poll-or-perish for async harness asserts; lint false positives need an isolated repro before suppression) → crush-config `references/lessons.md` via commit.~~ done — landed in the crush-config repo (commit 4f6dd31 there)
 3. ~~**SystemNix cross-repo annotation (§f-7)** — `docs/todo/desktop.md` smoke-gate-done note; untouched.~~ done — SystemNix desktop.md annotated (smoke gate DONE, relock pointer)
 4. ~~**Dependabot PR triage (§f-8)** — `gh pr list` never run.~~ done — 0 open PRs, non-gating alerts (triaged twice, still 0 alerts 2026-11-05)
 5. ~~**Treefmt shfmt wiring** — consciously decided AGAINST for now (2 shell files, standalone linters clean; formatter gates CI and is nix-only by recorded decision) — revisit only if shell code grows; recorded here, not in AGENTS (reversible).~~ done — recorded as the standing decision in this report §f-10
@@ -65,7 +65,7 @@
 4. ~~Trash the scratch: `/run/user/1000/offline-banner.state`, `/tmp/qsprobe`, `/tmp/uvroot`.~~ done — trashed 2026-10-17 (all three paths; live unit dir untouched)
 5. ~~Write the CHANGELOG `[Unreleased]` section (journal token format = user-visible change; cache fix; render-smoke; consumer; seven checks) + keep-a-changelog compare-link footer (§f-16).~~ done — written 2026-10-17 — [Unreleased] Added/Changed/Fixed + compare-link footer
 6. ~~docs-health pass: TODO_LIST row updates (render proof leg of T18 is now CI-covered; live-monitor leg remains), FEATURES updates (new checks, consumer, journal contract), index this report in `docs/status/README.md`, ANNOTATE the 01:59 report per its footer.~~ done — 2026-10-17 — TODO_LIST/FEATURES/status-index updated; 01:59 ANNOTATE applied in this same pass
-7. ~~Global lessons quartet + this session's two new lessons → crush-config `references/lessons.md` (by commit there).~~ done at `4f6dd31`
+7. ~~Global lessons quartet + this session's two new lessons → crush-config `references/lessons.md` (by commit there).~~ done — landed in the crush-config repo (commit 4f6dd31 there)
 8. ~~SystemNix `docs/todo/desktop.md` annotation (§f-7): smoke gate DONE, switch unblocked — cross-repo handoff.~~ done — annotated 2026-10-17 — v3 row: smoke gate DONE + relock pointer a91a77a
 9. ~~Dependabot PR triage (§f-8): `gh pr list`, review + merge if green (protection requires Checks).~~ done — 2026-10-17 — 0 open PRs, 20 alerts (non-gating); nothing to merge
 10. ~~Decide treefmt-shfmt wiring for real (I recorded a tentative no — confirm or overturn).~~ **Won't implement — shfmt stays on-demand lint — nix fmt (nixfmt+statix) is the sole style arbiter per AGENTS; capture-demo.sh is shellcheck+shfmt clean.**

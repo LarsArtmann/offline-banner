@@ -40,7 +40,7 @@ All carried in `TODO_LIST.md` (this session routed, none executed — correct: d
 - ~~**CI pin fix + green master** — `[ready]`, Critical. Root cause verified this session (422), fix is code work, deliberately not done under a docs mandate.~~ done at `5a9a8ee`
 - ~~**Hardened-unit live smoke test** — `[ready]`; gates the SystemNix cutover.~~ done 2026-10-17 (`25e05af`)
 - ~~**SystemNix cutover execution** — `[watch]`; unblocked (push landed), waiting on the smoke test.~~ done 2026-10-16 (owner-directed, ahead of the gate)
-- ~~**LICENSE decision, tag v0.1.0 + release polish, demo GIF, VM test, observability, demo mode, IPv6 leg, claim cleanup, sandbox-contract granularity, aarch64/channel/formatter/optionDoc decisions** — all rowed with sources.~~ all shipped across 2026-10-17 (T03–T21)
+- ~~**LICENSE decision, tag v0.1.0 + release polish, demo GIF, VM test, observability, demo mode, IPv6 leg, claim cleanup, sandbox-contract granularity, aarch64/channel/formatter/optionDoc decisions** — all rowed with sources.~~ done — all shipped across 2026-10-17 (T03–T21)
 - ~~**ANNOTATE of the 23-28 report** — intentionally not started: HARVEST (done, a5) reads forward and never edits the source; nothing has shipped since it was written, so there is nothing to resolve backward yet.~~ resolved by this pass (2026-11-17 — every item in the 23-28 report now carries a verdict)
 
 ## d) TOTALLY FUCKED UP

@@ -64,6 +64,24 @@ warning-not-page doctrine:
   waybar tail widget, retention policy question (owner taste).
 - **Crash-proof paired-event ledger** — open/close event lines instead of
   completed-outage lines (current format documented + accepted).
+- **Ledger growth/rotation doc** — document bytes/day growth characteristics
+  and rotation guidance alongside the retention question above.
+
+### 5. Ecosystem & public-surface upkeep (raw ideas, harvested 2026-11-17)
+
+Demand-gated or audience-gated; none of these have a pull signal yet:
+
+- **`nixosModules.example`** — laptop-defaults example module lowering the
+  try-it barrier.
+- **Upstream to nixpkgs** — search.nixos.org visibility vs review burden.
+- **Metrics endpoint** — tiny loopback HTTP endpoint exposing the state JSON;
+  only if a consumer demands it.
+- **Community-surface triggers** — CONTRIBUTING.md + issue templates when
+  external contributors appear; SECURITY.md when the audience grows;
+  CODEOWNERS stays skip while single-maintainer.
+- **Demand-gated video variants** — 9:16 vertical cut, TTS voiceover +
+  captions, a ≤6 s 480p GIF teaser for Discord/Telegram, a YouTube cut with
+  chapters — build only when a channel exists.
 
 ## Non-goals
 

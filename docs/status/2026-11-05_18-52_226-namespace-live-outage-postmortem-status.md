@@ -62,7 +62,7 @@
 7. ~~§f harvest into TODO_LIST.md / ROADMAP.md (waiting on your instruction per this report's contract).~~ done — (74e1145 harvest + the 2026-11-17 sweep)
 8. ~~Website build verification for the MDX edits.~~ done — astro check + build green in the 19-25 session
 9. ~~Annotation of the 2026-10-29 reports + v0.2.0 postmortem with this incident's outcome.~~ done — M12 annotations landed 2026-11-05; the 2026-11-17 sweep completed the corpus
-10. ~~Cross-project lesson "ReadWritePaths never creates; RuntimeDirectory/StateDirectory provision" into crush-config `references/lessons.md`.~~ done at `3b72558`
+10. ~~Cross-project lesson "ReadWritePaths never creates; RuntimeDirectory/StateDirectory provision" into crush-config `references/lessons.md`.~~ done — landed in the crush-config repo (commit 3b72558 there)
 
 ## d) TOTALLY FUCKED UP
 
@@ -115,8 +115,8 @@
 **P2 — docs & release hygiene**
 23. Release-notes for v0.2.1: lead with the unblock command for any other affected host.
 24. Update website docs changelog page for v0.2.1 (changelog.mdx mirrors CHANGELOG).
-25. ~~Cross-project lesson into crush-config `references/lessons.md` (by commit, not in-session): "ReadWritePaths never creates its target; RuntimeDirectory/StateDirectory provision; systemd-analyze verify cannot see namespace failures."~~ done at `3b72558`
-26. ~~Record the tmpfiles `%h` rejection (systemd 261: `invalid format char: h`) in the same lesson — prevents the next session from shipping that variant.~~ done at `3b72558`
+25. ~~Cross-project lesson into crush-config `references/lessons.md` (by commit, not in-session): "ReadWritePaths never creates its target; RuntimeDirectory/StateDirectory provision; systemd-analyze verify cannot see namespace failures."~~ done — landed in the crush-config repo (commit 3b72558 there)
+26. ~~Record the tmpfiles `%h` rejection (systemd 261: `invalid format char: h`) in the same lesson — prevents the next session from shipping that variant.~~ done — landed in the crush-config repo (commit 3b72558 there)
 27. ~~Annotate FEATURES sound row: switch happened, unit was dead, live sound proof status now = pending demo run (task 5), not "rides the switch".~~ done — FEATURES sound row carries the gen-995 evidence + the audibility caveat
 28. Journal-retention note: how far back the user journal reaches on evo-x2 (the incident window may extend before Nov 4 19:06) — set a retention if forensics matter.
 29. Consider reconstructing the lost outage window into the ledger manually (see §g Q3).
