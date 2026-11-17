@@ -14,13 +14,18 @@
 The probe answers one boolean honestly. Ideas that could widen what it can
 say without compromising that honesty:
 
-- **Optional DNS-leg probe** — opt-in, default off. DNS must never gate the
-  banner by default (the resolver is half-broken exactly when the banner
-  matters), but an opt-in leg could distinguish "Wi-Fi captive portal" from
-  "WAN down" for hosts that care.
+- **~~Optional DNS-leg probe~~ — REALIZED, differently (2026-11-09/10):** the
+  legs build shipped a DNS leg as a permanent third net leg (`dnsProbeName`,
+  default `one.one.one.one` via `getent`), not an opt-in: the legs deliberately
+  span providers so one provider's filtering mood cannot fake an outage, and
+  the phase ladder keeps a DNS-only failure at "degraded" (info strip, never
+  the alarm) — so the resolver still cannot page the user by default. The
+  original doctrine concern is answered by the ladder, not by an option.
 - **Multi-host `probeHost` semantics** — probe several targets and decide
   any-success vs all-fail. Decision first, code second: the semantics change
-  what "offline" means.
+  what "offline" means. (The tcp leg's IP-literal + the icmp/dns legs already
+  give three independent targets; revisit only if a real single-provider
+  outage class appears that the ladder still mislabels.)
 
 ### 2. Operational smoothness
 
@@ -34,8 +39,11 @@ process start). Raw directions:
 
 ### 3. Verification depth
 
-The module is contract-checked; behavior is origin-host-proven only. Beyond
-the planned VM test (TODO_LIST):
+The module is contract-checked; behavior is machine-proven (probe-transitions
+leg/ladder scenarios, render-smoke yellow+blue pixel gates) and live-proven on
+evo-x2 (gen 995, first real ledger append 2026-11-10). The boot-level VM test
+is BUILT (`packages.vm-smoke`, negative-proven) and awaits the D1 decision on
+blocking-vs-advisory. Beyond that:
 
 - **Second-compositor proof** — README targets any layer-shell compositor;
   only niri is proven. A Hyprland pass would turn that claim from expected
