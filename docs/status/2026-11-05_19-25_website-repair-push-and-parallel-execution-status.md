@@ -37,10 +37,10 @@
 
 ## b) PARTIALLY DONE
 
-1. **⚠ Parallel plan execution in flight in this working tree — NOT authored by me.** Uncommitted diffs implement M09 (derived ReadWritePaths: `provisionedRuntimeDirs`/`provisionedStateDirs` as single source of truth), M10 (computed `rwProvisioned` invariant + synthetic-hole teeth fixture), M15 (negative fixtures: inert opt-out eval, `badLedgerAsserts`, `badRelativeLedgerAsserts`), M16 (link-cue positive assert in probe-transitions, with deterministic count logic). Quality looks high and matches the plan spec; a read-only `module-contract` build of the in-flight tree is **green**. Author unknown — presumably your other session running the plan's Full Execution Mode. Per the never-touch-unauthored-changes rule I have not modified or committed any of it.
-2. **Plan hygiene debt**: F13 thinko artifact in the pushed plan; S1–S4 not yet in TODO_LIST/plan.
-3. **TODO_LIST.md** carries the uncommitted `[watch]` TS7 row (daemon will sweep it into a chore unless committed deliberately).
-4. **M02 (v0.2.1 release)**: unblocked and fully staged (master green, CHANGELOG entry ready to fold) — awaiting your D2 go; tagging is owner-gated by runbook.
+1. ~~**⚠ Parallel plan execution in flight in this working tree — NOT authored by me.** Uncommitted diffs implement M09 (derived ReadWritePaths: `provisionedRuntimeDirs`/`provisionedStateDirs` as single source of truth), M10 (computed `rwProvisioned` invariant + synthetic-hole teeth fixture), M15 (negative fixtures: inert opt-out eval, `badLedgerAsserts`, `badRelativeLedgerAsserts`), M16 (link-cue positive assert in probe-transitions, with deterministic count logic). Quality looks high and matches the plan spec; a read-only `module-contract` build of the in-flight tree is **green**. Author unknown — presumably your other session running the plan's Full Execution Mode. Per the never-touch-unauthored-changes rule I have not modified or committed any of it.~~ done — owned — the in-flight work shipped as `2cc6a16` (the 19:56 session; verification stack in its §a, negative proofs in its §b)
+2. ~~**Plan hygiene debt**: F13 thinko artifact in the pushed plan; S1–S4 not yet in TODO_LIST/plan.~~ done — F13 artifact fixed inline 2026-11-17 (the plan file now reads cleanly); S1+S2 harvested as a TODO row 2026-11-17 (S3/S4 remain plan ideas)
+3. ~~**TODO_LIST.md** carries the uncommitted `[watch]` TS7 row (daemon will sweep it into a chore unless committed deliberately).~~ done — committed — the TS7 watch row is live in TODO_LIST
+4. ~~**M02 (v0.2.1 release)**: unblocked and fully staged (master green, CHANGELOG entry ready to fold) — awaiting your D2 go; tagging is owner-gated by runbook.~~ done — still staged — the v0.2.1 gate is green; the tag stays the owner decision (TODO row)
 
 ## c) NOT STARTED
 
@@ -64,38 +64,38 @@ M02 (release), M03 (SystemNix lock bump + switch), M04/M05 (live-proof evening /
 1. Handshake with the parallel executor: who/what is editing flake.nix + module.nix — I stand down and verify after, or it stands down?
 2. Verify the in-flight M09/M10/M15/M16 work fully (`nix flake check --all-systems`) once the executor signals done; then one clean commit.
 3. Cut v0.2.1 (M02, D2) — gate satisfied, staged.
-4. SystemNix lock → v0.2.1 + switch + post-switch verify (M03).
-5. Forced-outage live-proof evening: cue + pixels + first ledger entry (M04).
-6. Implement S1 (pnpm TS override) + S2 (CI TS-major guard).
-7. Fix the plan's F13 artifact; harvest S1–S4 into TODO/plan.
+4. ~~SystemNix lock → v0.2.1 + switch + post-switch verify (M03).~~ done — superseded — SystemNix consumed master directly through the cutover waves (lock 320be2a; gen 995 live)
+5. ~~Forced-outage live-proof evening: cue + pixels + first ledger entry (M04).~~ done — half-done — the gen-995 genuine outage proved the ledger write + fired the show cue; audibility + pixels remain (forced-outage evening row)
+6. Implement S1 (pnpm TS override) + S2 (CI TS-major guard). **→ TODO TypeScript-pin row (S1+S2, harvested 2026-11-17)**
+7. ~~Fix the plan's F13 artifact; harvest S1–S4 into TODO/plan.~~ done — F13 fixed inline 2026-11-17; S1+S2 rowed 2026-11-17
 8. Waybar `stale` consumer on evo-x2 (M08) — the dead-banner tell, deployed nowhere.
-9. VM smoke skeleton (M06) + D1 policy + CI wiring (M07).
-10. `nix run .#smoke` app (M11).
+9. ~~VM smoke skeleton (M06) + D1 policy + CI wiring (M07).~~ done — packages.vm-smoke shipped (2cc6a16, negative-proven); the CI-policy decision stays D1
+10. ~~`nix run .#smoke` app (M11).~~ done — (2cc6a16 — nix run .#smoke + the smoke-script gate)
 11. ANNOTATE the 2026-10-29 reports + FEATURES sound row (M12).
 12. HARVEST the plan into TODO_LIST/ROADMAP + apply the six errata (M13).
 13. Cross-project lesson into crush-config lessons.md + AGENTS daemon-manifest rule (M14).
-14. render-smoke determinism audit (M17).
-15. actionlint + zizmor wired (M18).
+14. ~~render-smoke determinism audit (M17).~~ done — 2026-11-05 — audited; the doctrine was already applied (wait_pixel)
+15. ~~actionlint + zizmor wired (M18).~~ done at `9ace19a`
 16. S3 pre-commit manifest-lock hook.
 17. S4 ci-watch scheduled workflow.
-18. astro 7.4.6 + the pnpm update round under the age gate (M23 — also carries the exit-1 fix #18589).
-19. IAM grant → Terraform (M19).
-20. play-sounds.sh + audition all 12 cues (M20).
-21. Waybar `since` support + shellcheck gate for contrib (M21).
+18. astro 7.4.6 + the pnpm update round under the age gate (M23 — also carries the exit-1 fix #18589). **→ rides the intentional pnpm update round (never-again M23 procedure); blocked upstream on TS 7.1 anyway**
+19. ~~IAM grant → Terraform (M19).~~ done — encoded d161aee (apply owner-side)
+20. ~~play-sounds.sh + audition all 12 cues (M20).~~ done — scripts/play-sounds.sh + packages.sounds shipped (569a4fe); the audition itself stays owner ears
+21. ~~Waybar `since` support + shellcheck gate for contrib (M21).~~ done — (569a4fe — since rendering + the shell-scripts gate)
 22. Launch posts update + post (M22, owner-gated).
-23. Dependabot 20-alert triage (M23b).
+23. ~~Dependabot 20-alert triage (M23b).~~ done — by-events — 0 open alerts (2026-11-05)
 24. Tag-trigger CI decision (M24).
-25. v6 probeHost doc example (M25).
-26. jq ledger cookbook (M26).
+25. ~~v6 probeHost doc example (M25).~~ done — the v6 probeHost worked example shipped in configuration.mdx
+26. ~~jq ledger cookbook (M26).~~ done — the jq ledger cookbook shipped in observability.mdx
 27. Hygiene sweep: dprint.json #3 decision, social-preview verify, errata application (M27).
-28. Post-switch: update AGENTS Consumers lock rev (M03 tail).
+28. ~~Post-switch: update AGENTS Consumers lock rev (M03 tail).~~ done — 2026-11-17 — AGENTS Consumers carries the lock waves + gen-995 evidence
 29. Consider branch-per-executor policy for parallel sessions (new, from today's race).
 
 ## g) Questions I cannot figure out myself
 
 1. **Who is executing the plan in `flake.nix`/`module.nix` right now?** (M09/M10/M15/M16-class diffs, uncommitted, module-contract green, not mine.) Should I stand down on those files and verify after they finish — or should they stop so I finish and commit?
-2. **D2: cut v0.2.1 now?** Master is fully green on `97b8056`, the CHANGELOG entry is ready to fold, SystemNix is waiting on the tag. Tagging is owner-gated by your own runbook.
-3. **Go on S1+S2** (pnpm TypeScript override + CI TS-major guard, ~20 min) — and should S3/S4 join the plan as M-tasks?
+2. **D2: cut v0.2.1 now?** Master is fully green on `97b8056`, the CHANGELOG entry is ready to fold, SystemNix is waiting on the tag. Tagging is owner-gated by your own runbook. **→ still the owner decision — the gate is green, the CHANGELOG is staged (v0.2.1 TODO row)**
+3. **Go on S1+S2** (pnpm TypeScript override + CI TS-major guard, ~20 min) — and should S3/S4 join the plan as M-tasks? **→ S1+S2 rowed 2026-11-17 (TypeScript pin + CI guard); S3/S4 stay plan ideas pending owner go**
 
 ---
 

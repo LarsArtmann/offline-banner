@@ -66,31 +66,36 @@ PipeWire and appended a real ledger entry
    > hardened further: provisioning-derived holes + eval assertion + provisioning
    > invariant + boot-level VM test) landed on master the same day; both live proofs
    > now wait on the POST-fix unit start / next cutover.
+   > **[2026-11-10 update]** The post-fix start happened (gen 995, lock 320be2a): the
+   > %h write half is PROVEN — the genuine 8 s outage appended the first real ledger
+   > entry under the full sandbox. Remaining: cue audibility from the unit (the show
+   > cue fired per journal; nobody was listening; ab56830 surfaces pw-play failures
+   > in the journal so the next deliberate outage closes it).
 2. **Sound aesthetic QA** — 2 of 12 cues heard by a human (chime-offline-net,
    chime-recover). droplet×4, retro×4, chime-offline-link, chime-dismiss: validated as
    WAVs but UNHEARD. Frequencies/envelopes were chosen by reasoning. Effort: S (play all
    12, tune).
-3. **Website + marketing surfaces** — website docs pages still describe the 7-option
-   module; launch-post drafts don't mention sounds/history. Public site goes stale the
-   moment this ships. Effort: M (website update + rebuild + deploy).
+3. ~~**Website + marketing surfaces** — website docs pages still describe the 7-option~~ done — twice — website synced for v0.2.0 (2026-10-29) and for the legs/ladder story (ab56830, 2026-11-10)
+   ~~module; launch-post drafts don't mention sounds/history. Public site goes stale the~~
+   ~~moment this ships. Effort: M (website update + rebuild + deploy).~~
 4. **Dismiss cue machine-verified** — no pointer harness (pre-existing T18 gap); the
    `dismiss` cue path is code-symmetric but never fired by any test. Effort: M (virtual
    pointer harness) — also closes the pre-existing click-dismiss row.
-5. **Git hygiene under the auto-daemon** — session work sits inside `chore: auto-commit`
-   commits (8c178e0, 7572524, likely more since); the AGENTS-mandated reset-soft/recommit
-   dance was NOT performed (harness forbids commits without an explicit ask). Working
-   tree had uncommitted doc edits at session end. Effort: S (on owner instruction).
+5. ~~**Git hygiene under the auto-daemon** — session work sits inside `chore: auto-commit`~~ done — closed same day (never-again errata 1 — the sweep was squashed by ad6cac3, 2ccdf6e already pushed); later sessions kept re-splitting sweeps into real commits
+   ~~commits (8c178e0, 7572524, likely more since); the AGENTS-mandated reset-soft/recommit~~
+   ~~dance was NOT performed (harness forbids commits without an explicit ask). Working~~
+   ~~tree had uncommitted doc edits at session end. Effort: S (on owner instruction).~~
 
 ## c) NOT STARTED
 
-1. **Website options/observability sync** — queued as TODO `[ready]`; deliberately not
-   started (scope call: module + gates first). Still wanted; blocks a clean v0.2.0
-   release story.
-2. **Waybar consumer `since` support** ("offline for 4m") — natural follow-up, not asked,
-   not started. Priority: nice-to-have.
-3. **v0.2.0 release cut** — CHANGELOG [Unreleased] is fat and ready; tag + release
-   runbook exists. Not started (owner-gated; see question g-1).
-4. **History analytics/consumer tooling** (contrib stats script, waybar tail widget) —
+1. ~~**Website options/observability sync** — queued as TODO `[ready]`; deliberately not~~ done — twice — the website options/observability pages synced for v0.2.0 (2026-10-29) and ab56830 (2026-11-10)
+   ~~started (scope call: module + gates first). Still wanted; blocks a clean v0.2.0~~
+   ~~release story.~~
+2. ~~**Waybar consumer `since` support** ("offline for 4m") — natural follow-up, not asked,~~ done at `569a4fe`
+   ~~not started. Priority: nice-to-have.~~
+3. ~~**v0.2.0 release cut** — CHANGELOG [Unreleased] is fat and ready; tag + release~~ done at `4554098`
+   ~~runbook exists. Not started (owner-gated; see question g-1).~~
+4. **History analytics/consumer tooling** (contrib stats script, waybar tail widget) — **→ ROADMAP theme 4 (ledger analytics + retention ideas live there)**
    not started, arguably ROADMAP fuel.
 
 ## d) TOTALLY FUCKED UP!
@@ -154,32 +159,36 @@ TODO-grade (bounded):
    High / S / Quality. [row exists]
    (2026-11-05: switch shipped dead — 226/NAMESPACE, see the annotation above; the
    proof rides the post-fix unit start.)
-2. Website options/observability sync (4 new options, sounds/history sections) —
-   High / M / Documentation. [row exists]
-3. dprint.json SECOND resurrection decision (re-drop vs adopt `.buildflow.yml`) —
-   Medium / S / Cleanup. [row exists, updated to "second"]
-4. Audition all 12 cues (`scripts/play-sounds.sh` helper) + tune frequencies —
+   (2026-11-10: the %h append is **PROVEN** — the genuine 8 s switch-day outage on
+   gen 995 appended the first real entry through the hole under the full sandbox;
+   cue audibility from the unit remains open, diagnosable from the journal since
+   ab56830 surfaces pw-play failures.)
+2. ~~Website options/observability sync (4 new options, sounds/history sections) —~~ done — twice (v0.2.0 sync + ab56830 legs sync)
+   ~~High / M / Documentation. [row exists]~~
+3. ~~dprint.json SECOND resurrection decision (re-drop vs adopt `.buildflow.yml`) —~~ done — resolved — source identified (BuildFlow auto-generation in non-managed repos); the standing re-drop executed 2026-11-05; the permanent kill stays D4 (AGENTS documents)
+   ~~Medium / S / Cleanup. [row exists, updated to "second"]~~
+4. Audition all 12 cues (`scripts/play-sounds.sh` helper) + tune frequencies — **→ TODO audition row (owner ears)**
    Medium / S / Feature.
-5. v0.2.0 release cut (CHANGELOG fold + tag + release) after g-1 answered —
-   High / S / Release.
-6. Squash daemon-swept auto-commits into one real-message commit (owner-gated) —
-   Medium / S / Cleanup.
-7. Waybar consumer: "offline for Nm" from `state.since` — Medium / S / Feature.
-8. probe-transitions: trip one outage on reason=link from a clean start so the
-   offline-LINK cue is positively asserted (today only negatively) — Low / M / Quality.
-9. module-contract: negative fixture — theme "none" + history false must DROP
-   sound env/pipewire/hole from the unit; relative historyPath must assert —
-   Medium / M / Quality.
-10. Virtual-pointer (or first-live-outage) proof of click-dismiss → closes the dismiss
+5. ~~v0.2.0 release cut (CHANGELOG fold + tag + release) after g-1 answered —~~ done at `4554098`
+   ~~High / S / Release.~~
+6. ~~Squash daemon-swept auto-commits into one real-message commit (owner-gated) —~~ done — closed (never-again errata 1 — nothing remained squashable; the discipline held in later sessions)
+   ~~Medium / S / Cleanup.~~
+7. ~~Waybar consumer: "offline for Nm" from `state.since` — Medium / S / Feature.~~ done at `569a4fe`
+8. ~~probe-transitions: trip one outage on reason=link from a clean start so the~~ done at `2cc6a16`
+   ~~offline-LINK cue is positively asserted (today only negatively) — Low / M / Quality.~~
+9. ~~module-contract: negative fixture — theme "none" + history false must DROP~~ done at `2cc6a16`
+   ~~sound env/pipewire/hole from the unit; relative historyPath must assert —~~
+   ~~Medium / M / Quality.~~
+10. Virtual-pointer (or first-live-outage) proof of click-dismiss → closes the dismiss **→ TODO live-verification debts row (click-dismiss proof)**
     cue AND the pre-existing T18 rows — Medium / M / Quality.
-11. README: one line on PipeWire requirement (no pw-play → one journal line per outage,
-    banner unaffected) — Low / S / Documentation.
-12. README Observability: note that crash-lost ledger entries are reconstructible from
-    the `outage ended` journal token — Low / S / Documentation.
-13. Launch-post drafts: mention sounds/history (one sentence each) — Low / S / Marketing.
-14. Revisit withheld sandbox options (SystemCallFilter etc.) after item 1 lands —
+11. ~~README: one line on PipeWire requirement (no pw-play → one journal line per outage,~~ done — the README Sounds bullet names the PipeWire dependency + the single-journal-line failure mode
+    ~~banner unaffected) — Low / S / Documentation.~~
+12. ~~README Observability: note that crash-lost ledger entries are reconstructible from~~ done — README Observability notes the journal token carries the same facts
+    ~~the `outage ended` journal token — Low / S / Documentation.~~
+13. ~~Launch-post drafts: mention sounds/history (one sentence each) — Low / S / Marketing.~~ done — 2026-11-05 (v0.2 sentence, incident-honesty clause, version-agnostic titles)
+14. Revisit withheld sandbox options (SystemCallFilter etc.) after item 1 lands — **→ TODO sandbox-posture review row**
     Low / M / Quality. [pre-existing theme]
-15. docs/status index row for this report (done during harvest) — n/a / S.
+15. ~~docs/status index row for this report (done during harvest) — n/a / S.~~ done — (indexed since 2026-10-29)
 
 ROADMAP fuel (raw ideas, not refined):
 

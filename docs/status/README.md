@@ -15,6 +15,7 @@ BEFORE the move (docs-health 2026-11-17 sweep; manifest below).
 | [2026-10-16_23-58_docs-health-audit.md](archived/2026-10-16_23-58_docs-health-audit.md) | ANNOTATE → ARCHIVE — every item resolved: the §f list harvested the same night and shipped; §g questions answered (metadata kept, DOMAIN_LANGUAGE declined with reason, harvest ran); gates green. |
 | [2026-10-17_01-29_readme-demo-capture-status.md](archived/2026-10-17_01-29_readme-demo-capture-status.md) | ANNOTATE → ARCHIVE — every item resolved: the capture script superseded by the `9ab577b` rewrite, assets regenerated + frame-watched (10:40 session), remaining considerations declined with cited reasons (promo video supersession); gates green. |
 | [planning/2026-10-17_00-01_pareto-execution-plan.md](../planning/archived/2026-10-17_00-01_pareto-execution-plan.md) | ANNOTATE → ARCHIVE — T01–T22 all verdicted (T18 routed to the live-verification debts TODO row); the L2 subtask table is ledger-marked parent-tracked; sequencing rules + out-of-scope line inline-corrected; gates green. |
+| [planning/2026-11-05_19-03_never-again-pareto-execution-plan.md](../planning/archived/2026-11-05_19-03_never-again-pareto-execution-plan.md) | ANNOTATE → ARCHIVE — all 27 M-tasks verdicted (open work routed: v0.2.1, D1, D3, forced-outage evening, DMS plugin, tag-trigger — each to its TODO row); the four F-tables ledger-marked parent-tracked; errata + standing rules routed; the F13 thinko fixed inline; gates green. |
 
 ## Live reports
 

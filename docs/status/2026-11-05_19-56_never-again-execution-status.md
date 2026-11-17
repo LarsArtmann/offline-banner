@@ -28,12 +28,12 @@
 
 ## §d Still open — every item owner-gated (the one-evening path)
 
-1. **Push** (owner): everything sits unpushed on master; both workflows were green on `97b8056`, and every gate was re-run locally after each change — but push only after re-checking `gh run list` (standing rule 1).
+1. ~~**Push** (owner): everything sits unpushed on master; both workflows were green on `97b8056`, and every gate was re-run locally after each change — but push only after re-checking `gh run list` (standing rule 1).~~ done — pushed (97b8056 and the 2026-11-10 legs waves); CI green throughout
 2. **v0.2.1 cut** (D2): CHANGELOG [Unreleased] is pre-folded; website changelog.mdx section still wanted before the tag.
-3. **SystemNix lock → v0.2.1 + switch** — evo-x2 remains protected only by the manual mkdir (lock = pre-fix `2ccdf6e`).
+3. ~~**SystemNix lock → v0.2.1 + switch** — evo-x2 remains protected only by the manual mkdir (lock = pre-fix `2ccdf6e`).~~ done — superseded — the lock moved through the cutover waves to 320be2a; gen 995 runs live; the manual mkdir is no longer load-bearing
 4. **D1**: promote `packages.vm-smoke` into checks (blocking) or wire advisory.
-5. **Live-proof evening** (M04/M05) + **waybar deployment on the bar** (M08) — post-switch.
-6. M27 remainder: social-preview upload (manual, no API).
+5. ~~**Live-proof evening** (M04/M05) + **waybar deployment on the bar** (M08) — post-switch.~~ done — half-done — the gen-995 genuine outage proved the ledger write + fired the show cue; audibility, real-monitor pixels, and the DMS plugin deploy remain (TODO rows)
+6. M27 remainder: social-preview upload (manual, no API). **→ TODO FIREBASE/social row (manual console upload)**
 
 ## §e Gates run this session (local, all green)
 
