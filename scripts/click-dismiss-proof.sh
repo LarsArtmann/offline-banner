@@ -153,10 +153,17 @@ poll 50 100 jq -e '.active == false' "$smoke_state" ||
 	die "click did not dismiss: state still active:true after 5 s"
 log "DISMISSED: state active flipped false within the poll window"
 
-after="$(band_pixels)" || die "post-dismiss capture failed"
-if [ "$after" -gt 38400 ]; then
-	die "strip still on screen after dismissal (pixels=$after)"
+# The strip slides up animatedly — the state flips before the pixels do.
+# Poll the band down (transition poll, not sleep-then-single-shot).
+after=""
+band_gone() {
+	[ "$(band_pixels)" -lt 38400 ]
+}
+poll 20 250 band_gone || after="$(band_pixels)"
+if [ -n "$after" ]; then
+	die "strip still on screen after dismissal (pixels=$after) — state flipped but pixels never settled"
 fi
+after="$(band_pixels)"
 log "strip gone from screen (band pixels=$after)"
 
 live_active_after="absent"
