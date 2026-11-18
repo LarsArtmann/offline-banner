@@ -1,8 +1,13 @@
-# Launch post drafts — offline-banner v0.1.0
+# Launch post drafts — offline-banner (latest release: v0.2.1)
 
 One narrative, two platforms. Derived from the README's one-paragraph summary
 and "Why?" section — do not re-invent the pitch per surface. Both are drafts:
-posting is a human act.
+posting is a human act. Version-agnostic titles; link the latest release when
+posting. If v0.2.2 ships first, add its one-line dns-verdict story: "a DNS
+blocker's zero-IP block page can no longer keep the DNS leg up — a host behind
+a blocker now sees its own real outage."
+
+Latest release: https://github.com/LarsArtmann/offline-banner/releases/latest
 
 ---
 
@@ -17,9 +22,18 @@ your network is offline, and slides away the moment it's back.
 Why not `nmcli networking connectivity`? Because NetworkManager lies on
 NM-unmanaged uplinks: my static-IP ethernet reads `none` while the internet is
 perfectly reachable (live-verified on the origin host). The banner probes
-directly instead — kernel carrier from `/sys/class/net` plus one ICMP echo to
-an IP literal (no DNS dependency: the resolver is half-broken exactly when the
-banner matters). A probe that cannot even run counts as a failure.
+directly instead — kernel carrier from `/sys/class/net`, one ICMP echo to an
+IP literal, a raw TCP connect to a second provider, and a real resolver lookup
+through `getent` — four independent legs that deliberately span providers, so
+one provider's filtering mood cannot fake a whole-network outage. A probe that
+cannot even run counts as a failure.
+
+And not every failure pages you. v0.2.1 added a phase ladder: one leg down
+while others are up (the classic policed-ICMP flap) lands as a slim blue
+"degraded: icmp" info strip that fades after 15 s — no sound, no alarm. The
+yellow strip, the chime, and the ledger entry stay reserved for a genuine
+outage. A week of live data on my desk: 1502 flap transitions, zero false
+alarms.
 
 Design doctrine: connectivity loss is a warning, not a page. Static yellow, no
 flashing, no urgency colors, ~10 s debounce, "last online 4m 12s ago" caption,
@@ -52,6 +66,7 @@ untested. X11 is out of scope.
 
 Demo (24 s), docs, and options: https://offline-banner.lars.software
 Source: https://github.com/LarsArtmann/offline-banner
+Release notes: https://github.com/LarsArtmann/offline-banner/releases/latest
 
 Feedback welcome — especially Hyprland/sway reports.
 
@@ -67,8 +82,11 @@ appears on every connected monitor ~10 s after the network is actually gone,
 tells you _why_ (link down vs no internet) and _how long_, pushes your bar
 down instead of covering it, and slides away on recovery.
 
-- Two-leg probe (kernel carrier + one ICMP to an IP literal) — never
-  NetworkManager, which lies on NM-unmanaged uplinks
+- Four-leg probe (kernel carrier + ICMP + raw TCP connect + real resolver
+  lookup, each on a different provider) — never NetworkManager, which lies on
+  NM-unmanaged uplinks
+- Phase ladder: one flapping leg = silent fading blue strip; a real outage
+  (yellow alarm + sound + ledger) stays reserved for genuine all-legs down
 - Debounced, click-to-dismiss, re-arms on recovery
 - Journal lines + JSON state file rewritten every probe (fail-closed)
 - Optional sound cues: three build-time-synthesized themes, one cue per outage
@@ -79,6 +97,7 @@ down instead of covering it, and slides away on recovery.
 
 24 s demo + docs: https://offline-banner.lars.software
 Source: https://github.com/LarsArtmann/offline-banner (MIT)
+Release notes: https://github.com/LarsArtmann/offline-banner/releases/latest
 
 Proven on niri, machine-tested via headless sway; sway/Hyprland reports
 welcome.

@@ -80,8 +80,13 @@ warning-not-page doctrine:
 - **"Still offline" reminder** — a cue every N minutes during LONG outages
   (doctrine tension: warning vs page — decide before building).
 - **Custom theme from a user dir** — point an option at your own wavs.
-- **Ledger analytics** — contrib stats script (totals/worst per week),
-  waybar tail widget, retention policy question (owner taste).
+- **Ledger analytics** — PARTIALLY REALIZED (v0.2.1): the stats recipes ship
+  as the website's jq ledger cookbook (outages per month, totals, ten
+  longest, reason histogram — verified against synthetic data). What stays
+  demand-gated: a copy-paste `contrib/` stats script (the cookbook covers
+  the recipes; a script adds value only when someone wants tooling over
+  documentation), a waybar tail widget, and the retention policy question
+  (owner taste).
 - **Crash-proof paired-event ledger** — open/close event lines instead of
   completed-outage lines (current format documented + accepted).
 - **Ledger growth/rotation doc** — document bytes/day growth characteristics
