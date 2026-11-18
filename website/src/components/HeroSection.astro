@@ -41,6 +41,10 @@ const highlightedCode = `<span class="text-[#6c7086]"># flake.nix</span>
         <Icon name="check" size={14} />
         Free &amp; MIT licensed
       </span>
+      <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-blue text-sm font-medium bg-blue/10">
+        <Icon name="layers" size={14} />
+        Quickshell-powered · not a bar plugin
+      </span>
     </div>
     <h1 class="text-[clamp(2.5rem,7vw,4.5rem)] font-bold tracking-tighter leading-[1.05] mb-6">
       Know your network died — <span class="bg-gradient-to-r from-accent via-accent-light to-blue bg-clip-text text-transparent">on every monitor</span>.
@@ -51,7 +55,7 @@ const highlightedCode = `<span class="text-[#6c7086]"># flake.nix</span>
     </p>
 
     <p class="text-sm text-text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
-      A warning, not a page: static yellow, no flashing, no urgency theater. It pushes your bar down instead of covering it — and never asks NetworkManager, which lies on NM-unmanaged uplinks.
+      A warning, not a page: static yellow, no flashing, no urgency theater. It pushes your bar down instead of covering it — and never asks NetworkManager, which lies on NM-unmanaged uplinks. It runs as its own Quickshell process, never a plugin into your shell: proven beside DankMaterialShell, fine over waybar or no bar at all.
     </p>
 
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">

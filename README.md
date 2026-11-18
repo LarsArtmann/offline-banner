@@ -58,6 +58,7 @@ Sounds need a PipeWire session (`pw-play`): without one, playback fails with a s
 | --------------------------------------------- | :------------: | :-------------: | :-----: |
 | Honest on NM-unmanaged uplinks                |       ✓        |        ✗        |    —    |
 | Visible on **every** monitor                  |       ✓        |     one bar     |    —    |
+| Any shell / bar — own process, never a plugin |       ✓        |     one bar     |    —    |
 | Pushes content down, never covers it          |       ✓        |        ✗        |    —    |
 | Says _why_ (link down vs no internet)         |       ✓        |        ✗        |    —    |
 | Says _how long_ ("last online 4m 12s ago")    |       ✓        |        ✗        |    —    |
@@ -82,7 +83,7 @@ Sounds need a PipeWire session (`pw-play`): without one, playback fails with a s
 - **X11 sessions** — the banner is a layer-shell (Wayland) surface, full stop.
 - **GNOME / KDE** — they ship their own network indicators, and this module is proven on niri; other layer-shell compositors (sway, Hyprland) are expected but untested here.
 - **You want a network monitor** — graphs, history, per-app stats are non-goals; this is one boolean, honestly derived and honestly displayed.
-- **You can't accept a second Quickshell instance** — the banner deliberately runs its own [Quickshell](https://quickshell.outfoxxed.me/) process so it never depends on your bar's plugin API.
+- **You can't accept a second Quickshell instance** — the banner deliberately runs its own [Quickshell](https://quickshell.outfoxxed.me/) process so it never depends on your bar's plugin API; the [shell compatibility docs](https://offline-banner.lars.software/guides/shell-compatibility/) explain what that buys (crash isolation, sandbox, live tuning) and the per-shell status.
 
 ## Quickstart
 
@@ -116,7 +117,7 @@ Startup race, by design: if the session starts with **no active monitor** (lid c
 - **Click to dismiss**: hides for the rest of _this_ outage; the next clean probe re-arms it so a fresh outage shows again.
 - **Observable**: every probe failure, banner show/hide, and dismissal is logged to the journal, and the current state is mirrored to `$XDG_RUNTIME_DIR/offline-banner/state` (rewritten every probe — a stale file means the unit is dead). See [Observability](#observability).
 - **Demo mode**: `OFFLINE_BANNER_DEMO=1` forces the banner visible with no probes at all — safe demos and post-deploy checks, no unroutable-IP drop-in hack.
-- **Own Quickshell instance**: renders as a second Quickshell process — no plugin into your existing shell/bar required (zero dependence on any shell plugin API); targets any layer-shell compositor (proven on niri; others expected but untested here).
+- **Own Quickshell instance**: renders as a second [Quickshell](https://quickshell.outfoxxed.me/) process — no plugin into your existing shell/bar (zero dependence on any shell plugin API). One Quickshell process beside another is the daily-proven shape on the origin host (niri + DankMaterialShell); fine over waybar or no bar at all, and a crash on either side can't take the other down. Shell-by-shell status (DankMaterialShell proven, Omarchy expected — and why it will never be an Omarchy *plugin*): see the [Shell Compatibility](https://offline-banner.lars.software/guides/shell-compatibility/) docs. Targets any layer-shell compositor (proven on niri; others expected but untested here).
 - **Hardened unit**: the service runs under a strict systemd sandbox (`ProtectSystem=strict`, restricted address families, kernel/clock/hostname protections) — it reads `/sys`, pings, plays cues, and talks Wayland; nothing else. Its only writable paths are the two runtime dirs (`RuntimeDirectory`) — including the Qt/fontconfig cache via `XDG_CACHE_HOME` — plus, when the outage ledger is enabled, exactly its parent directory under your home.
 
 ## Options
