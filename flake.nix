@@ -801,6 +801,7 @@
                   pkgs.coreutils
                   pkgs.gnugrep
                   pkgs.gnused
+                  pkgs.procps
                 ];
                 inherit qmlDir;
               }
@@ -897,6 +898,26 @@
                   done
                   echo "FAIL: $msg (jq '$expr' never read '$want', last state: $(cat "$state" 2>/dev/null || echo MISSING))" >&2
                   exit 1
+                }
+
+                # drain_state_writes — after killing a quickshell instance,
+                # wait out any in-flight state write. The state writer is a
+                # spawned `sh -c printf..mv` that survives the quickshell
+                # kill; under slow CI its late orphan mv can land AFTER the
+                # next instance's first writes and poison every subsequent
+                # read with the PREVIOUS scenario's state (CI-proven
+                # 2026-11-18: the link-phase leftover faked the fade-poll's
+                # `false`, and the flash-class assert then compared
+                # leftover-vs-current and cried "re-show" on an unchanged
+                # leg set). Drain before rm-ing the state file so the next
+                # instance starts clean.
+                drain_state_writes() {
+                  local i
+                  for i in $(seq 1 40); do
+                    pgrep -f "offline-banner/state" >/dev/null 2>&1 || return 0
+                    sleep 0.25
+                  done
+                  echo "WARN: state writer still draining after 10s" >&2
                 }
 
                 # Journal asserts: quickshell's console.log lands in the log
@@ -1068,6 +1089,7 @@
                 # failures=1/2, and no same-reason failure ever re-sounds.
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-link.log"
                 # control-net MUST reset here: the main sequence left
@@ -1103,6 +1125,7 @@
                 # testable.
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 export OFFLINE_BANNER_DEGRADED_DWELL=3000
                 export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-legs.log"
@@ -1129,14 +1152,14 @@
                 # Dwell: the strip auto-fades while the down-leg set is
                 # UNCHANGED, then STAYS faded (no re-show on unchanged set).
                 for i in $(seq 1 40); do
-                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    vis=$(jq -r 'if .phase == "degraded" then (.degradedVisible | tostring) else "" end' "$state" 2>/dev/null || echo "")
                     [ "$vis" = "false" ] && break
                     sleep 0.25
                 done
                 [ "$vis" = "false" ] || { echo "FAIL: degraded strip never auto-faded (degradedVisible=$vis): $(cat "$state" 2>/dev/null)"; exit 1; }
                 sleep 0.7
-                vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
-                [ "$vis" = "false" ] || { echo "FAIL: degraded strip re-showed on an UNCHANGED leg set (flash class): $(cat "$state")"; exit 1; }
+                vis=$(jq -r 'if .phase == "degraded" then (.degradedVisible | tostring) else "" end' "$state" 2>/dev/null || echo "")
+                [ "$vis" = "false" ] || { echo "FAIL: degraded strip re-showed on an UNCHANGED leg set (flash class): $(cat "$state")" >&2; echo "--- qs-legs.log ---" >&2; tail -40 qs-legs.log >&2; exit 1; }
 
                 # DNS fails too: tcp+dns down with icmp green = OFFLINE —
                 # no sockets and no names IS an outage for practical
@@ -1206,6 +1229,7 @@
                 # well past any dwell arithmetic (6+ probe cycles).
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 export OFFLINE_BANNER_DEGRADED_DWELL=0
                 echo ok > control
@@ -1232,6 +1256,7 @@
                 # state write can race the fresh state file).
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 # Sound seam unset: the demo instance has no store dir
                 # either, so it stays silent even though the theme env
