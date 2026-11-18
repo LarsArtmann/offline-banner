@@ -101,11 +101,16 @@ jobs:
       - name: Deploy to Firebase Hosting
         working-directory: website
         if: env.HAS_DEPLOY_KEY == 'true'
-        # The AGENTS.md recipe: firebase-tools via nix, pinned to the same
-        # nixpkgs rev as flake.lock so the deploy tool never floats (the
-        # previous unpinned `npm install -g firebase-tools` was both a
-        # zizmor adhoc-packages finding and a silent-major risk).
+        # The AGENTS.md recipe: firebase-tools via nix, pinned to a proven
+        # nixpkgs rev (moved in lockstep with the workflow-lint pin; the
+        # flake lock has moved on since), so the deploy tool never floats.
+        # The secret MUST be materialized to the credentials file here —
+        # the 2026-11-05 hardening dropped the printf and every deploy
+        # since died "Failed to authenticate" for 13 days while the lint
+        # stayed green. GOOGLE_APPLICATION_CREDENTIALS is the standard
+        # file-based ADC contract; runner.temp is per-job scratch.
         run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
           nix shell github:nixos/nixpkgs/31ecbaca1bdefa45dffc409f0250bd8039ea0010#firebase-tools -c \
             firebase deploy --only hosting:offline-banner --project lars-software
         env:
