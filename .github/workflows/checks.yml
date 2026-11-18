@@ -37,10 +37,18 @@ jobs:
             experimental-features = nix-command flakes pipe-operators
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
+      # Pinned, not `nixpkgs#`: the floating channel resolved zizmor 1.32.0 on
+      # 2026-11-17 and that packaging fails to build from source (aws-lc-sys
+      # panics without a system AWS-LC), reddening a docs-only push. The repo's
+      # own flake.lock rev carries the same broken packaging, so the pin is the
+      # older rev the deploy job already trusts for firebase-tools. Move this
+      # pin only together with that one, and only after a local lint run with
+      # the new rev.
       - name: Lint workflows (actionlint + zizmor)
         run: |
-          nix shell nixpkgs#actionlint nixpkgs#zizmor -c sh -c \
-            'actionlint && zizmor --no-online-audits .github/workflows'
+          nix shell github:nixos/nixpkgs/31ecbaca1bdefa45dffc409f0250bd8039ea0010#actionlint \
+            github:nixos/nixpkgs/31ecbaca1bdefa45dffc409f0250bd8039ea0010#zizmor \
+            -c sh -c 'actionlint && zizmor --no-online-audits .github/workflows'
 
   nix-check:
     # Pinned, not `ubuntu-latest`: the label migrated to Ubuntu 26 in October
