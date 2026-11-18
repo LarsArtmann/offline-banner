@@ -1592,7 +1592,7 @@
                 mkdir -p "$XDG_RUNTIME_DIR/offline-banner-smoke"
                 export OFFLINE_BANNER_STATE_DIR=offline-banner-smoke
                 echo ok > control
-                printf 'tcp fail\ndns ok\n' > control-net
+                printf 'tcp fail\ndns fail\n' > control-net
                 quickshell -p "$qmlDir" >qs-seam.log 2>&1 &
                 qs_pid=$!
                 seam_state="$XDG_RUNTIME_DIR/offline-banner-smoke/state"
