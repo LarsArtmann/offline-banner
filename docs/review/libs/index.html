@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Report Title</title>
+    <title>Fleet Library Review — 22 Go libraries × offline-banner (2026-11-18)</title>
     <style>
       /* =========================================================================
          BAUHAUS DARK — Dashboard template
@@ -826,11 +826,11 @@
     </style>
   </head>
   <body>
-    <!-- Full-bleed top bar (optional — remove for quieter reports) -->
+    <!-- Full-bleed top bar -->
     <div class="top-bar">
-      <span>REPORT TYPE</span>
-      <span>YYYY-MM-DD</span>
-      <span>AUTHOR / TEAM</span>
+      <span>FLEET LIBRARY REVIEW</span>
+      <span>2026-11-18</span>
+      <span>OFFLINE-BANNER × LARSARTMANN GO FLEET</span>
     </div>
 
     <div class="layout">
@@ -839,10 +839,11 @@
         <nav>
           <div class="label">Contents</div>
           <a href="#summary">Summary</a>
-          <a href="#findings">Findings</a>
-          <a href="#issues">Issue Cards</a>
-          <a href="#proposal">Proposal</a>
-          <a href="#plan">Plan</a>
+          <a href="#verdicts">Verdict Table</a>
+          <a href="#why">Why Nothing Was Adopted</a>
+          <a href="#carries">Doctrine Carries</a>
+          <a href="#routed">Routed Findings</a>
+          <a href="#verify">Verify</a>
         </nav>
       </aside>
 
@@ -855,22 +856,25 @@
             <div class="square"></div>
             <div class="tri"></div>
           </div>
-          <div class="hero-badge">Report Type</div>
-          <h1>Report Title</h1>
+          <div class="hero-badge">Fleet Library Review &middot; 22 reports</div>
+          <h1>22 first-party Go libraries × offline-banner</h1>
           <p class="hero-subtitle">
-            One-sentence description of what this report covers.
+            Point-in-time utilization audit (2026-11-18). This repo is Nix + QML + POSIX sh with
+            <strong>zero Go code</strong>, so every verdict below is structural — and deliberately so.
+            Per-library detail lives beside this index: <code>docs/review/libs/&lt;LIB&gt;.md</code>.
           </p>
         </div>
 
-        <!-- Inline TOC (alternative to sidebar; pick one) -->
+        <!-- Inline TOC -->
         <nav class="toc">
           <h3>Contents</h3>
           <ul>
             <li><a href="#summary">Summary</a></li>
-            <li><a href="#findings">Findings</a></li>
-            <li><a href="#issues">Issue Cards</a></li>
-            <li><a href="#proposal">Proposal</a></li>
-            <li><a href="#plan">Plan</a></li>
+            <li><a href="#verdicts">Verdict Table</a></li>
+            <li><a href="#why">Why Nothing Was Adopted</a></li>
+            <li><a href="#carries">Doctrine Carries</a></li>
+            <li><a href="#routed">Routed Findings</a></li>
+            <li><a href="#verify">Verify</a></li>
           </ul>
         </nav>
 
@@ -878,155 +882,230 @@
         <h2 id="summary"><span class="num">00</span>Summary</h2>
         <div class="stat-grid">
           <div class="stat-card">
-            <div class="stat-value">42</div>
-            <div class="stat-label">Total Items</div>
-          </div>
-          <div class="stat-card stat-bad">
-            <div class="stat-value">7</div>
-            <div class="stat-label">Critical</div>
-          </div>
-          <div class="stat-card stat-warn">
-            <div class="stat-value">12</div>
-            <div class="stat-label">Warnings</div>
+            <div class="stat-value">22</div>
+            <div class="stat-label">Libraries reviewed</div>
           </div>
           <div class="stat-card stat-good">
-            <div class="stat-value">35</div>
-            <div class="stat-label">Resolved</div>
+            <div class="stat-value">22</div>
+            <div class="stat-label">NOT-APPLICABLE (structural)</div>
+          </div>
+          <div class="stat-card stat-good">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Dependencies added</div>
+          </div>
+          <div class="stat-card stat-warn">
+            <div class="stat-value">1</div>
+            <div class="stat-label">Finding routed to TODO_LIST</div>
           </div>
         </div>
+        <p>
+          This repo is one NixOS module: <code>module.nix</code> renders a systemd user unit that runs
+          Quickshell on an inlined QML document; the rest is Nix checks, POSIX sh consumers, and an
+          Astro static site. It contains <strong>zero Go code</strong> (0 <code>go.mod</code>,
+          0 <code>*.go</code>, verified 2026-11-18), so each library is audited for the only question
+          that matters here: <em>is there a runtime in which it could execute — and if not, what
+          does this repo carry anyway?</em> Every per-library report records the reviewed version
+          (<code>git describe --tags</code>, latest local tag; remotes not fetched), a capability
+          inventory, grep evidence, a SHOULD/SHOULD-NOT analysis, and a flip trigger — so a future
+          re-review can diff against the exact versions listed below.
+        </p>
 
-        <!-- Findings as Cards -->
-        <h2 id="findings"><span class="num">01</span>Findings</h2>
-
-        <div class="card card-problem">
-          <h4>Critical Issue</h4>
-          <p>Description of the problem and its impact.</p>
-        </div>
-
-        <div class="card card-solution">
-          <h4>Recommended Fix</h4>
-          <p>Description of the solution with rationale.</p>
-        </div>
-
-        <!-- Issue Cards -->
-        <h2 id="issues"><span class="num">02</span>Issue Cards</h2>
-
-        <div class="issue issue-critical">
-          <span class="severity severity-critical">Blocking</span>
-          <h3>Critical finding title</h3>
-          <div class="where">path/to/file.go:42-58</div>
-          <p>
-            Describe the problem and cite the code or behavior that proves it.
-          </p>
-          <div class="callout callout-solution">
-            <strong>Fix</strong>
-            State the concrete recommended action.
-          </div>
-        </div>
-
-        <div class="issue issue-important">
-          <span class="severity severity-important">Important</span>
-          <h3>Important finding title</h3>
-          <div class="where">path/to/another.go:12-19</div>
-          <p>
-            Explain the risk and why a careful reviewer would hesitate before
-            shipping.
-          </p>
-        </div>
-
-        <div class="issue issue-nice">
-          <span class="severity severity-nice">Nice to have</span>
-          <h3>Polish suggestion</h3>
-          <div class="where">docs/ or config</div>
-          <p>
-            Minor documentation gaps or future-proofing suggestions go here.
-          </p>
-        </div>
-
-        <!-- Strengths -->
-        <h2>Strengths</h2>
-        <div class="strengths">
-          <div class="strength">
-            <div class="check">+</div>
-            <div class="text">
-              <strong>Specific strength</strong>
-              <span>Explain why it matters and what it enables.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Table with Badges -->
-        <h2>Issue Table</h2>
+        <!-- Verdict Table -->
+        <h2 id="verdicts"><span class="num">01</span>Verdict Table</h2>
+        <p>
+          All 22 reports: <span class="badge badge-low">NOT-APPLICABLE</span> — a Go library cannot
+          execute in a repo with no Go runtime. Scores are <code>0/0 (structural)</code>: the
+          capability inventories exist in full inside each report; every row is Not Applicable with
+          a stated reason. Versions are the latest local tag at review time (HEAD dates
+          2026-11-14…18).
+        </p>
         <table>
           <thead>
             <tr>
               <th>#</th>
-              <th>Severity</th>
-              <th>Issue</th>
-              <th>Status</th>
+              <th>Report</th>
+              <th>Reviewed version</th>
+              <th>Group</th>
+              <th>Verdict</th>
+              <th>Flip trigger</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td><span class="badge badge-critical">Critical</span></td>
-              <td>Missing error handling</td>
-              <td><span class="badge badge-fixed">Fixed</span></td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td><span class="badge badge-high">High</span></td>
-              <td>Race condition</td>
-              <td><span class="badge badge-low">Open</span></td>
-            </tr>
+            <tr><td>1</td><td><a href="go-error-family.md"><code>go-error-family</code></a></td><td><code>v0.12.0-12-g898004e</code></td><td>A</td><td><span class="badge badge-low">N/A</span></td><td>Any Go artifact joins the repo</td></tr>
+            <tr><td>2</td><td><a href="go-idempotency.md"><code>go-idempotency</code></a></td><td><code>idemtest/v0.1.1-3-g80c3129</code></td><td>A</td><td><span class="badge badge-low">N/A</span></td><td>An at-least-once channel with double-fire risk</td></tr>
+            <tr><td>3</td><td><a href="go-retry.md"><code>go-retry</code></a></td><td><code>v0.9.0-7-g356fbd4</code></td><td>A</td><td><span class="badge badge-low">N/A</span></td><td>A Go tool must retry flaky I/O</td></tr>
+            <tr><td>4</td><td><a href="go-etag.md"><code>go-etag</code></a></td><td><code>v0.7.1-3-g56cc961</code></td><td>A</td><td><span class="badge badge-low">N/A</span></td><td>A first-party HTTP endpoint appears</td></tr>
+            <tr><td>5</td><td><a href="httputil.md"><code>httputil</code></a></td><td><code>v1.9.0-21-g8a0cdc2</code></td><td>B</td><td><span class="badge badge-low">N/A</span></td><td>A Go HTTP server enters the repo</td></tr>
+            <tr><td>6</td><td><a href="httputil-server_timing.md"><code>httputil/server_timing</code></a></td><td><code>v1.9.0-21-g8a0cdc2</code></td><td>B</td><td><span class="badge badge-low">N/A</span></td><td>A Go server surfacing per-request phase timings</td></tr>
+            <tr><td>7</td><td><a href="httputil-endpoints.md"><code>httputil/endpoints</code></a></td><td><code>v1.9.0-21-g8a0cdc2</code></td><td>B</td><td><span class="badge badge-low">N/A</span></td><td>A Go server with ≥2 routes</td></tr>
+            <tr><td>8</td><td><a href="go-codec.md"><code>go-codec</code></a></td><td><code>v0.3.3-7-g98bb1bc</code></td><td>B</td><td><span class="badge badge-low">N/A</span></td><td>A Go reader/writer of the state file or ledger</td></tr>
+            <tr><td>9</td><td><a href="go-sse.md"><code>go-sse</code></a></td><td><code>v0.7.0-5-ga1b4674</code></td><td>C</td><td><span class="badge badge-low">N/A</span></td><td>Any HTTP/SSE endpoint (state exporter, web UI)</td></tr>
+            <tr><td>10</td><td><a href="go-datastar.md"><code>go-datastar</code></a></td><td><code>static/v0.8.0</code></td><td>C</td><td><span class="badge badge-low">N/A</span></td><td>A browser-rendered state surface on a Go endpoint</td></tr>
+            <tr><td>11</td><td><a href="go-atomic-write.md"><code>go-atomic-write</code></a></td><td><code>v0.6.2-42-g4f10347</code></td><td>C</td><td><span class="badge badge-low">N/A</span></td><td>Go code writing shared files; or a 2nd state-file writer</td></tr>
+            <tr><td>12</td><td><a href="go-filewatcher.md"><code>go-filewatcher</code></a></td><td><code>v2.5.0-6-g26459ba</code></td><td>C</td><td><span class="badge badge-low">N/A</span></td><td>A resident consumer needing sub-second reaction</td></tr>
+            <tr><td>13</td><td><a href="go-daemon.md"><code>go-daemon</code></a></td><td><code>v0.4.0-38-gb6af9f1</code></td><td>D</td><td><span class="badge badge-low">N/A</span></td><td>A Go long-lived process with its own IPC socket</td></tr>
+            <tr><td>14</td><td><a href="go-output.md"><code>go-output</code></a></td><td><code>bdd/v0.38.7-10-g90fb2a6</code></td><td>D</td><td><span class="badge badge-low">N/A</span></td><td>A Go CLI rendering reports from banner data</td></tr>
+            <tr><td>15</td><td><a href="go-health.md"><code>go-health</code></a></td><td><code>v0.10.0-4-g2c9c743</code></td><td>D</td><td><span class="badge badge-low">N/A</span></td><td>A fleet Go service adopting probe-style health endpoints</td></tr>
+            <tr><td>16</td><td><a href="go-health-dashboard.md"><code>go-health-dashboard</code></a></td><td><code>v0.13.3-77-gb608db0</code></td><td>D</td><td><span class="badge badge-low">N/A</span></td><td>A live, served status-UI requirement</td></tr>
+            <tr><td>17</td><td><a href="go-credentials-store.md"><code>go-credentials-store</code></a></td><td><code>v0.4.3-1-gd62a698</code></td><td>D</td><td><span class="badge badge-low">N/A</span></td><td>The repo acquiring any secret at all</td></tr>
+            <tr><td>18</td><td><a href="cmdguard.md"><code>cmdguard</code></a></td><td><code>v5.1.0-30-g5290526</code></td><td>E</td><td><span class="badge badge-low">N/A</span></td><td>A real Go CLI subcommand surface appears</td></tr>
+            <tr><td>19</td><td><a href="templ-components.md"><code>templ-components</code></a></td><td><code>charts/echarts/v1.27.0-104-gd5702fc1</code></td><td>E</td><td><span class="badge badge-low">N/A</span></td><td>A Go-served interactive page</td></tr>
+            <tr><td>20</td><td><a href="go-appkit.md"><code>go-appkit</code></a></td><td><code>preset/v0.1.1-19-g98875e8</code></td><td>E</td><td><span class="badge badge-low">N/A</span></td><td>A Go application joins the repo</td></tr>
+            <tr><td>21</td><td><a href="go-cqrs-lite.md"><code>go-cqrs-lite</code></a></td><td><code>cmd/cqrs-lint/v4.22.2-18-gb7fa7a182</code></td><td>E</td><td><span class="badge badge-low">N/A</span></td><td>Multi-consumer state with replay/audit needs beyond the JSONL ledger</td></tr>
+            <tr><td>22</td><td><a href="cqrs-htmx.md"><code>cqrs-htmx</code></a></td><td><code>loginpage/v4.18.0-266-g361f3136</code></td><td>E</td><td><span class="badge badge-low">N/A</span></td><td>A Go-served interactive surface with users/auth</td></tr>
           </tbody>
         </table>
 
-        <!-- Before/After Comparison -->
-        <h2 id="proposal">Before / After</h2>
-        <div class="compare-header">
-          <div class="compare-before">Before</div>
-          <div class="compare-after">After</div>
+        <!-- Why Nothing Was Adopted -->
+        <h2 id="why"><span class="num">02</span>Why Nothing Was Adopted</h2>
+        <div class="card card-solution">
+          <h4>The fleet argument, settled</h4>
+          <p>
+            The owner maintains many projects with limited time; a project that re-integrates every
+            sibling library spends its life fixing integration bugs instead of benefiting from
+            collective improvements. The verdicts above are the disciplined version of that
+            trade: offline-banner has no Go toolchain, so <strong>adopting any of these libraries
+            would add a build system to host code nothing executes</strong> — pure bug surface,
+            zero capability. Refusing that is not under-utilization; it is the correct maximization:
+            the fleet's improvements land in this repo as <em>doctrine</em> (see below) at zero
+            maintenance cost, and this repo's fixes never destabilize a Go consumer.
+          </p>
         </div>
-        <div class="compare-row">
-          <div>
-            <pre><code><span class="tok-comment">// Old code</span>
-<span class="tok-keyword">func</span> <span class="tok-func">process</span>(data <span class="tok-type">interface</span>{}) { }</code></pre>
+        <p>
+          Honesty notes: (1) the only consumer references to any library name are 8 doc-only prose
+          mentions (LICENSE-convention notes in <code>TODO_LIST.md</code> and archived status docs:
+          go-atomic-write 3, cmdguard 2, templ-components 2, go-cqrs-lite 1) — zero in code or
+          config; (2) every evidence grep excludes <code>docs/review/**</code> so the reports do
+          not match themselves — run them from the repo root, or the relative glob stops matching
+          (an rg CWD subtlety the verify appendix pins); (3) the unit runs
+          <code>Restart = "always"</code> (module.nix:1162), not <code>on-failure</code> — caught
+          and corrected mid-run.
+        </p>
+
+        <!-- Doctrine Carries -->
+        <h2 id="carries"><span class="num">03</span>Doctrine Carries</h2>
+        <p>
+          Five places where this repo independently implements a fleet library's core principle in
+          QML/sh/systemd form — the non-Go channel through which collective improvement actually
+          reaches this project.
+        </p>
+        <div class="strengths">
+          <div class="strength">
+            <div class="check">+</div>
+            <div class="text">
+              <strong>Stage to a unique temp, one rename (go-atomic-write)</strong>
+              <span>The state-file recipe (module.nix:594) already implements the safe core — and CI
+              proved the failure mode (the 2026-11-10 empty-file tear) before the library named it.
+              The contract comparison surfaced one real gap, routed below.</span>
+            </div>
           </div>
-          <div>
-            <pre><code><span class="tok-comment">// New code</span>
-<span class="tok-keyword">func</span> <span class="tok-func">process</span>[T <span class="tok-type">any</span>](data T) { }</code></pre>
+          <div class="strength">
+            <div class="check">+</div>
+            <div class="text">
+              <strong>Supervision belongs to the service manager (go-daemon)</strong>
+              <span>systemd IS the daemon story: Restart = "always", MemoryMax, RuntimeDirectory
+              cleanup, journal capture. go-daemon's own docs defer supervision to systemd; the repo
+              refused double supervision for the same reason.</span>
+            </div>
+          </div>
+          <div class="strength">
+            <div class="check">+</div>
+            <div class="text">
+              <strong>Polling + heartbeat is positive liveness (go-filewatcher)</strong>
+              <span>A file watch cannot see a dead writer; the updatedAt heartbeat +
+              OFFLINE_BANNER_MAX_AGE staleness check (contrib consumer) is a liveness signal only a
+              poller computes — and the library's own WithPolling backend treats polling as
+              first-class.</span>
+            </div>
+          </div>
+          <div class="strength">
+            <div class="check">+</div>
+            <div class="text">
+              <strong>Deduplicate on committed state, not signals (go-idempotency)</strong>
+              <span>The QML re-arm compares the raw down-leg set (lastDownLegsKey) and suppresses
+              same-content firings — CheckAndRecord-thinking applied to event dedup, CI-pinned
+              after a degraded re-show false positive.</span>
+            </div>
+          </div>
+          <div class="strength">
+            <div class="check">+</div>
+            <div class="text">
+              <strong>Classify before string-matching (go-error-family)</strong>
+              <span>Journal lines carry machine-parseable reason= classes asserted by regex
+              (assert_journal_re), never prose — "share the protocol, not the implementation"
+              in journal form; presentation (degraded ladder) follows classification.</span>
+            </div>
           </div>
         </div>
 
-        <!-- ASCII Diagram -->
-        <h2>Dependency Tree</h2>
-        <div class="dep-tree">
-          <span class="root">root</span> ├──
-          <span class="ok">wanted-dep</span> └──
-          <span class="unwanted">unwanted-dep</span>
+        <!-- Routed Findings -->
+        <h2 id="routed"><span class="num">04</span>Routed Findings</h2>
+        <div class="issue issue-important">
+          <span class="severity severity-important">Actionable</span>
+          <h3>State-file writer: fixed temp name → unique (pid-suffixed) temp name</h3>
+          <div class="where">module.nix:594 · docs/review/libs/go-atomic-write.md §4/§5 · TODO_LIST.md (Quality)</div>
+          <p>
+            The sh recipe stages via <code>"$1.tmp"</code> — safe only while <code>emitState()</code>
+            is the sole writer. The 2026-11-18 orphan-<code>mv</code> drain incident proved spawned
+            writers can overlap across instance lifetimes (caught by test draining, not by the
+            recipe). go-atomic-write's stage-collision doctrine names the exact fix; its README
+            comparison table labels naive write+rename only "Partial" crash-durable.
+          </p>
+          <div class="callout callout-solution">
+            <strong>Fix</strong>
+            One token: <code>"$1.$$.tmp"</code> (pid-unique) in the spawn script; probe-transitions
+            and vm-smoke must stay green. Routed as a <code>[ready]</code> TODO_LIST row — not
+            applied in this docs-only run.
+          </div>
         </div>
 
-        <!-- Numbered Steps -->
-        <h2 id="plan"><span class="num">03</span>Migration Plan</h2>
+        <!-- Verify -->
+        <h2 id="verify"><span class="num">05</span>Verify</h2>
+        <p>
+          Re-derive every claim from the repo root (<code>/home/lars/projects/offline-banner</code>).
+          Each per-library report's §7 carries its own block; these four cover the index.
+        </p>
         <div class="migration-step">
           <div class="migration-num">1</div>
           <div class="migration-content">
-            <h4>Add generic type parameter</h4>
-            <p>Update the function signature to accept a type parameter.</p>
+            <h4>All 22 reports exist beside this index</h4>
+            <p><code>ls docs/review/libs/*.md | wc -l</code> → <strong>22</strong></p>
           </div>
         </div>
         <div class="migration-step">
           <div class="migration-num">2</div>
           <div class="migration-content">
-            <h4>Update all call sites</h4>
-            <p>Pass explicit types at each call site for type safety.</p>
+            <h4>The consumer has no Go runtime</h4>
+            <p><code>find . \( -name go.mod -o -name '*.go' \) -not -path './.git/*' | wc -l</code> → <strong>0</strong></p>
+          </div>
+        </div>
+        <div class="migration-step">
+          <div class="migration-num">3</div>
+          <div class="migration-content">
+            <h4>Zero usage sweep (doc-only name mentions allowed)</h4>
+            <p><code>for lib in go-error-family go-idempotency go-retry go-etag go-codec go-sse go-datastar go-atomic-write go-filewatcher go-daemon go-output go-health go-health-dashboard go-credentials-store cmdguard templ-components go-appkit go-cqrs-lite cqrs-htmx; do printf "%s: " "$lib"; rg -c "$lib" --glob '!.git' --glob '!docs/review/**' | awk -F: '{s+=$NF} END {print s+0}'; done</code> → 15×0, go-atomic-write 3, cmdguard 2, templ-components 2, go-cqrs-lite 1 (all prose)</p>
+          </div>
+        </div>
+        <div class="migration-step">
+          <div class="migration-num">4</div>
+          <div class="migration-content">
+            <h4>Version currency (re-review baseline)</h4>
+            <p><code>for lib in …; do echo "$lib=$(git -C ~/projects/$lib describe --tags)"; done</code> — compare against the table above; a changed tag means the report is stale and the audit re-runs</p>
+          </div>
+        </div>
+        <div class="migration-step">
+          <div class="migration-num">5</div>
+          <div class="migration-content">
+            <h4>Run the greps from the repo root</h4>
+            <p>The <code>!docs/review/**</code> exclusion glob is matched against CWD-relative paths — from inside <code>docs/review/libs/</code> it stops matching and the sweep self-counts. Root only.</p>
           </div>
         </div>
 
         <footer class="footer">
-          Generated YYYY-MM-DD &middot; All claims verified against source code
-          where noted
+          Generated 2026-11-18 &middot; Fleet run per library-deep-dive runbook: Group A (orchestrator-written),
+          Groups B–E (sub-agents), orchestrator QC-sampled one report per group + replayed verify blocks
+          &middot; Versions = latest local tag, remotes not fetched
+          &middot; Render proof: <a href="index-render-2026-11-18.png">index-render-2026-11-18.png</a>
         </footer>
       </main>
     </div>
