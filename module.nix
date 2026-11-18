@@ -20,7 +20,11 @@
 #   4. dns — resolving dnsProbeName (default one.one.one.one) via
 #      `getent ahostsv4` — the glibc/NSS path applications actually
 #      use, so a local-resolver (dnsblockd-style) outage registers
-#      here and nowhere else.
+#      here and nowhere else. The ANSWER must be public: a private,
+#      loopback, link-local or unspecified address means the resolver
+#      synthesized it (a DNS blocker's zero-IP block page, a
+#      split-horizon zone) and the leg would read green forever with
+#      no packet leaving the host — count it as down.
 # The legs deliberately span providers (Quad9 / Cloudflare / whatever
 # the system resolver is): independent legs must not share one
 # provider's filtering mood. ICMP is the most policed leg — flow
@@ -63,6 +67,8 @@
 #   4. dns — resolving dnsProbeName (default one.one.one.one) via
 #      `getent ahostsv4` — the glibc/NSS path applications actually
 #      use, so a local-resolver outage shows here and nowhere else.
+#      A private/loopback/unspecified answer counts as DOWN (the
+#      resolver faked it; see the leg list above).
 # The legs deliberately span providers (Quad9 / Cloudflare / whatever
 # the system resolver is): independent legs must not share one
 # provider's filtering mood.
@@ -181,7 +187,7 @@
     dnsProbeName = lib.mkOption {
       type = lib.types.str;
       default = "one.one.one.one";
-      description = "Name resolved by the DNS leg via `getent ahostsv4` — the glibc/NSS path applications actually use, so a local-resolver (dnsblockd-style) outage registers here and nowhere else. Must be an EXTERNAL name: a wildcard-capturing local zone would answer any string and blind the leg";
+      description = "Name resolved by the DNS leg via `getent ahostsv4` — the glibc/NSS path applications actually use, so a local-resolver (dnsblockd-style) outage registers here and nowhere else. Must be an EXTERNAL name: a wildcard-capturing local zone would answer any string and blind the leg. It must also stay OFF any DNS blocker's blocklist — a blocked name resolves to the blocker's zero-IP page from config alone, so an answer in private/loopback/link-local/unspecified space counts as DOWN, never up";
     };
 
     degradedDwellSeconds = lib.mkOption {
@@ -721,7 +727,8 @@
                 // seam) replaces the whole script.
                 command: root.netProbeOverride.length > 0 ? root.netProbeOverride : ["sh", "-c",
                     "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" bash -c 'exec 3<>\"/dev/tcp/$OFFLINE_BANNER_TCP_HOST/$OFFLINE_BANNER_TCP_PORT\"' 2>/dev/null; then echo tcp ok; else echo tcp fail; fi; " +
-                    "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" getent ahostsv4 \"$OFFLINE_BANNER_DNS_NAME\" >/dev/null 2>&1; then echo dns ok; else echo dns fail; fi"]
+                    "addr=$(timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" getent ahostsv4 \"$OFFLINE_BANNER_DNS_NAME\" 2>/dev/null | head -n1 | cut -d' ' -f1); " +
+                    "case \"$addr\" in \"\"|0.0.0.0|127.*|10.*|192.168.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*|169.254.*|::1|fe80:*|fc*|fd*) echo dns fail ;; *) echo dns ok ;; esac"]
                 running: !root.demo
 
                 stdout: StdioCollector {

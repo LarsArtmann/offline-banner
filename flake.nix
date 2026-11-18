@@ -557,7 +557,7 @@
                 # the test seams stub the whole probe. Resolve for real.
                 path_line=$(grep -o 'PATH=[^"]*' "$unitTextFile" | head -1 | sed 's/^PATH=//')
                 [ -n "$path_line" ] || { echo "FAIL: no PATH= line found in the unit text"; exit 1; }
-                for tool in timeout getent ping; do
+                for tool in timeout getent ping head cut; do
                   if ! PATH="$path_line" command -v "$tool" > /dev/null 2>&1; then
                     echo "FAIL: unit PATH cannot resolve '$tool' (PATH-phantom class — the rendered PATH must contain the real binary)"; exit 1
                   fi
