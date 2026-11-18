@@ -34,11 +34,22 @@ jobs:
               --branch master \
               --workflow "$workflow" \
               --limit 1 \
-              --json conclusion,databaseId \
-              --jq '.[0] | "\(.databaseId) \(.conclusion)"')
+              --json conclusion,status,databaseId \
+              --jq '.[0] | "\(.databaseId) \(.status) \(.conclusion // "none")"')
             run_id="${latest%% *}"
-            conclusion="${latest##* }"
-            echo "$workflow: run $run_id conclusion=$conclusion"
+            rest="${latest#* }"
+            status="${rest%% *}"
+            conclusion="${rest##* }"
+            echo "$workflow: run $run_id status=$status conclusion=$conclusion"
+            # An in-flight run has no conclusion yet — judging it red
+            # false-fired on 2026-11-18 (21:35, the sentinel raced a
+            # passing Checks run mid-boot and paged). Skip it: the next
+            # 30-min tick judges the completed result. Only a COMPLETED
+            # non-success is a real red.
+            if [ "$status" != "completed" ]; then
+              echo "$workflow: run $run_id is $status — skipped, next tick judges it"
+              continue
+            fi
             if [ "$conclusion" != "success" ]; then
               echo "::error::$workflow latest run $run_id on master is '$conclusion'"
               fail=1
