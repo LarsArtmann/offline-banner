@@ -580,6 +580,54 @@
                 [ "$badRelativeLedgerAsserts" -ge 1 ] || { echo "FAIL: a relative historyPath must fail the absolute-path assertion"; exit 1; }
                 touch "$out"
               '';
+          # Behavioral gate for the tcp+dns leg (lib/net-probe.sh): run the
+          # script against a stub getent, so the answer validation is
+          # proven by BEHAVIOR, not by a grep (the 2026-11-10 PATH-phantom
+          # doctrine — every name-grep stayed green while the leg failed
+          # 1448 real probes). The leg must read DOWN when the resolver
+          # synthesizes an answer: a DNS blocker's zero-IP block page
+          # (192.168.1.200 on evo-x2, 2026-11-18), any RFC1918/loopback/
+          # link-local address, or no answer at all.
+          leg-contract =
+            pkgs.runCommand "offline-banner-leg-contract"
+              {
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.coreutils
+                  pkgs.gnugrep
+                ];
+                legScript = ./lib/net-probe.sh;
+              }
+              ''
+                export PATH="$PWD/stub:${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin"
+                mkdir -p stub
+                cat > stub/getent <<'STUB'
+                #!/bin/sh
+                [ -n "$STUB_ANSWER" ] || exit 1
+                printf '%s  STREAM probe.test\n' "$STUB_ANSWER"
+                STUB
+                chmod +x stub/getent
+                run() {
+                  STUB_ANSWER="$1" \
+                    OFFLINE_BANNER_PROBE_TIMEOUT=3 \
+                    OFFLINE_BANNER_TCP_HOST=127.0.0.1 \
+                    OFFLINE_BANNER_TCP_PORT=1 \
+                    OFFLINE_BANNER_DNS_NAME=probe.test \
+                    bash "$legScript" > out
+                  grep -qx "tcp fail" out || { echo "FAIL: no 'tcp fail' line (answer '$1')"; cat out; exit 1; }
+                  grep -qx "$2" out || { echo "FAIL: dns leg printed the wrong verdict for answer '$1' (wanted '$2')"; cat out; exit 1; }
+                }
+                run 192.168.1.200 "dns fail" # dnsblockd zero-IP block page
+                run 10.1.2.3 "dns fail"       # RFC1918
+                run 172.16.0.9 "dns fail"     # RFC1918 172.16/12 lower bound
+                run 172.31.255.254 "dns fail" # RFC1918 172.16/12 upper bound
+                run 127.0.0.1 "dns fail"      # loopback
+                run 169.254.1.1 "dns fail"    # link-local
+                run "" "dns fail"             # NXDOMAIN / resolver silence
+                run 93.184.216.34 "dns ok"    # public
+                run 199.36.158.100 "dns ok"   # public
+                touch "$out"
+              '';
           # The smoke script must stay runnable: bash syntax plus the
           # structural markers — transient exec, BOTH specifier
           # substitutions, props-file consumption (a refactor losing the
@@ -598,9 +646,10 @@
                 contrib = ./contrib/offline-banner-waybar;
                 playSounds = ./scripts/play-sounds.sh;
                 captureDemo = ./scripts/capture-demo.sh;
+                legScript = ./lib/net-probe.sh;
               }
               ''
-                for f in "$contrib" "$playSounds" "$captureDemo"; do
+                for f in "$contrib" "$playSounds" "$captureDemo" "$legScript"; do
                   echo "gating $f"
                   shellcheck -S warning "$f" || { echo "FAIL: shellcheck on $f"; exit 1; }
                   shfmt -d "$f" || { echo "FAIL: shfmt on $f (run: shfmt -w $f)"; exit 1; }

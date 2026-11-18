@@ -236,6 +236,13 @@
     let
       cfg = config.services.offline-banner;
 
+      # The tcp+dns leg probe lives in its own file: shell.qml embeds it
+      # and checks.leg-contract EXECUTES it against a stub getent, so the
+      # leg's answer validation is verified by behavior, not by a grep
+      # (the 2026-11-10 PATH-phantom doctrine: name-greps stay green
+      # while the leg fails every real probe).
+      netProbeScript = builtins.readFile ./lib/net-probe.sh;
+
       offlineBannerShell = pkgs.writeTextDir "shell.qml" ''
         pragma ComponentBehavior: Bound
 
@@ -717,18 +724,18 @@
                 id: netProbe
 
                 // The TCP+DNS legs (2026-11-09). Two output lines, exact
-                // format: "tcp ok|fail" then "dns ok|fail". The TCP leg
-                // dials an IP literal through bash's /dev/tcp (no resolver
-                // in the path); the DNS leg walks getent → glibc/NSS (what
-                // applications see). `timeout` (coreutils) caps both — a
-                // silently filtered connect would hang forever otherwise,
-                // and the probe timeout is the SAME probeTimeoutSeconds
-                // the icmp leg uses. OFFLINE_BANNER_NET_PROBE_CMD (test
-                // seam) replaces the whole script.
-                command: root.netProbeOverride.length > 0 ? root.netProbeOverride : ["sh", "-c",
-                    "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" bash -c 'exec 3<>\"/dev/tcp/$OFFLINE_BANNER_TCP_HOST/$OFFLINE_BANNER_TCP_PORT\"' 2>/dev/null; then echo tcp ok; else echo tcp fail; fi; " +
-                    "addr=$(timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" getent ahostsv4 \"$OFFLINE_BANNER_DNS_NAME\" 2>/dev/null | head -n1 | cut -d' ' -f1); " +
-                    "case \"$addr\" in \"\"|0.0.0.0|127.*|10.*|192.168.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*|169.254.*|::1|fe80:*|fc*|fd*) echo dns fail ;; *) echo dns ok ;; esac"]
+                // format: "tcp ok|fail" then "dns ok|fail", from
+                // lib/net-probe.sh (embedded as a JS string literal). The
+                // TCP leg dials an IP literal through bash's /dev/tcp (no
+                // resolver in the path); the DNS leg walks getent →
+                // glibc/NSS (what applications see) and counts a
+                // private/loopback/unspecified answer as DOWN. `timeout`
+                // (coreutils) caps both — a silently filtered connect
+                // would hang forever otherwise, and the probe timeout is
+                // the SAME probeTimeoutSeconds the icmp leg uses.
+                // OFFLINE_BANNER_NET_PROBE_CMD (test seam) replaces the
+                // whole script.
+                command: root.netProbeOverride.length > 0 ? root.netProbeOverride : ["sh", "-c", ${builtins.toJSON netProbeScript}]
                 running: !root.demo
 
                 stdout: StdioCollector {

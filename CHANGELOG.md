@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Fixed
+
+- **A DNS leg answer that was synthesized locally now counts as DOWN** — the leg previously only asked whether `getent ahostsv4 dnsProbeName` produced *something*, so a resolver that answers from a DNS blocker's zero-IP block page (or a split-horizon zone) satisfied it forever with no packet leaving the host. Live on the origin host (2026-11-18): the default probe name `one.one.one.one` sits on a DoH blocklist, resolved to the blocker's block page `192.168.1.200` from local config alone, and the leg read up through any WAN outage — which made the `offline` phase unreachable (it needs tcp+dns both down) and limited a real ISP outage to the blue degraded strip. The leg now rejects private, loopback, link-local, unspecified and empty answers, so the banner sees the outage it exists for. The probe script moved to `lib/net-probe.sh` (embedded into `shell.qml` as a JS string literal) and gained the `leg-contract` flake check, which EXECUTES it against a stub `getent` — block page, both ends of the RFC1918 172.16/12 range, loopback, link-local, NXDOMAIN → fail; public addresses → ok — because a name-grep gate is exactly what let the 2026-11-10 PATH-phantom through. Negative-proven: removing the guard makes the check reproduce the live false-up. Consumers whose probe name points at an internal/split-horizon name must switch to a public one.
+
+### Changed
+
+- The `dnsProbeName` option description, README and website option table now state the external-AND-unblocked requirement explicitly.
+
 ## [0.2.1] — 2026-11-18
 
 ### Added
