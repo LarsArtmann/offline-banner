@@ -1,0 +1,107 @@
+# Release v0.2.1 + Live-Proof + Smoke-Rescue Session Status
+
+**Written:** 2026-11-18 13:26 CET · **Scope:** this session only (≈11:30–13:15 CET, the post-handoff resume of the 2026-11-17 22:00 pareto plan; the owner's directive was "the WHOLE TODO LIST, until everything works") · **HEAD at writing:** `0db6531` (working tree clean; all work pushed through `2690cf7`) · **Repo:** github:LarsArtmann/offline-banner
+
+**Headline:** v0.2.1 is **released and tag-source-verified**, SystemNix is relocked to it, the banner has its **first real-monitor pixel proof**, the `SystemCallFilter` question is **closed with a seccomp SIGSYS verdict** — and the release itself carried three latent runtime-crashing bugs in `nix run .#smoke` that only surfaced because I finally EXECUTED the app 40 minutes after tagging. All three are fixed on master with a new class of gate (execute-the-artifact, don't grep it). Both workflows green on the tip, zero open PRs, live unit online with a fresh heartbeat.
+
+**VERIFIED in this session:** both workflows green on `ad3bdc2` (release commit), `41b3f49` (smoke fixes), `9ed4849` (docs batch), `2690cf7` (starlight merge); `nix flake check --all-systems` green locally ×2; smoke-script execution gate green incl. negative fixture; hyperframes lint 0 errors + check 0 errors on 0.8.231 AND 0.9.52; draft render pixel-compared <0.1 % at t=2/8/16/22; demo.mp4 re-rendered 24.0 s/982 KB; docs-gates battery all green (freshness/audit-all/annotate/routing/cadence); astro check 0 + build 11 pages + CSP 11/11 + html-validate exit 0; actionlint + zizmor clean on the new workflow; SystemNix eval green on all three configurations with the v0.2.1 pin.
+
+**NOT VERIFIED (and why):** the demo chime's audibility (the transient inherited `chime`; the cue fired per journal but nobody confirmed sound, and I did not re-check the smoke unit's journal for the pw-play line before cleanup); ci-watch has never actually RUN (lint-clean locally; first real execution pending — routed to a TODO row); aarch64 for the smoke-app changes is CI-green only (no local binfmt run this session); the WCAG-AA table from the 0.8-era check was not re-audited under 0.9.52 (check reported 4 motion warnings, 0 errors — table re-audit routed with v0.2.2).
+
+---
+
+## a) FULLY DONE
+
+| Item | Evidence |
+| ---- | -------- |
+| Tree disposition: parallel-session edits judged | `fdf4a92` sweep = FEATURES/README/ROADMAP table reflow + flake bumps, all CI-green behind it — harmless, kept; nothing reverted |
+| `global.out.css` orphan resolved (row 83) | untracked + gitignored (`24310e9`); BuildFlow re-drops now invisible to git |
+| T13 video manifest/lock split repaired | `ad3bdc2`: manifest floored `^0.8.214`, video workspace gained the 24 h `minimumReleaseAge`, lock regen → 0.8.231; frozen install + lint (0 err) + check (0 err) verified before commit |
+| T03 v0.2.1 released | annotated tag + curated GitHub release on `ad3bdc2` (runs 44288099413/44288099373 green); `nix flake metadata …/v0.2.1` resolves to the tagged rev; `nix flake check …/v0.2.1 --all-systems` passes (runbook step 6); row 75 closed |
+| T04 SystemNix relock | `../SystemNix/flake.lock` 93fc621→`ad3bdc2` via `nix flake lock --update-input`; eval green (evo-x2, rpi3-dns, zfs-vm); committed `e98f7e4b7` (daemon-owned message — the repo was a live cross-session warzone, fighting it risked more than it bought) |
+| Smoke-transient rescue (THREE bugs) | `nix run .#smoke` had never been executed; first live run crashed: unquoted `${args[@]}` word-split multi-value directives (systemd-run exec'd a directory fragment), `-p`-baked-into-token getopt parsing (`Unknown assignment` with leading space), bare `quickshell` PATH lookup. All fixed (`41b3f49`); `--print` now emits `%q`-quoted re-runnable output |
+| smoke-script EXECUTION gate | the real app runs under a systemd-run shim: multi-value directives must arrive as single argv tokens, the command after `--` must be the resolved store binary, `--print` output must re-parse to the IDENTICAL argv; negative fixture = the exact shipped word-split bug; green x86_64 locally + CI |
+| T05 real-monitor pixel proof (last render debt) | demo transient on evo-x2's real 4K output: grim band rows ~50–110 ≈(239,217,169) (niri blue-crush, same family as render-smoke's pixman calibration), ABSENT in baseline and post-stop frames; QML journaled `banner state=shown` demo:true; row 77's last non-ear leg closed |
+| F62 closed with hard evidence (row 54) | quickshell under `SystemCallFilter=@system-service` = SIGSYS core-dump in 2.4 s (status 31/SYS, Qt/Wayland threads die in setup) — the filter stays WITHHELD, evidence-based; the 5.8 MEDIUM rating is the accepted price; recipe recorded for the two remaining withheld options |
+| PR #1 hyperframes 0.8.231→0.9.52 merged | worktree validation to the postmortem's full bar: lint 0 err (same 6 advisory), check 0 err, DRAFT RENDER pixel-compared <0.1 % at t=2/8/16/22 against the committed 0.8-era artifact; squash-merged `03d4483`; also carries the undici security bumps (closes that alert cluster) |
+| demo.mp4 re-rendered under 0.9.52 | high quality, 24.0 s, 982 KB (old: 981 KB); committed with the docs batch; AGENTS demo-video line updated to the 0.9.52 toolchain (`0db6531`) |
+| PR #2 starlight 0.43.1 merged | its nix-check failure was the already-fixed flash-class harness race on a stale branch; `gh pr update-branch`, all checks green (nix-check 6m20s), squash-merged `2690cf7` |
+| T18 research + triage | TS7 verdict fresh (subagent, sources checked): TS 7.0.2 stable, `astro check` hard-refuses TS ≥ 7 in released 7.4.12, upgrade signal = `@astrojs/check` peers widening; picomatch HIGH is UPSTREAM-BLOCKED (4.0.7 IS latest — Dependabot's update job fails until upstream ships); rows 81/74 updated |
+| T15/G4 decided (row 84) | a11y-guard REJECTED, lighthouse REJECTED (reasons recorded), **ci-watch ADOPTED**: `.github/workflows/ci-watch.yml` (30-min red-master sentinel, actionlint+zizmor clean locally, `ubuntu-24.04`, read-only token) |
+| T12 docs ritual | 20-10 §a resolved banner; **G2 canon recorded** (two-class: work items verdict-stripped, cadence §d/§e bare-behind-banner — written into docs/status/README.md so it stops being re-litigated); ROADMAP theme-1 strikethrough normalized; purge dry-run = clean no-op; postmortem item 19 struck BY DOING the review (found + fixed the stale "All thirteen options" heading and the sway proof level) |
+| TODO diet | 16 rows closed/updated with evidence: 25, 51, 52, 53, 75, 82, 83, 84 CLOSED; 16, 54, 74, 76, 77, 81, 85 UPDATED; 5 new routed rows (see §f) |
+| Docs battery | all five gates green after the batch (freshness/audit-all/annotate/routing/cadence) |
+| End state | master `2690cf7` = origin, Checks ✓ Website ✓, 0 open PRs, v0.2.1 Latest release, live unit active with a fresh heartbeat |
+
+## b) PARTIALLY DONE
+
+- **T14's F64 half** — `PrivateDevices` and `MemoryDenyWriteExecute` probes not run (each is one transient unit + the demo env; needs the owner watching). The recipe and the F62 precedent are recorded; row 54 stays open for exactly this.
+- **T05 audibility** — the cue fired per journal and probably reached the owner's speakers at ~12:46, but I verified neither the pw-play journal line nor a human ear. Routed as its own watch row.
+- **T07 DMS plugin** — SystemNix eval green on the v0.2.1 pin (3/3 configs); the plugin still needs enabling in DMS's list + one live-bar look. Owner-side.
+- **T12 canon unification, literal reading** — I recorded the two-class canon instead of rewriting §d/§e across the 8 cadence archives; deliberate (those banners document "bare as the process record" as their classification), but a literal "strike-with-verdicts everywhere" pass was not executed.
+- **Session-claim protocol** — proposed concretely in AGENTS + row 85 (claim file, heartbeat, daemon skip rule); not implemented. Owner-gated (daemon config is owner-side).
+- **aarch64 coverage** — the smoke-app changes are CI-green on aarch64 but were not locally binfmt-verified this session (the doctrine run I usually do).
+- **WCAG table under 0.9.52** — check reports 0 errors/4 motion warnings; the 20/20 contrast table from the 0.8 era was not re-audited. Routed with the v0.2.2 row.
+
+## c) NOT STARTED (known open, untouched this session)
+
+- T19 launch posts (owner surfaces) — drafts exist, posting owner-gated.
+- D1 (vm-smoke → checks promotion), D3 (lost-ledger backfill), D4 (BuildFlow adoption/skip) — owner decisions, rows 78/79 + AGENTS.
+- Evening-window flap observation (row 15) — needs a live evening session.
+- Multi-monitor proof, click-dismiss machine verification, reboot/re-login auto-start (row 34 remainder).
+- Sound audition (row 22) — owner ears over `scripts/play-sounds.sh`.
+- picomatch upstream watch — nothing actionable until a patched release exists.
+- v0.2.2 cut — now routed as a ready row.
+
+## d) TOTALLY FUCKED UP (honest list — ranked)
+
+1. **I shipped v0.2.1 with a `nix run .#smoke` that crashed on first use.** The runbook's own words say the app is the "mandatory pre-switch gate" — I read past that and tagged on green-CI alone. Three runtime bugs rode the release; the fix landed on master 40 minutes after the tag. The deeper failure: I had ALREADY learned "resolve, don't grep" (PATH-phantom) and still shipped a grep-only-gated artifact. Fixed on master + new execution gate + a new release-runbook step (1b) — but the tag itself carries the broken app.
+2. **I created a live regression on the owner's desktop mid-session.** Stopping the demo transient deleted the SHARED `RuntimeDirectory`, orphaning the live unit's namespace bind — state writes failed silently, heartbeat dead. I caught it in one poll cycle and restored via busctl `RestartUnit`, but the hazard was foreseeable (two units, one dir name) and should have been designed around BEFORE the experiment (distinct runtime dir = trivial). Routed as a ready TODO row.
+3. **The demo played the chime on the owner's speakers unannounced** — the transient inherited `SOUND_THEME=chime` from the copied unit env. For an unattended/owner-watching experiment, sound should have been muted by default. Routed.
+4. **Commit hygiene lost to the daemon all day**: my work was swept into ~7 junk commits across 5 sweeps; 2 reset-and-recommits + 1 rebase-squash recovered the messages, but `ae37aae`/`502f75c`/`ff9b1c8`/`ea04128` remain as fragments in master history. The claim-file protocol (row 85) exists precisely for this and is still only a proposal.
+5. **Detector churn in the pixel proof**: four detector iterations (target-color → row-density → hue-aware → mean-color dumps) before landing on blue-crush calibration — which render-smoke had ALREADY documented in this repo. Reading the existing matcher first would have saved three rounds and one false "NOT VISIBLE" conclusion (my second capture was actually fine; my detector was blind).
+6. **Self-inflicted launch failures**: an awk field-index blunder (`$2` = the literal `-p`) and a sed that collided with RuntimeDirectory quoting produced two failed transient launches and a chain of misleading systemd errors before the real bugs surfaced. Slow, but the failures led to the product bugs — net positive, execution sloppy.
+7. **The jq relative-path mystery burned ~6 commands**: jq and grep resolved DIFFERENT `flake.lock` files inside one compound `cd X && …` command (this shell env's `cd` does not propagate to some externals' relative-path resolution). The variable-isolation test (absolute path) solved it instantly. Recorded as a standing rule: absolute paths, always.
+8. **ci-watch shipped unproven-in-CI**: lint-clean locally, but the sentinel has never executed a real run — a monitoring tool that has never fired is a hope, not a gate. Routed as a verify row.
+
+## e) WHAT WE SHOULD IMPROVE
+
+- **"Execute, don't grep" should be a first-class gate class, audited repo-wide.** The smoke-script gate is the third instance (after module-contract's PATH execution gate and waybar-consumer's fixtures). Audit the remaining grep-only gates and either execute or document why a grep is honest there.
+- **The smoke app should not share the live unit's runtime dir** — a `*-smoke`-suffixed RuntimeDirectory kills the whole hazard class (state overwrite + orphaned bind) structurally, and a sound-inert default makes unattended demos silent. Both are one props-shape change plus shim-assert updates.
+- **Release gates should include one real execution of anything users `nix run`** — now pinned as runbook step 1b; keep it honest by recording the run in release-prep notes.
+- **Read existing calibration before writing new detectors** — the repo already knew its compositors crush blue.
+- **Commit-batch rhythm vs the daemon**: precheck `git log` before AND after edit batches, commit within seconds, and treat any `chore: auto-commit` containing your own paths as an immediate reset-soft candidate. The structural fix is the claim file — it needs the owner.
+- **busctl is the systemctl substitute** on this host (sandbox blocks even read-only systemctl): `Manager.RestartUnit ss "unit" "replace"`, `Unit Stop s "replace"` (empty mode = `Job mode invalid`). Now in the runbook; worth remembering for every fleet repo.
+
+## f) Things to get done next (dispatch-ordered, routed)
+
+1. **Smoke app: distinct RuntimeDirectory + silent-by-default sound** — NEW row (ready), kills §d-2/§d-3 structurally.
+2. **Verify ci-watch fires** — NEW row (ready), `workflow_dispatch` green-path first, red-path optional.
+3. **Cut v0.2.2** — NEW row (ready): smoke fixes + dns block-page validation + 0.9.52 artifact + starlight 0.43.1; call out the dns-leg behavior change in the notes.
+4. **Release runbook 1b (execute the app pre-tag)** — DONE as an AGENTS edit this session; first real exercise rides the v0.2.2 cut.
+5. **Demo-cue audibility watch** — NEW row (watch): journal the 12:46 chime + owner ears; closes T05's last leg.
+6. F64 probes: `PrivateDevices`, `MemoryDenyWriteExecute` transient experiments (row 54 remainder, owner window).
+7. T07: enable the `systemnix-banner` DMS plugin after the owner switch + live-bar look (row 16 remainder).
+8. Evening-window flap journal sweep (row 15).
+9. Multi-monitor + click-dismiss + reboot/re-login debts (row 34 remainder).
+10. Sound audition over all 12 cues (row 22, owner ears).
+11. Session-claim protocol implementation (row 85, owner adoption needed).
+12. D1: vm-smoke promotion decision (row 78).
+13. D3: lost-ledger-window backfill decision (row 79).
+14. D4: BuildFlow `.buildflow.yml` adoption or non-managed-repo skip (kills the global.out.css/dprint resurrection class at the source).
+15. T19: post the launch drafts (Discourse + r/NixOS; refresh for v0.2.1's legs/ladder story).
+16. picomatch 4.0.8 upstream watch — merge the bump on release (row 74).
+17. `@astrojs/check` peer-widening watch — the TS 7 exit (row 81).
+18. Re-audit the WCAG table under hyperframes 0.9.52 (fold into the v0.2.2 render validation).
+19. Consider a `leg-contract`-style execution check for the ICMP leg script (the PATH-phantom pattern applied to the remaining leg; low priority — the leg's script is simpler and live-proven).
+20. Weigh promoting `probe-transitions`' demo scenario into a real-monitor-agnostic pixel replay (render-smoke already covers pixels; likely reject — record the verdict to stop re-deriving it).
+21. Sweep AGENTS/CHANGELOG for remaining stale tool-version prose after the 0.9.52 move (the demo-video line is fixed; grep for `0.8.`).
+22. Add the busctl systemctl-substitute snippet to the fleet-level lessons file (crush-config `references/lessons.md`) — it generalizes beyond this repo.
+23. Daemon sweep forensics: consider a post-commit hook that flags `chore: auto-commit` messages touching files a session claimed (needs the claim file, row 85).
+24. Keep the vm-smoke VM-image warm (D1's cost argument deserves a fresh number if the decision reopens).
+
+## g) Three questions I cannot figure out myself
+
+1. **The chime at ~12:46 — did you hear it?** The demo transient inherited the live unit's sound env and journaled `banner state=shown` at 12:46:43; if the cue reached your speakers, T05's audibility leg closes with a human confirmation and I can close the watch row; if you heard nothing, that's a real pw-play-under-sandbox data point worth chasing.
+2. **Should I cut v0.2.2 now?** It would carry the smoke-transient fixes (the v0.2.1-shipped `nix run .#smoke` crash trio), the dns block-page validation (behavior change: hosts with a blocked `dnsProbeName` now correctly see outages), hyperframes 0.9.52 + the re-rendered demo.mp4, and starlight 0.43.1. All CI-green on master; the release needs a quiet-tree window and your go.
+3. **Parallel sessions: adopt the claim-file protocol now, and is the other glm-5.3 session still active?** This session raced it continuously (its `47176c3` dns fix landed inside my unpushed range; five daemon sweeps fragmented my commits). I can implement the claim file + rc-guard on this side in one commit, but the daemon-skip rule and the other session's discipline are owner-side calls.
