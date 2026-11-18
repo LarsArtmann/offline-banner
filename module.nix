@@ -591,7 +591,14 @@
                     // asserts) see an EMPTY state file — CI-proven x86_64
                     // 2026-11-10. mv within the same directory is rename(2),
                     // so consumers only ever see a complete old or new state.
-                    "printf '%s' \"$2\" > \"$1.tmp\" && mv -f \"$1.tmp\" \"$1\"",
+                    // The stage temp is pid-unique ($$ = the spawned sh's
+                    // pid): the 2026-11-18 orphan-mv drain incident proved
+                    // writers can overlap across instance lifetimes, and a
+                    // fixed "$1.tmp" stage turns that overlap into a corrupt
+                    // mv landing torn content. go-atomic-write's
+                    // stage-collision doctrine is the spec (its README
+                    // labels naive write+rename only "Partial" crash-durable).
+                    "printf '%s' \"$2\" > \"$1.$$.tmp\" && mv -f \"$1.$$.tmp\" \"$1\"",
                     "offline-banner-state",
                     // OFFLINE_BANNER_STATE_DIR renames the state DIR under
                     // XDG_RUNTIME_DIR (name only, never a path). Unset →
