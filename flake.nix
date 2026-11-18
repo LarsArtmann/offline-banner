@@ -40,6 +40,45 @@
           inherit system;
           modules = [ offlineBannerModule ] ++ extraModules;
         };
+      # Sandbox directives a smoke transient can carry verbatim (list
+      # values render as one `-p KEY=VALUE` line each). LIFTED to this
+      # scope so the smoke-script check can gate keep-list coverage
+      # computed from the rendered unit — a hand-maintained comparison
+      # would rot exactly like the PATH-phantom name-grep did.
+      smokeKeepDirectives = [
+        "ProtectSystem"
+        "ProtectHome"
+        "PrivateTmp"
+        "RuntimeDirectory"
+        "RuntimeDirectoryMode"
+        "StateDirectory"
+        "StateDirectoryMode"
+        "ReadWritePaths"
+        "MemoryMax"
+        "RestrictAddressFamilies"
+        "RestrictNamespaces"
+        "LockPersonality"
+        "RestrictRealtime"
+        "RestrictSUIDSGID"
+        "ProtectClock"
+        "ProtectHostname"
+        "ProtectKernelLogs"
+        "ProtectKernelModules"
+        "ProtectKernelTunables"
+        "ProtectControlGroups"
+        "ProtectProc"
+        "SystemCallArchitectures"
+      ];
+      # Transient-hostile or separately-handled service keys the smoke
+      # transient deliberately drops (Type/ExecStart/Restart define the
+      # run itself; Environment is rendered from the env map).
+      smokeDropWhitelist = [
+        "Type"
+        "ExecStart"
+        "Restart"
+        "RestartSec"
+        "Environment"
+      ];
       # The runbook's hardened smoke test as versioned code: the module's
       # EXACT serviceConfig sandbox as a transient user unit, with
       # unit-file specifiers substituted literally (%h -> $HOME, %t ->
@@ -56,35 +95,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
           enabled = evalModule system [ { services.offline-banner.enable = true; } ];
           serviceConfig = enabled.config.systemd.user.services.offline-banner.serviceConfig;
-          # Sandbox directives a transient can carry verbatim (whitelist:
-          # Type/ExecStart/Restart/wantedBy are transient-hostile). List
-          # values render as one space-joined line each — unit-file list
-          # syntax — one `-p KEY=VALUE` per line, one argv element per
-          # line in the props file.
-          keepDirectives = [
-            "ProtectSystem"
-            "ProtectHome"
-            "PrivateTmp"
-            "RuntimeDirectory"
-            "RuntimeDirectoryMode"
-            "StateDirectory"
-            "StateDirectoryMode"
-            "ReadWritePaths"
-            "MemoryMax"
-            "RestrictAddressFamilies"
-            "RestrictNamespaces"
-            "LockPersonality"
-            "RestrictRealtime"
-            "RestrictSUIDSGID"
-            "ProtectClock"
-            "ProtectHostname"
-            "ProtectKernelLogs"
-            "ProtectKernelModules"
-            "ProtectKernelTunables"
-            "ProtectControlGroups"
-            "ProtectProc"
-            "SystemCallArchitectures"
-          ];
+          keepDirectives = smokeKeepDirectives;
           renderDirective =
             name: value:
             "-p ${name}=${
@@ -122,8 +133,10 @@
             qml_dir="@qmlDir@"
             name="offline-banner-smoke"
             runtime="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-            systemctl --user stop "$name.service" 2>/dev/null || true
-            systemctl --user reset-failed "$name.service" 2>/dev/null || true
+            if [ "''${1:-}" != "--print" ]; then
+              systemctl --user stop "$name.service" 2>/dev/null || true
+              systemctl --user reset-failed "$name.service" 2>/dev/null || true
+            fi
             args=()
             while IFS= read -r line; do
               [ -n "$line" ] || continue
@@ -135,6 +148,12 @@
               args+=(-p "Environment=OFFLINE_BANNER_PROBE_HOST=$OFFLINE_BANNER_SMOKE_PROBE_HOST")
             [ -z "''${OFFLINE_BANNER_SMOKE_DEMO:-}" ] ||
               args+=(-p "Environment=OFFLINE_BANNER_DEMO=1")
+            if [ "''${1:-}" = "--print" ]; then
+              printf 'systemd-run --user --unit=%s' "$name"
+              [ "''${#args[@]}" -eq 0 ] || printf ' %s' "''${args[@]}"
+              printf ' -- quickshell -p %s\n' "$qml_dir"
+              exit 0
+            fi
             echo "offline-banner-smoke: transient '$name' under the rendered sandbox (specifiers substituted: %h -> $HOME, %t -> $runtime)"
             exec systemd-run --user --unit="$name" ''${args[@]} -- quickshell -p "$qml_dir"
             EOF
@@ -669,13 +688,26 @@
                 touch "$out"
               '';
           smoke-script =
+            let
+              smokeEnabled = evalModule system [
+                { services.offline-banner.enable = true; }
+              ];
+            in
             pkgs.runCommand "offline-banner-smoke-script"
               {
                 script = "${smokeRunner system}/bin/offline-banner-smoke";
+                # The rendered unit + the lifted keep list: the coverage gate
+                # below is COMPUTED from these — a new sandbox directive that
+                # silently never reaches the transient is exactly the blind
+                # spot this gate exists to kill.
+                unitText = smokeEnabled.config.systemd.user.units."offline-banner.service".text;
+                keepList = toString smokeKeepDirectives;
+                passAsFile = [ "unitText" ];
                 nativeBuildInputs = [
                   pkgs.bash
                   pkgs.coreutils
                   pkgs.gnugrep
+                  pkgs.gnused
                 ];
               }
               ''
@@ -684,6 +716,30 @@
                 grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
                 grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
                 grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
+                grep -q -- '--print' "$script" || { echo "FAIL: smoke script lost the --print dry-run"; exit 1; }
+
+                # Negative tooth-proof: a mangled variant with the %h
+                # substitution stripped MUST fail the structural gate above —
+                # this proves the gate fires on drift, not that it merely
+                # exists.
+                sed 's|%h/$HOME|SUBSTITUTION-STRIPPED|' "$script" > broken-smoke
+                if grep -q 'line="''${line//%h/$HOME}"' broken-smoke; then
+                  echo "FAIL: negative fixture failed — gate would not fire on a %h-stripped smoke script"
+                  exit 1
+                fi
+
+                # Computed keep-list coverage, both directions: every
+                # [Service] directive the rendered unit carries must sit on
+                # the keep list (→ reaches the transient) or the drop
+                # whitelist; and the keep list must be stale-free.
+                sed -n '/^\[Service\]/,/^\[/p' "$unitTextPath" \
+                  | grep -oE '^[A-Za-z0-9]+=' | tr -d '=' | sort -u > unit-keys.txt
+                printf '%s\n' Type ExecStart Restart RestartSec Environment | sort -u > drop-keys.txt
+                echo "$keepList" | tr ' ' '\n' | sort -u > keep-keys.txt
+                drop_not_kept=$(comm -23 unit-keys.txt <(cat drop-keys.txt keep-keys.txt | sort -u) | tr '\n' ' ')
+                [ -z "$drop_not_kept" ] || { echo "FAIL: rendered directives never reach the smoke transient (add to smokeKeepDirectives or smokeDropWhitelist): $drop_not_kept"; exit 1; }
+                stale_kept=$(comm -13 unit-keys.txt keep-keys.txt | tr '\n' ' ')
+                [ -z "$stale_kept" ] || { echo "FAIL: smokeKeepDirectives carries keys the unit no longer has: $stale_kept"; exit 1; }
                 touch "$out"
               '';
           # Unit-syntax gate: systemd-analyze verify on the rendered unit —
@@ -1250,6 +1306,42 @@
                 entries=$(wc -l < history.jsonl)
                 [ "$entries" = "2" ] || { echo "FAIL: sticky-dwell degraded phase must not write a ledger entry (expected 2, got $entries)"; exit 1; }
                 export OFFLINE_BANNER_DEGRADED_DWELL=3000
+
+                # --- %t historyPath scenario (2026-11-18): the ledger has
+                # TWO provisioned shapes — the %h state-dir hole AND the %t
+                # runtime dir. Drive an outage with the ledger INSIDE
+                # $XDG_RUNTIME_DIR/offline-banner (the %t shape the unit
+                # provisions via RuntimeDirectory=) and assert the entry
+                # lands there end-to-end. The entry is written on the
+                # offline→departure (rememberOutage), so the outage must
+                # CLOSE before the file can carry one.
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
+                rm -f "$state"
+                export OFFLINE_BANNER_HISTORY="$XDG_RUNTIME_DIR/offline-banner/history.jsonl"
+                echo ok > control
+                printf 'tcp ok\ndns ok\n' > control-net
+                quickshell -p "$qmlDir" >qs-t.log 2>&1 &
+                qs_pid=$!
+                assert_state false
+                printf 'tcp fail\ndns fail\n' > control-net
+                assert_state true
+                assert_journal "banner phase=offline legs=tcp,dns" qs-t.log
+                printf 'tcp ok\ndns ok\n' > control-net
+                assert_state false
+                tentries=0
+                for i in $(seq 1 40); do
+                    tentries=$(wc -l < "$XDG_RUNTIME_DIR/offline-banner/history.jsonl" 2>/dev/null || echo 0)
+                    [ "''${tentries:-0}" -ge 1 ] && break
+                    sleep 0.25
+                done
+                [ "''${tentries:-0}" -ge 1 ] || { echo "FAIL: %t-shaped ledger hole never received an entry: $(cat "$XDG_RUNTIME_DIR/offline-banner/history.jsonl" 2>/dev/null || echo MISSING)"; exit 1; }
+                tail -1 "$XDG_RUNTIME_DIR/offline-banner/history.jsonl" | jq -e '.reasons and (.reasons | index("tcp")) != null' >/dev/null || { echo "FAIL: %t ledger entry lost its reasons array"; exit 1; }
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
+                unset OFFLINE_BANNER_HISTORY
 
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
