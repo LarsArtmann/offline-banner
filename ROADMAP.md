@@ -26,15 +26,15 @@ say without compromising that honesty:
   what "offline" means. (The tcp leg's IP-literal + the icmp/dns legs already
   give three independent targets; revisit only if a real single-provider
   outage class appears that the ladder still mislabels.)
-  - *Semantics memo (2026-11-18, implementation gated on owner).* The two
+  - _Semantics memo (2026-11-18, implementation gated on owner)._ The two
     modes are one decision: any-success across N targets ≡ all-fail on the
     inverted per-target legs. **All-fail per leg** (a leg goes down only when
     EVERY target fails) is the only mode worth wanting — it makes one
     provider's ICMP filtering unable to drop the icmp leg at all. But the
     ladder already buys that with provider-spanning legs: a Quad9-only
-    filtering mood lands as *degraded* (icmp down, tcp+dns up — silent blue,
+    filtering mood lands as _degraded_ (icmp down, tcp+dns up — silent blue,
     no alarm), which the gen-995 week machine-proved 1502 times. **What
-    multi-host cannot change**: the *offline* phase needs tcp+dns down (or
+    multi-host cannot change**: the _offline_ phase needs tcp+dns down (or
     all three net legs), and a genuine multi-provider co-outage fails every
     leg with or without extra targets — the alarm fires correctly in both
     worlds. **What it would cost**: probe time scales with targets under the

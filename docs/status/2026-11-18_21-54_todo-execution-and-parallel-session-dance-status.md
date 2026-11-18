@@ -125,4 +125,4 @@ Routing legend: `[row N]` = TODO_LIST row, `[road]` = ROADMAP fuel, `[new]` = su
 
 ---
 
-*Point-in-time snapshot. Verified-locally-only; nothing pushed. Waiting for instructions.*
+_Point-in-time snapshot. Verified-locally-only; nothing pushed. Waiting for instructions._

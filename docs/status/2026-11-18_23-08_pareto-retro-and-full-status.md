@@ -77,6 +77,7 @@
 ## f) NEXT (≤50, prioritized)
 
 **Owner window (one sitting each):**
+
 1. Sound audition — all 12 cues, tune or accept (row 22).
 2. SystemNix switch → then DMS enable + widget-state glance (row 16 checklist) + stale-tell test (row 82 recipe).
 3. Evening-window sweep per row 79's recipe (closes the last flap-observation leg).

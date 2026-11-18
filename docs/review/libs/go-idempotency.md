@@ -1,14 +1,14 @@
 # go-idempotency × offline-banner — Library Utilization Review
 
-| Field | Value |
-|---|---|
-| **Library repo** | `/home/lars/projects/go-idempotency` (github.com/LarsArtmann/go-idempotency) |
-| **Reviewed version** | `idemtest/v0.1.1-3-g80c3129` — latest local tag (HEAD `80c3129`, 2026-11-18; remotes NOT fetched) |
-| **Review date** | 2026-11-18 |
-| **Reviewed by** | Fleet-run Group A (library-deep-dive runbook), written directly by the orchestrator |
-| **Verdict** | NOT-APPLICABLE — no Go runtime in offline-banner, and no at-least-once delivery channel exists whose duplicates would need suppressing |
-| **Score** | 0/0 (n/a — no applicable surface; structural) |
-| **Flip trigger** | offline-banner gains a component that consumes at-least-once deliveries (a queue, a D-Bus command stream, a CQRS stack consumer) with side effects that must not double-fire |
+| Field                | Value                                                                                                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Library repo**     | `/home/lars/projects/go-idempotency` (github.com/LarsArtmann/go-idempotency)                                                                                                 |
+| **Reviewed version** | `idemtest/v0.1.1-3-g80c3129` — latest local tag (HEAD `80c3129`, 2026-11-18; remotes NOT fetched)                                                                            |
+| **Review date**      | 2026-11-18                                                                                                                                                                   |
+| **Reviewed by**      | Fleet-run Group A (library-deep-dive runbook), written directly by the orchestrator                                                                                          |
+| **Verdict**          | NOT-APPLICABLE — no Go runtime in offline-banner, and no at-least-once delivery channel exists whose duplicates would need suppressing                                       |
+| **Score**            | 0/0 (n/a — no applicable surface; structural)                                                                                                                                |
+| **Flip trigger**     | offline-banner gains a component that consumes at-least-once deliveries (a queue, a D-Bus command stream, a CQRS stack consumer) with side effects that must not double-fire |
 
 ## 1. What the library is
 
@@ -16,21 +16,21 @@ A focused Go SDK that turns at-least-once delivery into at-most-once processing:
 
 Submodules (from local go.mod files):
 
-| Module | Purpose |
-|---|---|
+| Module                  | Purpose                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
 | `go-idempotency` (root) | `Store` interface (`CheckAndRecord`/`Seen`/`Record`), `ErrDuplicate`, atomicity contracts |
-| `idemtest/` | Contract test suite for `Store` implementations |
+| `idemtest/`             | Contract test suite for `Store` implementations                                           |
 
 ## 2. Capability inventory
 
-| Capability | What the library offers | Status in offline-banner | Reason |
-|---|---|---|---|
-| `CheckAndRecord` atomic dedup | Single-lock check+record; concurrent same-key callers serialize, exactly one wins | Not Applicable | No Go runtime; also no concurrent duplicate-prone delivery channel exists |
-| `Store` interface SDK | 3-method contract with named atomic primitive per backend | Not Applicable | No Go code to implement it in |
-| `ErrDuplicate` semantics (error-family classified) | Typed duplicate rejection | Not Applicable | No Go error values in the consumer |
-| TTL-scoped keys | Keys expire, bounded store growth | Not Applicable | No key store exists |
-| `idemtest` contract suite | Verify a custom backend's semantics | Not Applicable | No backend to verify |
-| Duplicate-suppression doctrine (`CheckAndRecord` over `Seen`+`Record`) | Anti-TOCTOU guidance | Fully Leveraged (as doctrine, re-derived locally) | The QML state machine debounces on raw counters (`rawDownLegs()` is the only truth; signal-only re-arms are suppressed by comparing `lastDownLegsKey`) — the same "decide on recorded state, not on a racy observation" principle, CI-proven in this repo |
+| Capability                                                             | What the library offers                                                           | Status in offline-banner                          | Reason                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CheckAndRecord` atomic dedup                                          | Single-lock check+record; concurrent same-key callers serialize, exactly one wins | Not Applicable                                    | No Go runtime; also no concurrent duplicate-prone delivery channel exists                                                                                                                                                                                 |
+| `Store` interface SDK                                                  | 3-method contract with named atomic primitive per backend                         | Not Applicable                                    | No Go code to implement it in                                                                                                                                                                                                                             |
+| `ErrDuplicate` semantics (error-family classified)                     | Typed duplicate rejection                                                         | Not Applicable                                    | No Go error values in the consumer                                                                                                                                                                                                                        |
+| TTL-scoped keys                                                        | Keys expire, bounded store growth                                                 | Not Applicable                                    | No key store exists                                                                                                                                                                                                                                       |
+| `idemtest` contract suite                                              | Verify a custom backend's semantics                                               | Not Applicable                                    | No backend to verify                                                                                                                                                                                                                                      |
+| Duplicate-suppression doctrine (`CheckAndRecord` over `Seen`+`Record`) | Anti-TOCTOU guidance                                                              | Fully Leveraged (as doctrine, re-derived locally) | The QML state machine debounces on raw counters (`rawDownLegs()` is the only truth; signal-only re-arms are suppressed by comparing `lastDownLegsKey`) — the same "decide on recorded state, not on a racy observation" principle, CI-proven in this repo |
 
 ## 3. Usage evidence in offline-banner
 
@@ -50,7 +50,7 @@ Conclusion: zero references; structurally impossible to reference — the consum
 - The outage ledger appends **one entry per completed outage** (open outages never write), so at-most-once matters only at the outage boundary, and that boundary is decided by the QML state machine from raw counters — not from a delivery channel that can replay.
 - Sound cues fire once per outage by the same state-machine discipline (no re-sound on mid-outage reason switches is an asserted CI invariant).
 
-The genuinely shared principle — "decide on committed state, never on a racy observation" — is already enforced here with CI teeth. The repo's 2026-11-10 doctrine (a var-binding's CHANGED-SIGNAL is not contract-truth; the degraded re-arm compares the raw leg set and suppresses same-content firings) is `CheckAndRecord`-thinking in QML: deduplicate *events* by comparing against recorded state. That was found independently and is pinned by tests, so there is no gap for the library to fill.
+The genuinely shared principle — "decide on committed state, never on a racy observation" — is already enforced here with CI teeth. The repo's 2026-11-10 doctrine (a var-binding's CHANGED-SIGNAL is not contract-truth; the degraded re-arm compares the raw leg set and suppresses same-content firings) is `CheckAndRecord`-thinking in QML: deduplicate _events_ by comparing against recorded state. That was found independently and is pinned by tests, so there is no gap for the library to fill.
 
 ## 5. Fleet perspective
 

@@ -7,6 +7,7 @@ when r >= 200, g >= 170 and r - b >= 40.
 
 Usage: band-count.py FILE ROW_LO ROW_HI  (rows are physical pixels)
 """
+
 import sys
 
 
