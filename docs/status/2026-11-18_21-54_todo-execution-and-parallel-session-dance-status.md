@@ -107,7 +107,7 @@ Routing legend: `[row N]` = TODO_LIST row, `[road]` = ROADMAP fuel, `[new]` = su
 39. **Re-verify the Checks workflow on the next GitHub runner-image announcement** (ubuntu-24.04 pin doctrine). Impact Medium, Effort S. `[AGENTS CI]`.
 40. **Keep workflow-lint tool pins in lockstep with flake.lock moves** (zizmor build-breakage doctrine; next nixpkgs bump). Impact Medium, Effort S. `[AGENTS CI]`.
 41. **docs-health HARVEST this report's f-list** into TODO_LIST/ROADMAP (the actionable ones above mostly already have rows; the [new]/[road] ones don't). Impact Medium, Effort M. `[skill loop]`.
-42. **Add this report's row to docs/status/README.md**. Impact Low, Effort S. `[new]`.
+42. **Add this report's row to docs/status/README.md**. Impact Low, Effort S. `[new]` — DONE AT SUBMISSION: the README row landed in the same sweep as the report (c6a6cfe, docs/status/README.md +1).
 43. **Brutal-self-review of the two-session evening** (ghost systems, split brains across the merged commits). Impact Medium, Effort M. `[new]` — owner call.
 44. **Pin the mention-count methodology across the other 21 reports' verify blocks** (living-file globs + recount date). Impact Low, Effort M. `[new]`.
 45. **Ledger writer audit**: confirm append-only `>>` is safe under the overlap class T56 fixed (no stage file, but two appenders can interleave lines — likely fine for JSONL, decide explicitly). Impact Medium, Effort S. `[new]`.
