@@ -152,9 +152,7 @@
             "OFFLINE_BANNER_SOUND_VOLUME"
             "OFFLINE_BANNER_SOUNDS"
           ];
-          envLines = nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") (
-            unitEnvironment
-          );
+          envLines = nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") unitEnvironment;
           isSoundLine =
             line: nixpkgs.lib.any (key: nixpkgs.lib.hasPrefix "Environment=${key}=" line) soundEnvKeys;
           propsLines =
@@ -1598,12 +1596,15 @@
                 quickshell -p "$qmlDir" >qs-seam.log 2>&1 &
                 qs_pid=$!
                 seam_state="$XDG_RUNTIME_DIR/offline-banner-smoke/state"
+                # Poll the TRANSITION (the harness asserts doctrine): the
+                # tcp leg needs two consecutive failures to go down, and the
+                # heartbeat writes the file on every probe regardless.
                 for i in $(seq 1 40); do
-                    [ -s "$seam_state" ] && break
+                    [ -s "$seam_state" ] && [ "$(jq -r '.active | tostring' "$seam_state" 2>/dev/null)" = "true" ] && break
                     sleep 0.25
                 done
                 [ -s "$seam_state" ] || { echo "FAIL: STATE_DIR seam never produced a state file in the redirected dir"; tail -40 qs-seam.log >&2; exit 1; }
-                [ "$(jq -r '.active | tostring' "$seam_state")" = "true" ] || { echo "FAIL: seam state file wrong content: $(cat "$seam_state")"; exit 1; }
+                [ "$(jq -r '.active | tostring' "$seam_state")" = "true" ] || { echo "FAIL: seam state never went active in the redirected dir: $(cat "$seam_state")"; tail -40 qs-seam.log >&2; exit 1; }
                 # Same write event produced (or leaked) the default file —
                 # one settle interval, then the negative must hold.
                 sleep 1
