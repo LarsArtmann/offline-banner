@@ -135,7 +135,7 @@
 42. Runner-image watch: re-verify Checks when GitHub announces an Ubuntu image migration (24.04 pin is the guard).
 43. ~~After the first post-fix outage: refresh AGENTS live-evidence paragraph (RSS, ping, state numbers — currently 2026-10-17 data).~~ done — 2026-11-17 — the AGENTS live-evidence paragraph carries gen-995 data
 44. Re-verify the smoke props against a rendered unit diff after any serviceConfig change (ritual note in the smoke-script check comment).
-45. lessons.md: add the emulated-arm ritual once it has proven itself (rule 12: verify before enshrining).
+45. ~~lessons.md: add the emulated-arm ritual once it has proven itself (rule 12: verify before enshrining).~~ → DONE 2026-11-18: the ritual HAS proven itself (emulated-aarch64 CI caught the d3be7bf re-arm bug + the mid-cascade state-write race, both invisible on the x86_64 host; months of green runs since 2026-11-10) — lesson enshrined in the crush-config repo (`a7c651e`, "Emulated-aarch64 CI is a real gate — its timing quirks are evidence, not noise").
 46. Launch posts: Discourse + r/NixOS (owner-gated; drafts ready).
 47. Change `gh release create` body policy decision: curated vs `--generate-notes` — v0.2.1 is the first test of the pre-folded CHANGELOG flow.
 48. ~~ROADMAP: harvest any of §f's research-y leftovers (43–49 class) that belong there, via docs-health HARVEST routing rigor.~~ done — 2026-11-17 — ROADMAP updated (DNS leg realized; VM test built)

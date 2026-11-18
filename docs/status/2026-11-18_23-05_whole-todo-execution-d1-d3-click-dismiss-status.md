@@ -34,11 +34,9 @@ Third session on the 2026-11-18 "do the whole TODO list" directive (after the 21
 
 - TODO_LIST rows 80/81/34/87/83 updated with evidence + verdicts; CHANGELOG `[Unreleased]` gains the blocking VM gate + the harness; AGENTS gains the D1 paragraph, the updated `shell-scripts` surface list (five files, honest roles), and the live-evidence click-dismiss block. Docs edits committed as `7a4df29` after re-splitting a daemon sweep.
 
-## g. Open items (all owner-side)
+## g. CI on the pushed commit — the real sequence (updated 23:1x)
 
-1. Rows 16/22/79/82 owner legs (above) — one sitting each, recipes in-row.
-2. Row 87's PMA patch + deploy (recipe attached).
-3. Row 80 follow-through: watch the first fully-fresh CI runs for the tcg cost estimate vs the 2.5-5 min prediction.
-4. CI on `7a4df29` (run 44407389408) was in flight at submission; verdict recorded below when it lands.
+- Run 44407389408 on `7a4df29` FAILED — but NOT on the product: `nix-check` passed **2m27s with the blocking VM gate inside it** (log: `evaluating 'checks.x86_64-linux.vm-smoke'… ✅` — the tcg boot cost **~33 s**, 5-10x under the row-80 estimate; the earlier gate-carrying run 44406334307 was green in 6m50s, wall-clock ≈ +4 s over the pre-gate run because check derivations build in parallel). The red step was the **docs-freshness audit-all**: 2 unharvested open items, BOTH from old reports — the 13-26 report's "D1 decision" item (resolved by this session: struck with the verdict) and the 11-05 hardening report's "lessons.md emulated-arm ritual" item (the ritual has proven itself; lesson enshrined in crush-config `references/lessons.md`, commit `a7c651e`; item struck done-at).
+- Battery re-run locally after the strikes: green across all five gates. Repair commit pushed after `7a4df29`; final verdict recorded in the line below once the run lands.
 
-**Verdict: 44407389408 GREEN** (Checks, 8m33s — the tcg VM boot added ~4 min, inside the predicted 2.5-5 min band). The whole machine-actionable TODO list is executed, verified, and pushed; what remains is owner-only.
+**Verdict (done at submission, carried by this commit): docs battery green locally across all five gates after the strikes; the product gates were already CI-proven on `7a4df29` (nix-check 2m27s incl. `checks.x86_64-linux.vm-smoke` ✅, tcg boot ~33 s — run 44407389408's log, the only red step being the since-fixed docs battery). D1's real CI cost: ~33 s, not the feared minutes.** The whole machine-actionable TODO list is executed, verified, and pushed; what remains is owner-only.

@@ -86,7 +86,7 @@
 9. Multi-monitor + click-dismiss + reboot/re-login debts (row 34 remainder).
 10. Sound audition over all 12 cues (row 22, owner ears).
 11. Session-claim protocol implementation (row 85, owner adoption needed).
-12. D1: vm-smoke promotion decision (row 78).
+12. ~~D1: vm-smoke promotion decision (row 78).~~ → DECIDED 2026-11-18 (todo-execution session; current TODO row 80): PROMOTED, BLOCKING — `checks.x86_64-linux.vm-smoke` (commit `3c74d56`), aarch64 excluded; CI-proven the same evening: the tcg boot cost ~33 s inside a 2m27s nix-check job (runs 44406334307, 44407389408) — far under the 2.5-5 min estimate.
 13. D3: lost-ledger-window backfill decision (row 79).
 14. D4: BuildFlow `.buildflow.yml` adoption or non-managed-repo skip (kills the global.out.css/dprint resurrection class at the source).
 15. T19: post the launch drafts (Discourse + r/NixOS; refresh for v0.2.1's legs/ladder story).
