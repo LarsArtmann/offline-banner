@@ -1,8 +1,7 @@
 # Status: DNS-live verification + CI repair (domain go-live day)
 
-
 > **Live remainder (2026-11-17 archive banner):** open items routed — social upload → the FIREBASE/social TODO row; launch-post posting stays the owner decision (drafts in docs/marketing/); website visual-QA/a11y/lighthouse → the website-CI quality-jobs row; real-monitor proof → the forced-outage evening row; video variants → ROADMAP theme 5.
-**Generated:** 2026-10-17 ~10:00 CEST · **Session:** owner reported DNS applied, asked "did you link the website on/in the GitHub project meta data?" + continue-until-done · **HEAD at writing:** `8a14308` · **Skills loaded:** none new (carry-over website-launch go-live context; no SKILL.md matched this repair work)
+> **Generated:** 2026-10-17 ~10:00 CEST · **Session:** owner reported DNS applied, asked "did you link the website on/in the GitHub project meta data?" + continue-until-done · **HEAD at writing:** `8a14308` · **Skills loaded:** none new (carry-over website-launch go-live context; no SKILL.md matched this repair work)
 
 ## a) Fully done
 

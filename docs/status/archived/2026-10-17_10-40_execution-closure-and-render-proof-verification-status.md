@@ -1,13 +1,12 @@
 # Execution-Closure Status Report — return-state triage, render proof verified, docs pass
 
-
 > **Live remainder (2026-11-17 archive banner):** open items routed — wlrctl/reboot/multi-monitor/click-dismiss → the live-verification debts row; live-monitor proof + drop-in flow → the forced-outage evening row; second-compositor + ecosystem ideas → ROADMAP themes 3/5; v0.2.1 → its TODO row. §d/§e remain bare as the historical process record.
-_Point-in-time snapshot, 2026-10-17 10:40 CEST, HEAD `9c178b7`, working tree clean
-(daemon committed everything mid-session). Scope: ONLY this session's run — the
-standing execution mandate applied to the closure work queued by
-`2026-10-17_09-36_check-extension-and-render-proof-status.md`. Sections follow
-the a–g dispatch shape. When bringing this report current, use docs-health
-ANNOTATE._
+> _Point-in-time snapshot, 2026-10-17 10:40 CEST, HEAD `9c178b7`, working tree clean
+> (daemon committed everything mid-session). Scope: ONLY this session's run — the
+> standing execution mandate applied to the closure work queued by
+> `2026-10-17_09-36_check-extension-and-render-proof-status.md`. Sections follow
+> the a–g dispatch shape. When bringing this report current, use docs-health
+> ANNOTATE._
 
 ## a) FULLY DONE (verified, not claimed)
 

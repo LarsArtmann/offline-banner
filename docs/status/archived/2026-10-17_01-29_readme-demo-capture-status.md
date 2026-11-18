@@ -31,7 +31,7 @@ mocked; only the carrier bit is.
    ~~Live in scripts/capture-demo.sh:38-69.~~
 3. ~~**Headless render risk retired** — quickshell (0.3.2) + `QT_QUICK_BACKEND=software`~~ done (docs-health pass 2026-11-17)
    ~~- `WLR_BACKENDS=headless WLR_RENDERER=pixman sway` renders; bar + foot + sockets +~~
-     ~~`wf-recorder` + `grim` + ffmpeg all mechanically work end to end.~~
+   ~~`wf-recorder` + `grim` + ffmpeg all mechanically work end to end.~~
 4. ~~**Demo scene files** — scripts/demo/bar/shell.qml (desktop bar with exclusive zone,~~ done (docs-health pass 2026-11-17)
    ~~the thing the banner pushes down; clock replaced by static "12:47" after a~~
    ~~`formatDateTime` API warning), scripts/demo/sway.conf (1920x1080, `#1e1e2e` bg,~~

@@ -70,28 +70,28 @@ flowchart TD
 
 ## Medium granularity — 20 tasks, 30–100 min each (sorted: importance → impact → effort → customer value)
 
-| ID  | Task | Why / context | Effort | Value | Depends | Status |
-| --- | ---- | ------------- | ------ | ----- | ------- | ------ |
-| T01 | Push master + watch CI + hygiene | 12 real commits (docs-health sweep + plans) sit unpushed; every green claim is local until pushed. Includes the PR/daemon-hygiene sweep (4d896fb confirm moves here if quick). Owner-adjacent: push was explicitly requested this session; future pushes stay per-instruction. | 30 m | ★★★★★ | — | ready |
-| T02 | Rotate the FIREBASE secret + first green deploy | The stale `FIREBASE_SERVICE_ACCOUNT` is the only red on master (deploy auth fails, run 42902844872; build green). Owner console: new key in GitHub secrets + GCP; then `workflow_dispatch` a Website run and watch the deploy go green — this makes the release runbook's "both workflows green" satisfiable again. | 30 m | ★★★★★ | T01 | ready [owner console] |
-| T03 | Cut v0.2.1 (D2) | Pins the 226-fix + legs/ladder + hardening + live-proven gen-995 tree for consumers. Fold CHANGELOG [Unreleased] → 0.2.1 (incl. the ladder bullet from ab56830), add the changelog.mdx section (docs describe the tagged tree — runbook step 2), re-run gates, annotated tag + curated release (G5: curated notes, unblock command up top), verify tag-source flake check + metadata. | 60 m | ★★★★★ | T02, D2 | ready [owner go] |
-| T04 | SystemNix relock to the v0.2.1 tag | evo-x2 currently pins master rev 320be2a — fine while master == quality, but a tag pin is the point of tagging. Bump the input to the tag, eval, owner switch, verify heartbeat + `probe ok`, update AGENTS Consumers + TODO rows. | 30 m | ★★★★ | T03 | ready [owner switch] |
-| T05 | Forced-outage live-proof evening | Drop-in `OFFLINE_BANNER_PROBE_HOST=192.0.2.123` + restart: confirm the show cue AUDIBLE from the hardened unit (pw-play stderr now journals since ab56830 — the journal alone can close it), grim-capture the strip on the REAL monitor, restore → recover cue. Annotate FEATURES sound/pixel rows + AGENTS live-evidence with the final evidence. Closes rows 77 + 34's live halves. | 90 m | ★★★★★ | T04 | ready |
-| T06 | Evening-window flap observation | The ladder's real verdict: icmp flaps must land as silent degraded strips (blue, auto-fade, no sound, no ledger) — NEVER a yellow alarm. One journal sweep after an evening session: `banner state=shown` count must stay 0 unless tcp+dns genuinely dropped. Rides T05's session window. | 30 m | ★★★★ | T05 | ready |
-| T07 | DMS plugin deploy + kill-unit proof | The dead-banner tell, deployed nowhere since the incident: enable `systemnix-banner` in DMS's plugin list (SystemNix-side eval + switch), then kill the unit → `banner?` in error-red within one heartbeat; restore. Closes rows 79 + 16's live half. | 60 m | ★★★★★ | T04 | ready [owner switch] |
-| T08 | TypeScript pin + CI guard (S1+S2) | The daemon's `2ccdf6e` ^7 sweep silently stripped `astro check` for days. Add `"typescript": "~6.0.3"` to `website/package.json` overrides + a CI assert that the resolved TS major is 6. Exit strategy rides row 80. | 45 m | ★★★★ | T01 | ready |
-| T09 | Smoke-harness leftovers | (1) smoke-script asserts the keep-list covers every serviceConfig key (computed, not hand-listed); (2) `.#smoke --print` dry-run mode; (3) smoke-script negative test (strip %h → gate fails); (4) probe-transitions `%t/offline-banner` historyPath scenario. One bounded pass over flake.nix. | 90 m | ★★★★ | T01 | ready |
-| T10 | Pin actionlint + zizmor | The workflow-lint job floats `nixpkgs#actionlint nixpkgs#zizmor` — the same moving-pin class fixed for firebase-tools (9ace19a). Pin to the flake.lock rev; gate note. | 30 m | ★★★ | T01 | ready |
-| T11 | Wire docs-gates into the quality gate | The battery passes only when someone remembers to run it. G1: CI job step (recommended — nix-shell the flake binary, run `docs-gates run .`) or a flake check input. Plus the AGENTS paragraph (battery state, PASS 2026-11-17). | 60 m | ★★★★ | T01, G1 | ready |
-| T12 | Docs closing ritual | The next sweep should be trivial: strike the 20-10 §a table (cadence date ~2 days out), unify §d/§e archive canon per G2 across all 12 archived files, normalize the ROADMAP theme-1 strikethrough to plain prose, run the first SUPERVISED `docs-gates purge`, add an index-drift guard idea to the backlog. | 45 m | ★★★ | T11, G2 | ready |
-| T13 | Hyperframes: truth → M23 → merge | Subtasks resolve the version truth from the lockfile first, run the intentional M23 update round UNDER the age gate (lock regen + astro/video verify), THEN decide the 0.9.28 PR: merge with re-lint + re-check + a render decision (the postmortem lesson: lint/check is NOT render validation), or close it and pin deliberately. | 90 m | ★★★ | T01, G3 | ready |
-| T14 | Sandbox posture review | The unit has run under the full sandbox since 2026-10-17 (gen 995 since 2026-11-10) with zero sandbox-attributable faults: revisit the withheld options (`SystemCallFilter`, `PrivateDevices`, `MemoryDenyWriteExecute`) WITH that evidence, and record the `systemd-analyze security` exposure rating in AGENTS. Retires the last 2026-10-16 orphans. | 60 m | ★★★ | T05 | ready |
-| T15 | Website-CI quality jobs (G4) | Port a11y-guard + lighthouse or consciously reject them in AGENTS; port the S4 ci-watch scheduled workflow (fails on a red master — two dead pipelines sat unnoticed). Implement what survives the decision. | 60 m | ★★★ | T01, G4 | ready |
-| T16 | Small decisions batch | (1) `global.out.css`: delete or make the build input (zero references; owner call recorded); (2) tag-trigger CI: wire or record the no; (3) release-notes policy: curated vs `--generate-notes` (v0.2.1 uses curated — record it). | 45 m | ★★ | T03 | ready |
-| T17 | Audition + tune the 12 cues | Only 2 of 12 heard by a human. `nix build .#sounds` + `scripts/play-sounds.sh`; owner ears on droplet/retro/link/dismiss; one rebuild per tune iteration. | 45 m | ★★ | — | ready [owner ears] |
-| T18 | Watch/verify batch | (1) TS7 upstream re-verify (#17852, TS 7.1, @astrojs/check peer — row 80 facts are 12 days old); (2) `4d896fb` confirm-or-remessage; (3) journal-retention note for evo-x2 (18-52 f28 leftover); (4) PR hygiene: age/CI of the open hyperframes PR. | 45 m | ★★ | — | ready |
-| T19 | Launch posts + social upload | Post the refreshed Discourse + r/NixOS drafts (sounds + ledger sentence, incident-honesty clause, version-agnostic titles — v0.2.1-accurate after T03); upload `assets/branding/social-preview.png` (Settings → Social preview, no API); cross-link the topic from the README. | 30 m | ★★ | T03 | ready [owner] |
-| T20 | TODO diet + queue triage | The queue is at its healthy upper bound (~19 rows). Retire or fold: row 34's residual items into T05/T07 evidence; stale halves; re-rank what remains. "Next addition requires a deletion" — make it true again. | 30 m | ★★ | T05, T07 | ready |
+| ID  | Task                                            | Why / context                                                                                                                                                                                                                                                                                                                                                                         | Effort | Value | Depends  | Status                |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----- | -------- | --------------------- |
+| T01 | Push master + watch CI + hygiene                | 12 real commits (docs-health sweep + plans) sit unpushed; every green claim is local until pushed. Includes the PR/daemon-hygiene sweep (4d896fb confirm moves here if quick). Owner-adjacent: push was explicitly requested this session; future pushes stay per-instruction.                                                                                                        | 30 m   | ★★★★★ | —        | ready                 |
+| T02 | Rotate the FIREBASE secret + first green deploy | The stale `FIREBASE_SERVICE_ACCOUNT` is the only red on master (deploy auth fails, run 42902844872; build green). Owner console: new key in GitHub secrets + GCP; then `workflow_dispatch` a Website run and watch the deploy go green — this makes the release runbook's "both workflows green" satisfiable again.                                                                   | 30 m   | ★★★★★ | T01      | ready [owner console] |
+| T03 | Cut v0.2.1 (D2)                                 | Pins the 226-fix + legs/ladder + hardening + live-proven gen-995 tree for consumers. Fold CHANGELOG [Unreleased] → 0.2.1 (incl. the ladder bullet from ab56830), add the changelog.mdx section (docs describe the tagged tree — runbook step 2), re-run gates, annotated tag + curated release (G5: curated notes, unblock command up top), verify tag-source flake check + metadata. | 60 m   | ★★★★★ | T02, D2  | ready [owner go]      |
+| T04 | SystemNix relock to the v0.2.1 tag              | evo-x2 currently pins master rev 320be2a — fine while master == quality, but a tag pin is the point of tagging. Bump the input to the tag, eval, owner switch, verify heartbeat + `probe ok`, update AGENTS Consumers + TODO rows.                                                                                                                                                    | 30 m   | ★★★★  | T03      | ready [owner switch]  |
+| T05 | Forced-outage live-proof evening                | Drop-in `OFFLINE_BANNER_PROBE_HOST=192.0.2.123` + restart: confirm the show cue AUDIBLE from the hardened unit (pw-play stderr now journals since ab56830 — the journal alone can close it), grim-capture the strip on the REAL monitor, restore → recover cue. Annotate FEATURES sound/pixel rows + AGENTS live-evidence with the final evidence. Closes rows 77 + 34's live halves. | 90 m   | ★★★★★ | T04      | ready                 |
+| T06 | Evening-window flap observation                 | The ladder's real verdict: icmp flaps must land as silent degraded strips (blue, auto-fade, no sound, no ledger) — NEVER a yellow alarm. One journal sweep after an evening session: `banner state=shown` count must stay 0 unless tcp+dns genuinely dropped. Rides T05's session window.                                                                                             | 30 m   | ★★★★  | T05      | ready                 |
+| T07 | DMS plugin deploy + kill-unit proof             | The dead-banner tell, deployed nowhere since the incident: enable `systemnix-banner` in DMS's plugin list (SystemNix-side eval + switch), then kill the unit → `banner?` in error-red within one heartbeat; restore. Closes rows 79 + 16's live half.                                                                                                                                 | 60 m   | ★★★★★ | T04      | ready [owner switch]  |
+| T08 | TypeScript pin + CI guard (S1+S2)               | The daemon's `2ccdf6e` ^7 sweep silently stripped `astro check` for days. Add `"typescript": "~6.0.3"` to `website/package.json` overrides + a CI assert that the resolved TS major is 6. Exit strategy rides row 80.                                                                                                                                                                 | 45 m   | ★★★★  | T01      | ready                 |
+| T09 | Smoke-harness leftovers                         | (1) smoke-script asserts the keep-list covers every serviceConfig key (computed, not hand-listed); (2) `.#smoke --print` dry-run mode; (3) smoke-script negative test (strip %h → gate fails); (4) probe-transitions `%t/offline-banner` historyPath scenario. One bounded pass over flake.nix.                                                                                       | 90 m   | ★★★★  | T01      | ready                 |
+| T10 | Pin actionlint + zizmor                         | The workflow-lint job floats `nixpkgs#actionlint nixpkgs#zizmor` — the same moving-pin class fixed for firebase-tools (9ace19a). Pin to the flake.lock rev; gate note.                                                                                                                                                                                                                | 30 m   | ★★★   | T01      | ready                 |
+| T11 | Wire docs-gates into the quality gate           | The battery passes only when someone remembers to run it. G1: CI job step (recommended — nix-shell the flake binary, run `docs-gates run .`) or a flake check input. Plus the AGENTS paragraph (battery state, PASS 2026-11-17).                                                                                                                                                      | 60 m   | ★★★★  | T01, G1  | ready                 |
+| T12 | Docs closing ritual                             | The next sweep should be trivial: strike the 20-10 §a table (cadence date ~2 days out), unify §d/§e archive canon per G2 across all 12 archived files, normalize the ROADMAP theme-1 strikethrough to plain prose, run the first SUPERVISED `docs-gates purge`, add an index-drift guard idea to the backlog.                                                                         | 45 m   | ★★★   | T11, G2  | ready                 |
+| T13 | Hyperframes: truth → M23 → merge                | Subtasks resolve the version truth from the lockfile first, run the intentional M23 update round UNDER the age gate (lock regen + astro/video verify), THEN decide the 0.9.28 PR: merge with re-lint + re-check + a render decision (the postmortem lesson: lint/check is NOT render validation), or close it and pin deliberately.                                                   | 90 m   | ★★★   | T01, G3  | ready                 |
+| T14 | Sandbox posture review                          | The unit has run under the full sandbox since 2026-10-17 (gen 995 since 2026-11-10) with zero sandbox-attributable faults: revisit the withheld options (`SystemCallFilter`, `PrivateDevices`, `MemoryDenyWriteExecute`) WITH that evidence, and record the `systemd-analyze security` exposure rating in AGENTS. Retires the last 2026-10-16 orphans.                                | 60 m   | ★★★   | T05      | ready                 |
+| T15 | Website-CI quality jobs (G4)                    | Port a11y-guard + lighthouse or consciously reject them in AGENTS; port the S4 ci-watch scheduled workflow (fails on a red master — two dead pipelines sat unnoticed). Implement what survives the decision.                                                                                                                                                                          | 60 m   | ★★★   | T01, G4  | ready                 |
+| T16 | Small decisions batch                           | (1) `global.out.css`: delete or make the build input (zero references; owner call recorded); (2) tag-trigger CI: wire or record the no; (3) release-notes policy: curated vs `--generate-notes` (v0.2.1 uses curated — record it).                                                                                                                                                    | 45 m   | ★★    | T03      | ready                 |
+| T17 | Audition + tune the 12 cues                     | Only 2 of 12 heard by a human. `nix build .#sounds` + `scripts/play-sounds.sh`; owner ears on droplet/retro/link/dismiss; one rebuild per tune iteration.                                                                                                                                                                                                                             | 45 m   | ★★    | —        | ready [owner ears]    |
+| T18 | Watch/verify batch                              | (1) TS7 upstream re-verify (#17852, TS 7.1, @astrojs/check peer — row 80 facts are 12 days old); (2) `4d896fb` confirm-or-remessage; (3) journal-retention note for evo-x2 (18-52 f28 leftover); (4) PR hygiene: age/CI of the open hyperframes PR.                                                                                                                                   | 45 m   | ★★    | —        | ready                 |
+| T19 | Launch posts + social upload                    | Post the refreshed Discourse + r/NixOS drafts (sounds + ledger sentence, incident-honesty clause, version-agnostic titles — v0.2.1-accurate after T03); upload `assets/branding/social-preview.png` (Settings → Social preview, no API); cross-link the topic from the README.                                                                                                        | 30 m   | ★★    | T03      | ready [owner]         |
+| T20 | TODO diet + queue triage                        | The queue is at its healthy upper bound (~19 rows). Retire or fold: row 34's residual items into T05/T07 evidence; stale halves; re-rank what remains. "Next addition requires a deletion" — make it true again.                                                                                                                                                                      | 30 m   | ★★    | T05, T07 | ready                 |
 
 **Effort total:** ~14.5 h medium-granularity (P0 ≈ 2 h, P1 ≈ 3.5 h, P2 ≈ 5 h, P3 ≈ 4 h). Owner-console/ears moments are marked; everything else is session-executable.
 
@@ -101,105 +101,105 @@ flowchart TD
 
 ### P0 — the 1% → 51%
 
-| ID  | Subtask (≤12 m) | Parent |
-| --- | --------------- | ------ |
-| F01 | `git log --oneline -1 &&` precheck, then `git push origin master` (12 commits) | T01 |
-| F02 | `gh run list` — Checks green on the new HEAD; dependabot PR re-checks green | T01 |
-| F03 | Confirm `4d896fb` intent (website/flake.lock) — note for T18 if unclear | T01 |
-| F04 | Sweep stray branches/PR state; record anything unexpected | T01 |
-| F05 | Owner: create a fresh deploy SA key in GCP; update the GitHub secret `FIREBASE_SERVICE_ACCOUNT` | T02 |
-| F06 | `workflow_dispatch` the Website workflow; watch Deploy ✓ (first green since 2026-11-10) | T02 |
-| F07 | Fetch https://offline-banner.lars.software — verify the live site still serves landing + demo.mp4 | T02 |
-| F08 | Fold CHANGELOG [Unreleased] → `[0.2.1] — 2026-11-1x` + compare-link footer (unblock command NOT needed anymore — StateDirectory is live-proven; lead with the legs story) | T03 |
-| F09 | Add the 0.2.1 section to `website/src/content/docs/changelog.mdx` (runbook step 2: docs describe the tagged tree) | T03 |
-| F10 | `pnpm exec astro check` + `pnpm run build` + `pnpm exec html-validate` — all green | T03 |
-| F11 | `nix fmt && nix flake check --all-systems` — green | T03 |
-| F12 | Commit the release prep; watch BOTH workflows green on the release commit (runbook rule 1) | T03 |
-| F13 | D2 owner go → `git tag -a v0.2.1 -m "offline-banner v0.2.1"` + push the tag | T03 |
-| F14 | `gh release create v0.2.1 --verify-tag` with curated notes (highlights: legs/ladder, PATH-phantom fix, 226-fix proven live, vm-smoke; upgrade notes; CI fixes) | T03 |
-| F15 | `nix flake check github:LarsArtmann/offline-banner/v0.2.1 --all-systems` + `nix flake metadata` resolves to the tag | T03 |
-| F16 | Close TODO row 75 (v0.2.1) with the tag/release/run IDs | T03 |
-| F17 | SystemNix: `nix flake update offline-banner` → lock pins `v0.2.1` | T04 |
-| F18 | SystemNix: evo-x2 eval green | T04 |
-| F19 | Owner switch; verify heartbeat fresh + `probe ok` on the real NIC + StateDirectory in the rendered unit | T04 |
-| F20 | Update AGENTS Consumers (tag pin) + TODO rows; record the switch generation | T04 |
+| ID  | Subtask (≤12 m)                                                                                                                                                           | Parent |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| F01 | `git log --oneline -1 &&` precheck, then `git push origin master` (12 commits)                                                                                            | T01    |
+| F02 | `gh run list` — Checks green on the new HEAD; dependabot PR re-checks green                                                                                               | T01    |
+| F03 | Confirm `4d896fb` intent (website/flake.lock) — note for T18 if unclear                                                                                                   | T01    |
+| F04 | Sweep stray branches/PR state; record anything unexpected                                                                                                                 | T01    |
+| F05 | Owner: create a fresh deploy SA key in GCP; update the GitHub secret `FIREBASE_SERVICE_ACCOUNT`                                                                           | T02    |
+| F06 | `workflow_dispatch` the Website workflow; watch Deploy ✓ (first green since 2026-11-10)                                                                                   | T02    |
+| F07 | Fetch https://offline-banner.lars.software — verify the live site still serves landing + demo.mp4                                                                         | T02    |
+| F08 | Fold CHANGELOG [Unreleased] → `[0.2.1] — 2026-11-1x` + compare-link footer (unblock command NOT needed anymore — StateDirectory is live-proven; lead with the legs story) | T03    |
+| F09 | Add the 0.2.1 section to `website/src/content/docs/changelog.mdx` (runbook step 2: docs describe the tagged tree)                                                         | T03    |
+| F10 | `pnpm exec astro check` + `pnpm run build` + `pnpm exec html-validate` — all green                                                                                        | T03    |
+| F11 | `nix fmt && nix flake check --all-systems` — green                                                                                                                        | T03    |
+| F12 | Commit the release prep; watch BOTH workflows green on the release commit (runbook rule 1)                                                                                | T03    |
+| F13 | D2 owner go → `git tag -a v0.2.1 -m "offline-banner v0.2.1"` + push the tag                                                                                               | T03    |
+| F14 | `gh release create v0.2.1 --verify-tag` with curated notes (highlights: legs/ladder, PATH-phantom fix, 226-fix proven live, vm-smoke; upgrade notes; CI fixes)            | T03    |
+| F15 | `nix flake check github:LarsArtmann/offline-banner/v0.2.1 --all-systems` + `nix flake metadata` resolves to the tag                                                       | T03    |
+| F16 | Close TODO row 75 (v0.2.1) with the tag/release/run IDs                                                                                                                   | T03    |
+| F17 | SystemNix: `nix flake update offline-banner` → lock pins `v0.2.1`                                                                                                         | T04    |
+| F18 | SystemNix: evo-x2 eval green                                                                                                                                              | T04    |
+| F19 | Owner switch; verify heartbeat fresh + `probe ok` on the real NIC + StateDirectory in the rendered unit                                                                   | T04    |
+| F20 | Update AGENTS Consumers (tag pin) + TODO rows; record the switch generation                                                                                               | T04    |
 
 ### P1 — the 4% → 64%
 
-| ID  | Subtask (≤12 m) | Parent |
-| --- | --------------- | ------ |
-| F21 | Drop-in `OFFLINE_BANNER_PROBE_HOST=192.0.2.123` + `systemctl --user restart offline-banner` | T05 |
-| F22 | Journal: `banner state=shown reason=net` + `probe failed` ladder lines present | T05 |
-| F23 | LISTEN: the show cue from the hardened unit (if silent, journal the pw-play exit via the ab56830 surfacing) | T05 |
-| F24 | grim capture of the strip on the real monitor during shown (the last render claim) | T05 |
-| F25 | Restore probe host → recover cue audible + slide-up observed | T05 |
-| F26 | Annotate FEATURES sound row: audibility CONFIRMED/declined with journal evidence | T05 |
-| F27 | Annotate FEATURES presentation rows: real-monitor pixels PROVEN (close the 🟡 strip/animation rows if clean) | T05 |
-| F28 | Refresh the AGENTS live-evidence paragraph (new capture + audibility facts) | T05 |
-| F29 | Close TODO row 77 (forced-outage evening) with the evidence | T05 |
-| F30 | Leave the unit running through the evening window; note the drop-in removal before bed | T06 |
-| F31 | Next day: journal sweep — `banner state=shown` count must be 0 unless tcp+dns both dropped | T06 |
-| F32 | Annotate row 15 (evening flap) with the verdict; if clean, FEATURES detection rows gain "flap-tested live" | T06 |
-| F33 | SystemNix: enable the `systemnix-banner` DMS plugin in the user's DMS plugin list | T07 |
-| F34 | Eval + switch; confirm the plugin renders (banner absent state = empty widget) | T07 |
-| F35 | Kill the unit → `banner?` in error-red within one heartbeat (the fail-closed proof) | T07 |
-| F36 | Restore the unit → widget returns; annotate FEATURES waybar/DMS row + close row 79 | T07 |
+| ID  | Subtask (≤12 m)                                                                                              | Parent |
+| --- | ------------------------------------------------------------------------------------------------------------ | ------ |
+| F21 | Drop-in `OFFLINE_BANNER_PROBE_HOST=192.0.2.123` + `systemctl --user restart offline-banner`                  | T05    |
+| F22 | Journal: `banner state=shown reason=net` + `probe failed` ladder lines present                               | T05    |
+| F23 | LISTEN: the show cue from the hardened unit (if silent, journal the pw-play exit via the ab56830 surfacing)  | T05    |
+| F24 | grim capture of the strip on the real monitor during shown (the last render claim)                           | T05    |
+| F25 | Restore probe host → recover cue audible + slide-up observed                                                 | T05    |
+| F26 | Annotate FEATURES sound row: audibility CONFIRMED/declined with journal evidence                             | T05    |
+| F27 | Annotate FEATURES presentation rows: real-monitor pixels PROVEN (close the 🟡 strip/animation rows if clean) | T05    |
+| F28 | Refresh the AGENTS live-evidence paragraph (new capture + audibility facts)                                  | T05    |
+| F29 | Close TODO row 77 (forced-outage evening) with the evidence                                                  | T05    |
+| F30 | Leave the unit running through the evening window; note the drop-in removal before bed                       | T06    |
+| F31 | Next day: journal sweep — `banner state=shown` count must be 0 unless tcp+dns both dropped                   | T06    |
+| F32 | Annotate row 15 (evening flap) with the verdict; if clean, FEATURES detection rows gain "flap-tested live"   | T06    |
+| F33 | SystemNix: enable the `systemnix-banner` DMS plugin in the user's DMS plugin list                            | T07    |
+| F34 | Eval + switch; confirm the plugin renders (banner absent state = empty widget)                               | T07    |
+| F35 | Kill the unit → `banner?` in error-red within one heartbeat (the fail-closed proof)                          | T07    |
+| F36 | Restore the unit → widget returns; annotate FEATURES waybar/DMS row + close row 79                           | T07    |
 
 ### P2 — the 20% → 80%
 
-| ID  | Subtask (≤12 m) | Parent |
-| --- | --------------- | ------ |
-| F37 | Add `"typescript": "~6.0.3"` to the `website/package.json` overrides block | T08 |
-| F38 | Lock regen under `minimumReleaseAge`; eyeball the diff (TS 6.x resolved, no smuggling) | T08 |
-| F39 | `astro check` + build + html-validate green locally | T08 |
-| F40 | Add the CI TS-major guard step (assert resolved major == 6, or `astro check` version-line assert) | T08 |
-| F41 | Commit (deliberate, locked, locally verified — the daemon-manifest rule); watch CI green | T08 |
-| F42 | smoke-script: assert the keep-list covers every serviceConfig key (computed) | T09 |
-| F43 | Add `.#smoke --print` (emit the systemd-run argv, no exec) | T09 |
-| F44 | smoke-script negative test: strip the %h substitution in a scratch eval → gate MUST fail | T09 |
-| F45 | probe-transitions: `%t/offline-banner` historyPath scenario (end-to-end the second provisioned shape) | T09 |
-| F46 | Full `nix flake check --all-systems` green; commit | T09 |
-| F47 | Pin `actionlint`/`zizmor` to the flake.lock rev in checks.yml | T10 |
-| F48 | Workflow-lint job green on the pinned tools; commit | T10 |
-| F49 | G1 decision recorded (CI job vs flake check) in AGENTS Decision records | T11 |
-| F50 | Add the battery step (nix-shell the flake binary → `docs-gates run .`) to Checks | T11 |
-| F51 | Watch the job green on push; add the AGENTS docs-gates paragraph (state + PASS date) | T11 |
-| F52 | Strike the 20-10 §a accomplishment table (12 rows, per-cell, p-verdicts) | T12 |
-| F53 | Apply the G2 §d/§e canon across the 12 archived files (strike or leave, uniformly) | T12 |
-| F54 | ROADMAP theme 1: replace the `~~…~~` strike with plain "REALIZED" prose | T12 |
-| F55 | Supervised first `docs-gates purge` run (dry-run; apply only after reading the diff) | T12 |
-| F56 | Backlog note: index-drift guard (every status file has an index row) as a check idea | T12 |
-| F57 | Read the lockfile: which hyperframes does `website/video` actually resolve? Record the truth in AGENTS | T13 |
-| F58 | Correct the AGENTS/CHANGELOG 0.8.214 prose if the lock disagrees | T13 |
-| F59 | Intentional M23 pnpm update round under the age gate (lock regen + full website verify) | T13 |
-| F60 | G3: merge the 0.9.28 PR (then re-lint + re-check + RENDER demo.mp4, byte-change recorded) or close it with the pin recorded | T13 |
-| F61 | Video lint + check + render verification after any toolchain move; commit with the render evidence | T13 |
-| F62 | Live-probe the withheld options on a scratch eval (SystemCallFilter=@system-service first) — measure quickshell under it | T14 |
-| F63 | `systemd-analyze security` on the rendered unit; record the exposure rating in AGENTS | T14 |
-| F64 | Adopt or re-withhold each option WITH the evidence; module.nix comments updated; gates green | T14 |
+| ID  | Subtask (≤12 m)                                                                                                             | Parent |
+| --- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
+| F37 | Add `"typescript": "~6.0.3"` to the `website/package.json` overrides block                                                  | T08    |
+| F38 | Lock regen under `minimumReleaseAge`; eyeball the diff (TS 6.x resolved, no smuggling)                                      | T08    |
+| F39 | `astro check` + build + html-validate green locally                                                                         | T08    |
+| F40 | Add the CI TS-major guard step (assert resolved major == 6, or `astro check` version-line assert)                           | T08    |
+| F41 | Commit (deliberate, locked, locally verified — the daemon-manifest rule); watch CI green                                    | T08    |
+| F42 | smoke-script: assert the keep-list covers every serviceConfig key (computed)                                                | T09    |
+| F43 | Add `.#smoke --print` (emit the systemd-run argv, no exec)                                                                  | T09    |
+| F44 | smoke-script negative test: strip the %h substitution in a scratch eval → gate MUST fail                                    | T09    |
+| F45 | probe-transitions: `%t/offline-banner` historyPath scenario (end-to-end the second provisioned shape)                       | T09    |
+| F46 | Full `nix flake check --all-systems` green; commit                                                                          | T09    |
+| F47 | Pin `actionlint`/`zizmor` to the flake.lock rev in checks.yml                                                               | T10    |
+| F48 | Workflow-lint job green on the pinned tools; commit                                                                         | T10    |
+| F49 | G1 decision recorded (CI job vs flake check) in AGENTS Decision records                                                     | T11    |
+| F50 | Add the battery step (nix-shell the flake binary → `docs-gates run .`) to Checks                                            | T11    |
+| F51 | Watch the job green on push; add the AGENTS docs-gates paragraph (state + PASS date)                                        | T11    |
+| F52 | Strike the 20-10 §a accomplishment table (12 rows, per-cell, p-verdicts)                                                    | T12    |
+| F53 | Apply the G2 §d/§e canon across the 12 archived files (strike or leave, uniformly)                                          | T12    |
+| F54 | ROADMAP theme 1: replace the `~~…~~` strike with plain "REALIZED" prose                                                     | T12    |
+| F55 | Supervised first `docs-gates purge` run (dry-run; apply only after reading the diff)                                        | T12    |
+| F56 | Backlog note: index-drift guard (every status file has an index row) as a check idea                                        | T12    |
+| F57 | Read the lockfile: which hyperframes does `website/video` actually resolve? Record the truth in AGENTS                      | T13    |
+| F58 | Correct the AGENTS/CHANGELOG 0.8.214 prose if the lock disagrees                                                            | T13    |
+| F59 | Intentional M23 pnpm update round under the age gate (lock regen + full website verify)                                     | T13    |
+| F60 | G3: merge the 0.9.28 PR (then re-lint + re-check + RENDER demo.mp4, byte-change recorded) or close it with the pin recorded | T13    |
+| F61 | Video lint + check + render verification after any toolchain move; commit with the render evidence                          | T13    |
+| F62 | Live-probe the withheld options on a scratch eval (SystemCallFilter=@system-service first) — measure quickshell under it    | T14    |
+| F63 | `systemd-analyze security` on the rendered unit; record the exposure rating in AGENTS                                       | T14    |
+| F64 | Adopt or re-withhold each option WITH the evidence; module.nix comments updated; gates green                                | T14    |
 
 ### P3 — the other 20% → 100%
 
-| ID  | Subtask (≤12 m) | Parent |
-| --- | --------------- | ------ |
-| F65 | G4 decision: port/reject a11y-guard, lighthouse, ci-watch — recorded in AGENTS | T15 |
-| F66 | Implement ci-watch (scheduled workflow, fails on red master) if ported | T15 |
-| F67 | Implement a11y-guard/lighthouse jobs if ported; otherwise close the TODO row with the rejection | T15 |
-| F68 | `git rm website/src/styles/global.out.css` (or make it the build input) per the owner call | T16 |
-| F69 | Tag-trigger CI: wire the trigger or record the deliberate no (row 25) | T16 |
-| F70 | Record the release-notes policy (curated won for v0.2.1 — confirm or flip) | T16 |
-| F71 | `nix build .#sounds` + `scripts/play-sounds.sh` — owner listens to all 12 (droplet/retro/link/dismiss first) | T17 |
-| F72 | Collect the tune verdicts; re-synthesize + rebuild + re-audition (one loop) | T17 |
-| F73 | Annotate the TODO audition row with the verdict; close or keep tuning | T17 |
-| F74 | Re-verify TS7 upstream state (#17852, TS 7.1, @astrojs/check peer); refresh row 80 facts | T18 |
-| F75 | Journal-retention note: how far back the user journal reaches on evo-x2; set retention if forensics matter | T18 |
-| F76 | PR hygiene: age/CI of the hyperframes PR; close/merge per T13's outcome | T18 |
-| F77 | Owner: post the Discourse topic (v0.2.1-accurate) | T19 |
-| F78 | Owner: post the r/NixOS draft | T19 |
-| F79 | Owner: upload `assets/branding/social-preview.png` (Settings → Social preview); close row 73 | T19 |
-| F80 | Cross-link the Discourse topic from the README (one line) if posted | T19 |
-| F81 | Triage the queue: fold row 34's residuals into T05/T07 evidence; close anything the evening proved | T20 |
-| F82 | Re-rank the remaining rows; enforce "next addition deletes one" | T20 |
+| ID  | Subtask (≤12 m)                                                                                              | Parent |
+| --- | ------------------------------------------------------------------------------------------------------------ | ------ |
+| F65 | G4 decision: port/reject a11y-guard, lighthouse, ci-watch — recorded in AGENTS                               | T15    |
+| F66 | Implement ci-watch (scheduled workflow, fails on red master) if ported                                       | T15    |
+| F67 | Implement a11y-guard/lighthouse jobs if ported; otherwise close the TODO row with the rejection              | T15    |
+| F68 | `git rm website/src/styles/global.out.css` (or make it the build input) per the owner call                   | T16    |
+| F69 | Tag-trigger CI: wire the trigger or record the deliberate no (row 25)                                        | T16    |
+| F70 | Record the release-notes policy (curated won for v0.2.1 — confirm or flip)                                   | T16    |
+| F71 | `nix build .#sounds` + `scripts/play-sounds.sh` — owner listens to all 12 (droplet/retro/link/dismiss first) | T17    |
+| F72 | Collect the tune verdicts; re-synthesize + rebuild + re-audition (one loop)                                  | T17    |
+| F73 | Annotate the TODO audition row with the verdict; close or keep tuning                                        | T17    |
+| F74 | Re-verify TS7 upstream state (#17852, TS 7.1, @astrojs/check peer); refresh row 80 facts                     | T18    |
+| F75 | Journal-retention note: how far back the user journal reaches on evo-x2; set retention if forensics matter   | T18    |
+| F76 | PR hygiene: age/CI of the hyperframes PR; close/merge per T13's outcome                                      | T18    |
+| F77 | Owner: post the Discourse topic (v0.2.1-accurate)                                                            | T19    |
+| F78 | Owner: post the r/NixOS draft                                                                                | T19    |
+| F79 | Owner: upload `assets/branding/social-preview.png` (Settings → Social preview); close row 73                 | T19    |
+| F80 | Cross-link the Discourse topic from the README (one line) if posted                                          | T19    |
+| F81 | Triage the queue: fold row 34's residuals into T05/T07 evidence; close anything the evening proved           | T20    |
+| F82 | Re-rank the remaining rows; enforce "next addition deletes one"                                              | T20    |
 
 **Fine total:** 82 subtasks (≤12 min) across 20 medium tasks; every open TODO row and every session find is included. Nothing from the archived 19-03 plan is re-dispatched — its survivors are rows 73/75/78/79/80/81/82/83/25 and the D3 row.
 

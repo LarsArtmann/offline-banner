@@ -1,8 +1,7 @@
 # Status: Self-review + full inventory after DNS-live and CI-repair day
 
-
 > **Live remainder (2026-11-17 archive banner):** open items routed — social upload → the FIREBASE/social TODO row; launch-post posting stays the owner decision; website visual-QA/a11y/lighthouse → the website-CI quality-jobs row; compositor proof → ROADMAP theme 3; ecosystem ideas → ROADMAP theme 5. §d/§e remain bare as the historical process record.
-**Generated:** 2026-10-17 10:06 CEST · **Session:** owner applied DNS → asked "did you link the website in the GitHub metadata?" + "what did you forget / what could be better / what could you still improve?" → continue-until-done repair pass · **HEAD at writing:** `a91a77a` (master == origin/master, all CI green) · **Skills loaded:** status-report (HTML is this skill's canonical format; the user's explicit `.md` path demand overrides it, per the skill's own override rule)
+> **Generated:** 2026-10-17 10:06 CEST · **Session:** owner applied DNS → asked "did you link the website in the GitHub metadata?" + "what did you forget / what could be better / what could you still improve?" → continue-until-done repair pass · **HEAD at writing:** `a91a77a` (master == origin/master, all CI green) · **Skills loaded:** status-report (HTML is this skill's canonical format; the user's explicit `.md` path demand overrides it, per the skill's own override rule)
 
 **Direct answers to the three questions, up front:**
 
