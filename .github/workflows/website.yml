@@ -51,6 +51,17 @@ jobs:
       - run: pnpm install
         working-directory: website
 
+      # The 2ccdf6e incident: a swept ^7 bump silently removed astro check
+      # (it refuses TypeScript 7) for days behind a green build. The lock
+      # pins 6.0.3 and peers block <7 — this assert turns a future drift
+      # into a loud red instead of a quiet loss of type-checking.
+      - name: Assert TypeScript major stays 6
+        run: |
+          major=$(node -p "require('typescript/package.json').version.split('.')[0]")
+          echo "resolved TypeScript major: $major"
+          [ "$major" = "6" ] || { echo "::error::TypeScript major drift (want 6): astro check silently refuses TS7"; exit 1; }
+        working-directory: website
+
       - name: pnpm audit
         run: pnpm audit --audit-level=high --omit=dev
         working-directory: website
