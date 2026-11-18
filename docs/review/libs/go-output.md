@@ -61,7 +61,7 @@ The EXACT commands run (all exclude the reports directory):
 - `find /home/lars/projects/offline-banner -name 'go.mod' -not -path '*/.git/*'` → **0 files**
 - `find /home/lars/projects/offline-banner -name '*.go' -not -path '*/.git/*'` → **0 files**
 
-Supporting context (same greps, no library-name match): the repo's only renderers are QML (`module.nix:246` inlines `shell.qml` via `pkgs.writeTextDir`), `printf`+`jq` in POSIX sh (`contrib/offline-banner-waybar`), `JSON.stringify` writes inside the QML (`module.nix:597-619` state object, `module.nix:853-864` ledger entry), and the Astro website (`website/package.json`: astro ^7.4.12, typescript ^6.0.3). Conclusion: zero references; no Go runtime exists in the consumer.
+Supporting context (same greps, no library-name match): the repo's only renderers are QML (`module.nix:246` inlines `shell.qml` via `pkgs.writeTextDir`), `printf`+`jq` in POSIX sh (`contrib/offline-banner-waybar`), `JSON.stringify` writes inside the QML (`module.nix:597-617` state object, `module.nix:663-669` ledger entry), and the Astro website (`website/package.json`: astro ^7.4.12, typescript ^6.0.3). Conclusion: zero references; no Go runtime exists in the consumer.
 
 ## 4. Should offline-banner adopt it?
 

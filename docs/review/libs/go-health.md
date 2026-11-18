@@ -51,7 +51,7 @@ The EXACT commands run (all exclude the reports directory):
 - `find /home/lars/projects/offline-banner -name 'go.mod' -not -path '*/.git/*'` → **0 files**
 - `find /home/lars/projects/offline-banner -name '*.go' -not -path '*/.git/*'` → **0 files**
 
-Conclusion: zero references; no Go runtime exists in the consumer. The health system is natively implemented in ~1000 lines of QML inside `module.nix` (probe ladder, debounce, phase ladder, state/journal/ledger writers) plus the POSIX waybar consumer, supervised by the systemd user unit.
+Conclusion: zero references; no Go runtime exists in the consumer. The health system is natively implemented in ≈675 lines of inlined QML (`module.nix:246-921` — probe ladder, debounce, phase ladder, state/journal/ledger writers) plus the POSIX waybar consumer, supervised by the systemd user unit.
 
 ## 4. Should offline-banner adopt it?
 

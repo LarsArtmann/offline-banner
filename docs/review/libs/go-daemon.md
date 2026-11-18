@@ -30,7 +30,7 @@ Single module: `github.com/LarsArtmann/go-daemon` (go 1.27.2; deps: `coreos/go-s
 | Content negotiation (`ResolveRequestCodec`/`WriteJSON`/JSON v2) | JSON/CBOR media-type matching, q-value ranking, `Vary: Accept` | Not Applicable | The state file is a fixed hand-shaped JSON written by `printf`+`mv` inside QML's spawned `sh`; consumers (jq in POSIX sh) have no Accept dimension |
 | SSE framing (`ParseSSEData`) | WHATWG-spec multi-line data, heartbeats, size limits | Not Applicable | No event-stream surface; the heartbeat is the `updatedAt` field rewritten on every probe |
 | Flight recorder (`FlightRecorder`, TraceHandler) | Slow-request auto-trigger, Prometheus metrics, `go tool trace` streaming | Not Applicable | Performance debugging here is journal greps (`journalctl \| grep "banner state="`) and `systemd-analyze security` — a 4.7 Hz probe loop has no request path to trace |
-| Supervision & resource policy (docs/supervision.md) | Recommended unit settings (`Type=notify`, `WatchdogSec`, `Nice`, `CPUSchedulingPolicy=idle`) — explicitly *not* code | Fully Leveraged (as doctrine) | module.nix:1156-1164 already implements the supervisor side natively (`Type = "simple"`, `Restart = "always"`, `RestartSec = "5s"`, `MemoryMax = "256M"`, full sandbox posture, systemd-analyze security 5.8 MEDIUM accepted); the library itself states this layer belongs to the unit file |
+| Supervision & resource policy (docs/supervision.md) | Recommended unit settings (`Type=notify`, `WatchdogSec`, `Nice`, `CPUSchedulingPolicy=idle`) — explicitly *not* code | Fully Leveraged (as doctrine) | module.nix:1159-1164 already implements the supervisor side natively (`Type = "simple"`, `Restart = "always"`, `RestartSec = "5s"`, `MemoryMax = "256M"`, full sandbox posture, systemd-analyze security 5.8 MEDIUM accepted); the library itself states this layer belongs to the unit file |
 
 ## 3. Usage evidence in offline-banner
 
@@ -76,7 +76,7 @@ rg -n "go-daemon" /home/lars/projects/offline-banner --glob '!.git' --glob '!doc
 find /home/lars/projects/offline-banner -name '*.go' -not -path '*/.git/*' | wc -l  # 0
 
 # 3. The supervision layer that makes the library moot
-grep -n 'Type = "simple"\|Restart = "always"\|MemoryMax' /home/lars/projects/offline-banner/module.nix  # lines 1160-1164
+grep -n 'Type = "simple"\|Restart = "always"\|MemoryMax' /home/lars/projects/offline-banner/module.nix  # lines 1160, 1162, 1164
 ```
 
 All three blocks were executed on 2026-11-18 and reproduce the stated results.
