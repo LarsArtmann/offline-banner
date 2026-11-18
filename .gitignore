@@ -8,6 +8,7 @@ website/node_modules/
 website/video/node_modules/
 website/video/.hyperframes/
 website/dist/
+website/src/styles/global.out.css
 
 # Secrets and environment — never commit
 .env
