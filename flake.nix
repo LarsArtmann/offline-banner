@@ -134,17 +134,26 @@
           ++ map (d: "%t/${d}${smokeDirSuffix}") renamedRuntimeDirs
           ++ map (s: "%h/.local/state/${s}${smokeDirSuffix}") unitStateDirs;
           smokeLine = line: nixpkgs.lib.replaceStrings renameFrom renameTo line;
-          # Sound cues stay inert in the transient by default (they belong
-          # to the live unit; auditioning rides `nix run .#sounds` +
-          # scripts/play-sounds.sh). The unit's sound env moves to a second
-          # props file, consumed only when OFFLINE_BANNER_SMOKE_SOUND=1.
+          # The unit's env block lives at the SERVICE level
+          # (systemd.user.services.<name>.environment), NOT inside
+          # serviceConfig — the original smokeRunner read
+          # serviceConfig.Environment, which never existed, so the
+          # transient silently ran on QML defaults: no hardened PATH,
+          # no XDG_CACHE_HOME, no ledger env (the %h hole never
+          # exercised by a run). Reading the real attrset closes that
+          # blind spot. Sound cues stay inert in the transient by
+          # default (they belong to the live unit; auditioning rides
+          # `nix run .#sounds` + scripts/play-sounds.sh) — sound vars
+          # split off into props-sound.txt, consumed only when
+          # OFFLINE_BANNER_SMOKE_SOUND=1.
+          unitEnvironment = enabled.config.systemd.user.services.offline-banner.environment or { };
           soundEnvKeys = [
             "OFFLINE_BANNER_SOUND_THEME"
             "OFFLINE_BANNER_SOUND_VOLUME"
             "OFFLINE_BANNER_SOUNDS"
           ];
           envLines = nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") (
-            serviceConfig.Environment or { }
+            unitEnvironment
           );
           isSoundLine =
             line: nixpkgs.lib.any (key: nixpkgs.lib.hasPrefix "Environment=${key}=" line) soundEnvKeys;
@@ -845,7 +854,9 @@
                   grep -q "exec systemd-run --user" "$script" || { echo "FAIL: smoke script lost the systemd-run exec"; exit 1; }
                   grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
                   grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
-                  grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
+                  grep -q 'done < "$1"' "$script" || { echo "FAIL: smoke script lost the props reader loop"; exit 1; }
+                  grep -q 'read_props "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
+                  grep -q 'read_props "$sound_props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the sound props file"; exit 1; }
                   grep -q -- '--print' "$script" || { echo "FAIL: smoke script lost the --print dry-run"; exit 1; }
                   # The transient's command must be the RESOLVED store binary,
                   # never a bare name riding whatever PATH the caller happens
