@@ -40,6 +40,38 @@
           inherit system;
           modules = [ offlineBannerModule ] ++ extraModules;
         };
+      # Sandbox directives a smoke transient can carry verbatim (list
+      # values render as one `-p KEY=VALUE` line each). LIFTED to this
+      # scope so the smoke-script check can gate keep-list coverage
+      # computed from the rendered unit — a hand-maintained comparison
+      # would rot exactly like the PATH-phantom name-grep did.
+      smokeKeepDirectives = [
+        "ProtectSystem"
+        "ProtectHome"
+        "PrivateTmp"
+        "RuntimeDirectory"
+        "RuntimeDirectoryMode"
+        "StateDirectory"
+        "StateDirectoryMode"
+        "ReadWritePaths"
+        "MemoryMax"
+        "RestrictAddressFamilies"
+        "RestrictNamespaces"
+        "LockPersonality"
+        "RestrictRealtime"
+        "RestrictSUIDSGID"
+        "ProtectClock"
+        "ProtectHostname"
+        "ProtectKernelLogs"
+        "ProtectKernelModules"
+        "ProtectKernelTunables"
+        "ProtectControlGroups"
+        "ProtectProc"
+        "SystemCallArchitectures"
+      ];
+      # Transient-hostile or separately-handled service keys the smoke
+      # transient deliberately drops (Type/ExecStart/Restart define the
+      # run itself; Environment is rendered from the env map).
       # The runbook's hardened smoke test as versioned code: the module's
       # EXACT serviceConfig sandbox as a transient user unit, with
       # unit-file specifiers substituted literally (%h -> $HOME, %t ->
@@ -56,38 +88,10 @@
           pkgs = nixpkgs.legacyPackages.${system};
           enabled = evalModule system [ { services.offline-banner.enable = true; } ];
           serviceConfig = enabled.config.systemd.user.services.offline-banner.serviceConfig;
-          # Sandbox directives a transient can carry verbatim (whitelist:
-          # Type/ExecStart/Restart/wantedBy are transient-hostile). List
-          # values render as one space-joined line each — unit-file list
-          # syntax — one `-p KEY=VALUE` per line, one argv element per
-          # line in the props file.
-          keepDirectives = [
-            "ProtectSystem"
-            "ProtectHome"
-            "PrivateTmp"
-            "RuntimeDirectory"
-            "RuntimeDirectoryMode"
-            "StateDirectory"
-            "StateDirectoryMode"
-            "ReadWritePaths"
-            "MemoryMax"
-            "RestrictAddressFamilies"
-            "RestrictNamespaces"
-            "LockPersonality"
-            "RestrictRealtime"
-            "RestrictSUIDSGID"
-            "ProtectClock"
-            "ProtectHostname"
-            "ProtectKernelLogs"
-            "ProtectKernelModules"
-            "ProtectKernelTunables"
-            "ProtectControlGroups"
-            "ProtectProc"
-            "SystemCallArchitectures"
-          ];
+          keepDirectives = smokeKeepDirectives;
           renderDirective =
             name: value:
-            "-p ${name}=${
+            "${name}=${
               if builtins.isList value then nixpkgs.lib.concatStringsSep " " value else toString value
             }";
           propsLines =
@@ -96,7 +100,7 @@
                 nixpkgs.lib.attrNames serviceConfig
               )
             )
-            ++ nixpkgs.lib.mapAttrsToList (name: value: "-p Environment=${name}=${toString value}") (
+            ++ nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") (
               serviceConfig.Environment or { }
             );
         in
@@ -107,7 +111,13 @@
             qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
           }
           ''
-            mkdir -p "$out/bin"
+            mkdir -p "$out/bin" "$out/share"
+            # The props file MUST live in the store output: passAsFile
+            # writes to a /build sandbox path that is gone by the time
+            # anyone runs the app — the baked path made the args loop die
+            # on line 1 of real use (latent since birth; the --print
+            # dry-run exposed it 2026-11-18).
+            cp "$propsTextPath" "$out/share/props.txt"
             cat > "$out/bin/offline-banner-smoke" <<'EOF'
             #!/usr/bin/env bash
             # Hardened smoke test: transient user unit under the rendered
@@ -120,25 +130,34 @@
             set -euo pipefail
             props_file="@propsFile@"
             qml_dir="@qmlDir@"
+            qs_bin="@quickshellBin@"
             name="offline-banner-smoke"
             runtime="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-            systemctl --user stop "$name.service" 2>/dev/null || true
-            systemctl --user reset-failed "$name.service" 2>/dev/null || true
+            if [ "''${1:-}" != "--print" ]; then
+              systemctl --user stop "$name.service" 2>/dev/null || true
+              systemctl --user reset-failed "$name.service" 2>/dev/null || true
+            fi
             args=()
             while IFS= read -r line; do
               [ -n "$line" ] || continue
               line="''${line//%h/$HOME}"
               line="''${line//%t/$runtime}"
-              args+=("$line")
+              args+=(-p "$line")
             done < "$props_file"
             [ -z "''${OFFLINE_BANNER_SMOKE_PROBE_HOST:-}" ] ||
               args+=(-p "Environment=OFFLINE_BANNER_PROBE_HOST=$OFFLINE_BANNER_SMOKE_PROBE_HOST")
             [ -z "''${OFFLINE_BANNER_SMOKE_DEMO:-}" ] ||
               args+=(-p "Environment=OFFLINE_BANNER_DEMO=1")
+            if [ "''${1:-}" = "--print" ]; then
+              printf 'systemd-run --user --unit=%s' "$name"
+              for a in "''${args[@]}"; do printf ' %q' "$a"; done
+              printf ' -- %q -p %q\n' "$qs_bin" "$qml_dir"
+              exit 0
+            fi
             echo "offline-banner-smoke: transient '$name' under the rendered sandbox (specifiers substituted: %h -> $HOME, %t -> $runtime)"
-            exec systemd-run --user --unit="$name" ''${args[@]} -- quickshell -p "$qml_dir"
+            exec systemd-run --user --unit="$name" "''${args[@]}" -- "$qs_bin" -p "$qml_dir"
             EOF
-            sed -e "s|@propsFile@|$propsTextPath|" -e "s|@qmlDir@|$qmlDir|" -i "$out/bin/offline-banner-smoke"
+            sed -e "s|@propsFile@|$out/share/props.txt|" -e "s|@qmlDir@|$qmlDir|" -e "s|@quickshellBin@|${enabled.config.services.offline-banner.package}/bin/quickshell|" -i "$out/bin/offline-banner-smoke"
             chmod +x "$out/bin/offline-banner-smoke"
           '';
 
@@ -539,7 +558,7 @@
                 # the test seams stub the whole probe. Resolve for real.
                 path_line=$(grep -o 'PATH=[^"]*' "$unitTextFile" | head -1 | sed 's/^PATH=//')
                 [ -n "$path_line" ] || { echo "FAIL: no PATH= line found in the unit text"; exit 1; }
-                for tool in timeout getent ping; do
+                for tool in timeout getent ping head cut; do
                   if ! PATH="$path_line" command -v "$tool" > /dev/null 2>&1; then
                     echo "FAIL: unit PATH cannot resolve '$tool' (PATH-phantom class — the rendered PATH must contain the real binary)"; exit 1
                   fi
@@ -562,6 +581,54 @@
                 [ "$badRelativeLedgerAsserts" -ge 1 ] || { echo "FAIL: a relative historyPath must fail the absolute-path assertion"; exit 1; }
                 touch "$out"
               '';
+          # Behavioral gate for the tcp+dns leg (lib/net-probe.sh): run the
+          # script against a stub getent, so the answer validation is
+          # proven by BEHAVIOR, not by a grep (the 2026-11-10 PATH-phantom
+          # doctrine — every name-grep stayed green while the leg failed
+          # 1448 real probes). The leg must read DOWN when the resolver
+          # synthesizes an answer: a DNS blocker's zero-IP block page
+          # (192.168.1.200 on evo-x2, 2026-11-18), any RFC1918/loopback/
+          # link-local address, or no answer at all.
+          leg-contract =
+            pkgs.runCommand "offline-banner-leg-contract"
+              {
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.coreutils
+                  pkgs.gnugrep
+                ];
+                legScript = ./lib/net-probe.sh;
+              }
+              ''
+                export PATH="$PWD/stub:${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin"
+                mkdir -p stub
+                cat > stub/getent <<'STUB'
+                #!/bin/sh
+                [ -n "$STUB_ANSWER" ] || exit 1
+                printf '%s  STREAM probe.test\n' "$STUB_ANSWER"
+                STUB
+                chmod +x stub/getent
+                run() {
+                  STUB_ANSWER="$1" \
+                    OFFLINE_BANNER_PROBE_TIMEOUT=3 \
+                    OFFLINE_BANNER_TCP_HOST=127.0.0.1 \
+                    OFFLINE_BANNER_TCP_PORT=1 \
+                    OFFLINE_BANNER_DNS_NAME=probe.test \
+                    bash "$legScript" > out
+                  grep -qx "tcp fail" out || { echo "FAIL: no 'tcp fail' line (answer '$1')"; cat out; exit 1; }
+                  grep -qx "$2" out || { echo "FAIL: dns leg printed the wrong verdict for answer '$1' (wanted '$2')"; cat out; exit 1; }
+                }
+                run 192.168.1.200 "dns fail" # dnsblockd zero-IP block page
+                run 10.1.2.3 "dns fail"       # RFC1918
+                run 172.16.0.9 "dns fail"     # RFC1918 172.16/12 lower bound
+                run 172.31.255.254 "dns fail" # RFC1918 172.16/12 upper bound
+                run 127.0.0.1 "dns fail"      # loopback
+                run 169.254.1.1 "dns fail"    # link-local
+                run "" "dns fail"             # NXDOMAIN / resolver silence
+                run 93.184.216.34 "dns ok"    # public
+                run 199.36.158.100 "dns ok"   # public
+                touch "$out"
+              '';
           # The smoke script must stay runnable: bash syntax plus the
           # structural markers — transient exec, BOTH specifier
           # substitutions, props-file consumption (a refactor losing the
@@ -580,9 +647,10 @@
                 contrib = ./contrib/offline-banner-waybar;
                 playSounds = ./scripts/play-sounds.sh;
                 captureDemo = ./scripts/capture-demo.sh;
+                legScript = ./lib/net-probe.sh;
               }
               ''
-                for f in "$contrib" "$playSounds" "$captureDemo"; do
+                for f in "$contrib" "$playSounds" "$captureDemo" "$legScript"; do
                   echo "gating $f"
                   shellcheck -S warning "$f" || { echo "FAIL: shellcheck on $f"; exit 1; }
                   shfmt -d "$f" || { echo "FAIL: shfmt on $f (run: shfmt -w $f)"; exit 1; }
@@ -669,22 +737,113 @@
                 touch "$out"
               '';
           smoke-script =
+            let
+              smokeEnabled = evalModule system [
+                { services.offline-banner.enable = true; }
+              ];
+            in
             pkgs.runCommand "offline-banner-smoke-script"
               {
                 script = "${smokeRunner system}/bin/offline-banner-smoke";
+                quickshellBin = "${smokeEnabled.config.services.offline-banner.package}/bin/quickshell";
+                # The rendered unit + the lifted keep list: the coverage gate
+                # below is COMPUTED from these — a new sandbox directive that
+                # silently never reaches the transient is exactly the blind
+                # spot this gate exists to kill.
+                unitText = smokeEnabled.config.systemd.user.units."offline-banner.service".text;
+                keepList = toString smokeKeepDirectives;
+                passAsFile = [ "unitText" ];
                 nativeBuildInputs = [
                   pkgs.bash
                   pkgs.coreutils
                   pkgs.gnugrep
+                  pkgs.gnused
                 ];
               }
               ''
-                bash -n "$script"
-                grep -q "exec systemd-run --user" "$script" || { echo "FAIL: smoke script lost the systemd-run exec"; exit 1; }
-                grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
-                grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
-                grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
-                touch "$out"
+                  bash -n "$script"
+                  grep -q "exec systemd-run --user" "$script" || { echo "FAIL: smoke script lost the systemd-run exec"; exit 1; }
+                  grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
+                  grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
+                  grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
+                  grep -q -- '--print' "$script" || { echo "FAIL: smoke script lost the --print dry-run"; exit 1; }
+                  # The transient's command must be the RESOLVED store binary,
+                  # never a bare name riding whatever PATH the caller happens
+                  # to have (PATH-phantom doctrine).
+                  grep -Fq "qs_bin=\"$quickshellBin\"" "$script" || { echo "FAIL: smoke script no longer resolves the quickshell store binary"; exit 1; }
+
+                  # Negative tooth-proof: a mangled variant with the %h
+                  # substitution stripped MUST fail the structural gate above —
+                  # this proves the gate fires on drift, not that it merely
+                  # exists.
+                  sed 's|%h/$HOME|SUBSTITUTION-STRIPPED|' "$script" > broken-smoke
+                  if grep -q 'line="''${line//%h/$HOME}"' broken-smoke; then
+                    echo "FAIL: negative fixture failed — gate would not fire on a %h-stripped smoke script"
+                    exit 1
+                  fi
+
+                  # Computed keep-list coverage, both directions: every
+                  # [Service] directive the rendered unit carries must sit on
+                  # the keep list (→ reaches the transient) or the drop
+                  # whitelist; and the keep list must be stale-free.
+                  sed -n '/^\[Service\]/,/^\[/p' "$unitTextPath" \
+                    | grep -oE '^[A-Za-z0-9]+=' | tr -d '=' | sort -u > unit-keys.txt
+                  printf '%s\n' Type ExecStart Restart RestartSec Environment | sort -u > drop-keys.txt
+                  echo "$keepList" | tr ' ' '\n' | sort -u > keep-keys.txt
+                  drop_not_kept=$(comm -23 unit-keys.txt <(cat drop-keys.txt keep-keys.txt | sort -u) | tr '\n' ' ')
+                  [ -z "$drop_not_kept" ] || { echo "FAIL: rendered directives never reach the smoke transient (add to smokeKeepDirectives or smokeDropWhitelist): $drop_not_kept"; exit 1; }
+                  stale_kept=$(comm -13 unit-keys.txt keep-keys.txt | tr '\n' ' ')
+                  [ -z "$stale_kept" ] || { echo "FAIL: smokeKeepDirectives carries keys the unit no longer has: $stale_kept"; exit 1; }
+
+                  # Execution gate (argv integrity): the app must hand
+                  # systemd-run every multi-word directive as ONE argv token.
+                  # Greps cannot see word-splitting, so this executes the real
+                  # app under a systemd-run shim — the 2026-11-18 live bug (an
+                  # unquoted array expansion split RuntimeDirectory and
+                  # ReadWritePaths into free-standing words, and systemd-run
+                  # exec'd the first fragment as the command) shipped through
+                  # exactly this check's structural greps.
+                  mkdir shimbin fakehome
+                  cat > shimbin/systemd-run <<'SHIMEOF'
+                #!${pkgs.bash}/bin/sh
+                printf '%s\n' "$@" > "$ARGV_DUMP"
+                exit 0
+                SHIMEOF
+                printf '#!${pkgs.bash}/bin/sh\nexit 0\n' > shimbin/systemctl
+                  chmod +x shimbin/systemd-run shimbin/systemctl
+                  export HOME="$PWD/fakehome"
+
+                  assert_whole_tokens() {
+                    grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' "$1" ||
+                      { echo "FAIL: RuntimeDirectory did not arrive as one argv token"; exit 1; }
+                    grep -Eqx 'ReadWritePaths=([^ ]+ ){2}[^ ]+' "$1" ||
+                      { echo "FAIL: ReadWritePaths did not arrive as one argv token"; exit 1; }
+                    grep -Eqx 'RestrictAddressFamilies=([^ ]+ ){3}[^ ]+' "$1" ||
+                      { echo "FAIL: RestrictAddressFamilies did not arrive as one argv token"; exit 1; }
+                    awk -v qs="$quickshellBin" '/^--$/{f=1;next} f && $0==qs{ok=1} END{exit !ok}' "$1" ||
+                      { echo "FAIL: the token after -- is not the quickshell command"; exit 1; }
+                  }
+
+                  ARGV_DUMP="$PWD/argv-app" PATH="$PWD/shimbin:$PATH" bash "$script" > /dev/null
+                  assert_whole_tokens argv-app
+
+                  # The --print output is the documented copy-paste form: it
+                  # must re-parse through a real shell to the SAME argv.
+                  bash "$script" --print > printed.sh
+                  ARGV_DUMP="$PWD/argv-printed" PATH="$PWD/shimbin:$PATH" bash printed.sh > /dev/null
+                  cmp argv-app argv-printed ||
+                    { echo "FAIL: --print output does not re-execute to the app's argv"; exit 1; }
+
+                  # Negative tooth: the unquoted variant (the shipped bug) must
+                  # split and fail the same gate.
+                  sed 's/"''${args\[@\]}"/''${args[@]}/' "$script" > unquoted-smoke
+                  ARGV_DUMP="$PWD/argv-broken" PATH="$PWD/shimbin:$PATH" bash unquoted-smoke > /dev/null || true
+                  if grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' argv-broken; then
+                    echo "FAIL: negative fixture failed — unquoted form still produced whole tokens"
+                    exit 1
+                  fi
+
+                  touch "$out"
               '';
           # Unit-syntax gate: systemd-analyze verify on the rendered unit —
           # catches pin-class typos in serviceConfig mechanically (proven:
@@ -801,6 +960,7 @@
                   pkgs.coreutils
                   pkgs.gnugrep
                   pkgs.gnused
+                  pkgs.procps
                 ];
                 inherit qmlDir;
               }
@@ -897,6 +1057,26 @@
                   done
                   echo "FAIL: $msg (jq '$expr' never read '$want', last state: $(cat "$state" 2>/dev/null || echo MISSING))" >&2
                   exit 1
+                }
+
+                # drain_state_writes — after killing a quickshell instance,
+                # wait out any in-flight state write. The state writer is a
+                # spawned `sh -c printf..mv` that survives the quickshell
+                # kill; under slow CI its late orphan mv can land AFTER the
+                # next instance's first writes and poison every subsequent
+                # read with the PREVIOUS scenario's state (CI-proven
+                # 2026-11-18: the link-phase leftover faked the fade-poll's
+                # `false`, and the flash-class assert then compared
+                # leftover-vs-current and cried "re-show" on an unchanged
+                # leg set). Drain before rm-ing the state file so the next
+                # instance starts clean.
+                drain_state_writes() {
+                  local i
+                  for i in $(seq 1 40); do
+                    pgrep -f "offline-banner/state" >/dev/null 2>&1 || return 0
+                    sleep 0.25
+                  done
+                  echo "WARN: state writer still draining after 10s" >&2
                 }
 
                 # Journal asserts: quickshell's console.log lands in the log
@@ -1068,6 +1248,7 @@
                 # failures=1/2, and no same-reason failure ever re-sounds.
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-link.log"
                 # control-net MUST reset here: the main sequence left
@@ -1103,6 +1284,7 @@
                 # testable.
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 export OFFLINE_BANNER_DEGRADED_DWELL=3000
                 export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-legs.log"
@@ -1129,14 +1311,14 @@
                 # Dwell: the strip auto-fades while the down-leg set is
                 # UNCHANGED, then STAYS faded (no re-show on unchanged set).
                 for i in $(seq 1 40); do
-                    vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
+                    vis=$(jq -r 'if .phase == "degraded" then (.degradedVisible | tostring) else "" end' "$state" 2>/dev/null || echo "")
                     [ "$vis" = "false" ] && break
                     sleep 0.25
                 done
                 [ "$vis" = "false" ] || { echo "FAIL: degraded strip never auto-faded (degradedVisible=$vis): $(cat "$state" 2>/dev/null)"; exit 1; }
                 sleep 0.7
-                vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
-                [ "$vis" = "false" ] || { echo "FAIL: degraded strip re-showed on an UNCHANGED leg set (flash class): $(cat "$state")"; exit 1; }
+                vis=$(jq -r 'if .phase == "degraded" then (.degradedVisible | tostring) else "" end' "$state" 2>/dev/null || echo "")
+                [ "$vis" = "false" ] || { echo "FAIL: degraded strip re-showed on an UNCHANGED leg set (flash class): $(cat "$state")" >&2; echo "--- qs-legs.log ---" >&2; tail -40 qs-legs.log >&2; exit 1; }
 
                 # DNS fails too: tcp+dns down with icmp green = OFFLINE —
                 # no sockets and no names IS an outage for practical
@@ -1206,6 +1388,7 @@
                 # well past any dwell arithmetic (6+ probe cycles).
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 export OFFLINE_BANNER_DEGRADED_DWELL=0
                 echo ok > control
@@ -1227,11 +1410,48 @@
                 [ "$entries" = "2" ] || { echo "FAIL: sticky-dwell degraded phase must not write a ledger entry (expected 2, got $entries)"; exit 1; }
                 export OFFLINE_BANNER_DEGRADED_DWELL=3000
 
+                # --- %t historyPath scenario (2026-11-18): the ledger has
+                # TWO provisioned shapes — the %h state-dir hole AND the %t
+                # runtime dir. Drive an outage with the ledger INSIDE
+                # $XDG_RUNTIME_DIR/offline-banner (the %t shape the unit
+                # provisions via RuntimeDirectory=) and assert the entry
+                # lands there end-to-end. The entry is written on the
+                # offline→departure (rememberOutage), so the outage must
+                # CLOSE before the file can carry one.
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
+                rm -f "$state"
+                export OFFLINE_BANNER_HISTORY="$XDG_RUNTIME_DIR/offline-banner/history.jsonl"
+                echo ok > control
+                printf 'tcp ok\ndns ok\n' > control-net
+                quickshell -p "$qmlDir" >qs-t.log 2>&1 &
+                qs_pid=$!
+                assert_state false
+                printf 'tcp fail\ndns fail\n' > control-net
+                assert_state true
+                assert_journal "banner phase=offline legs=tcp,dns" qs-t.log
+                printf 'tcp ok\ndns ok\n' > control-net
+                assert_state false
+                tentries=0
+                for i in $(seq 1 40); do
+                    tentries=$(wc -l < "$XDG_RUNTIME_DIR/offline-banner/history.jsonl" 2>/dev/null || echo 0)
+                    [ "''${tentries:-0}" -ge 1 ] && break
+                    sleep 0.25
+                done
+                [ "''${tentries:-0}" -ge 1 ] || { echo "FAIL: %t-shaped ledger hole never received an entry: $(cat "$XDG_RUNTIME_DIR/offline-banner/history.jsonl" 2>/dev/null || echo MISSING)"; exit 1; }
+                tail -1 "$XDG_RUNTIME_DIR/offline-banner/history.jsonl" | jq -e '.reasons and (.reasons | index("tcp")) != null' >/dev/null || { echo "FAIL: %t ledger entry lost its reasons array"; exit 1; }
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
+                unset OFFLINE_BANNER_HISTORY
+
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
                 # state write can race the fresh state file).
                 kill "$qs_pid" 2>/dev/null || true
                 wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
                 rm -f "$state"
                 # Sound seam unset: the demo instance has no store dir
                 # either, so it stays silent even though the theme env

@@ -20,7 +20,8 @@ offline-banner if:
   path up", not "which application is misbehaving".
 - **You cannot accept a second Quickshell instance.** The banner deliberately
   runs its own Quickshell process so it never depends on your bar's plugin
-  API.
+  API — and so a shell crash cannot take the banner down, or vice versa (see
+  [Shell Compatibility](/guides/shell-compatibility/)).
 - **You run no PipeWire session and no `.local/state`.** Sound cues play
   through `pw-play` (set `soundTheme = "none"` for a silent unit), and the
   outage ledger writes one file under your home (`enableHistory = false`, or

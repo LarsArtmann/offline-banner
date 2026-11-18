@@ -82,6 +82,15 @@ Demand-gated or audience-gated; none of these have a pull signal yet:
 - **Demand-gated video variants** — 9:16 vertical cut, TTS voiceover +
   captions, a ≤6 s 480p GIF teaser for Discord/Telegram, a YouTube cut with
   chapters — build only when a channel exists.
+- **Omarchy / non-NixOS install path** — extracted QML + a plain systemd
+  user unit + install snippet for Arch-class hosts (Omarchy is systemd +
+  Hyprland + quickshell-from-pacman; the second-instance pattern beside
+  `omarchy-shell` is the same shape proven daily beside DankMaterialShell).
+  Demand-gated: the shell-compatibility docs page points Omarchy users at
+  the issue tracker — that is the promoting signal. The _plugin_ route is
+  closed by doctrine on both sides (Omarchy: plugins share the
+  omarchy-shell process, "never start a second Quickshell process for a
+  plugin"; this repo: no bar-plugin mode, non-negotiable below).
 
 ## Non-goals
 
@@ -90,7 +99,11 @@ Demand-gated or audience-gated; none of these have a pull signal yet:
 - **Never gated on NetworkManager or DNS.** NM lies on NM-unmanaged uplinks
   (the founding reason this module exists); DNS is the resolver's job.
 - **No bar-plugin mode.** The second-Quickshell-instance pattern is the
-  design; the banner must not depend on any shell/bar plugin.
+  design; the banner must not depend on any shell/bar plugin. Re-evaluated
+  2026-11-18 for Omarchy's plugin marketplace and declined: Omarchy plugins
+  share the `omarchy-shell` process — no sandbox, no env contract, no crash
+  isolation — the standalone unit is the shape on Omarchy too (docs:
+  shell-compatibility guide).
 - **No urgency theater.** Static yellow, no flashing, no red — connectivity
   loss is a warning, not a page (doctrine, non-negotiable).
 - **Stays a single-file, self-contained module.** The QML is inlined via

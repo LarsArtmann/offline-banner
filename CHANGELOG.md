@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- **A DNS leg answer that was synthesized locally now counts as DOWN** — the leg previously only asked whether `getent ahostsv4 dnsProbeName` produced *something*, so a resolver that answers from a DNS blocker's zero-IP block page (or a split-horizon zone) satisfied it forever with no packet leaving the host. Live on the origin host (2026-11-18): the default probe name `one.one.one.one` sits on a DoH blocklist, resolved to the blocker's block page `192.168.1.200` from local config alone, and the leg read up through any WAN outage — which made the `offline` phase unreachable (it needs tcp+dns both down) and limited a real ISP outage to the blue degraded strip. The leg now rejects private, loopback, link-local, unspecified and empty answers, so the banner sees the outage it exists for. The probe script moved to `lib/net-probe.sh` (embedded into `shell.qml` as a JS string literal) and gained the `leg-contract` flake check, which EXECUTES it against a stub `getent` — block page, both ends of the RFC1918 172.16/12 range, loopback, link-local, NXDOMAIN → fail; public addresses → ok — because a name-grep gate is exactly what let the 2026-11-10 PATH-phantom through. Negative-proven: removing the guard makes the check reproduce the live false-up. Consumers whose probe name points at an internal/split-horizon name must switch to a public one.
+
+### Changed
+
+- The `dnsProbeName` option description, README and website option table now state the external-AND-unblocked requirement explicitly.
+
+## [0.2.1] — 2026-11-18
+
 ### Added
 
 - **Independent probe legs + the phase ladder (smart display)** — reachability stops being one boolean. The icmp leg (carrier + echo, the original probe, all its journal/state tokens unchanged) is joined by a **tcp** leg (connect to `tcpProbeHost:tcpProbePort`, default `1.1.1.1:53`, an IP literal: no resolver) and a **dns** leg (`getent ahostsv4 dnsProbeName`, default `one.one.one.one` — the glibc/NSS path applications actually use). Each leg debounces independently against `failuresToShow`, and the legs deliberately span providers so one provider's filtering mood cannot fake a whole-network outage. Phase ladder: **offline** (link down, or tcp+dns both down, or all three net legs down) = the yellow alarm with sound and ledger exactly as before; **degraded** (a leg down while another is up) = a slim info-blue strip naming the down legs, no sound, no ledger entry, auto-fading after the new `degradedDwellSeconds` option (default 15 s, 0 = sticky) and re-appearing only when the SET of down legs changes. Motivation: ICMP is the most policed leg in the real world — the 2026-11-09 origin-host flap dropped 30-50% of single pings to the full 3 s timeout while TCP/DNS were instant and a dense ping stream passed 100%, and the banner cried "offline" every few seconds over a perfectly usable network. New env (`OFFLINE_BANNER_TCP_HOST/TCP_PORT/DNS_NAME/DEGRADED_DWELL`, plus the test-only `OFFLINE_BANNER_NET_PROBE_CMD` seam) is contract-asserted; the state file grows additive keys (`phase`, `legs`, `degradedLegs`, `degradedVisible`); the waybar consumer renders a `degraded: <legs>` widget. Machine-tested: a probe-transitions leg scenario (degraded → offline → partial recovery → online, ledger entry `reasons=["tcp","dns"]`, dwell fade, no-sound-while-degraded) and a render-smoke pixel gate for the blue strip's show/fade.
@@ -17,6 +27,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Website docs: a jq ledger cookbook (outages per month, per-month totals, ten longest, reason histogram — recipes verified against synthetic data) and a v6 `probeHost` worked example (`"2606:4700:4700::1111"` for v6-primary uplinks).
 - **`waybar-consumer` fixture gate** — the contrib consumer's full rendering matrix is pinned by 12 fabricated-state fixtures (missing state, stale heartbeat, fine silence, degraded visible / faded / two-leg `tcp+dns`, offline plain / "offline 4m" / "1h6m" / demo / garbage-`since` / link-reason), so the script users copy-paste verbatim cannot rot silently. Plus a probe-transitions **sticky-dwell scenario**: `degradedDwellSeconds = 0` keeps the strip visible across the dwell window with no ledger entry — the sticky behavior is machine-pinned, not documented.
 - **Ladder state-key shape asserts + vm-smoke scope fix + sound-failure surfacing** — probe-transitions pins the additive state keys' TYPES (`phase`, per-leg `legs.{icmp,tcp,dns}` objects, `degradedLegs` array, `degradedVisible` boolean, `updatedAt` number) with polled jq asserts at the deterministic clean start — a refactor dropping a key previously passed every transition assert until a consumer silently rendered nothing. `vm-smoke` learned its real scope: the VM has no compositor, so the unit can never reach a live state write there (Qt falls back to xcb; offscreen refuses layer-shell) — it statically greps the realized QML it boots for the ladder keys instead. Sound failures stop being invisible: a failed `pw-play` echoes its exit status into stderr and a `StdioCollector` logs it into the unit journal.
+- **Shell-compatibility docs + Quickshell positioning** — new website guide (`guides/shell-compatibility`): the never-a-plugin design rule (crash isolation both ways, the sandbox, the env contract, shell irrelevance), an honest compositor/shell proof matrix (niri proven live, sway CI-proven headless, Hyprland expected; DankMaterialShell proven beside — including SystemNix's `systemnix-banner` DMS bar widget consuming the state file; omarchy-shell expected, with the Omarchy-plugin route declined on Omarchy's own doctrine: plugins share the `omarchy-shell` process), and a demand-gated Arch/Omarchy install path pointing at the issue tracker. Marketing follows the same positioning: landing hero badge ("Quickshell-powered · not a bar plugin") + "Any shell, any bar" feature card, README "What you get" row and a strengthened own-Quickshell-instance bullet linking the page.
 
 ### Changed
 
@@ -103,6 +114,7 @@ The banner learns to speak (synthesized cues) and to remember (a persistent outa
 
 ---
 
-[Unreleased]: https://github.com/LarsArtmann/offline-banner/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LarsArtmann/offline-banner/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/LarsArtmann/offline-banner/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/LarsArtmann/offline-banner/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LarsArtmann/offline-banner/compare/fff0b61...v0.1.0

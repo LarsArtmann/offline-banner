@@ -20,6 +20,12 @@ export const features: Feature[] = [
     accent: "accent",
   },
   {
+    icon: "layers",
+    title: "Any shell, any bar",
+    desc: "Its own Quickshell process — never a plugin into yours. Proven beside DankMaterialShell; works over waybar or no bar at all.",
+    accent: "blue",
+  },
+  {
     icon: "shield",
     title: "Sandboxed by contract",
     desc: "A strict systemd sandbox — reads /sys, pings, talks Wayland; nothing else. Asserted line-by-line by a flake check.",

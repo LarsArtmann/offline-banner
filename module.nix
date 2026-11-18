@@ -20,7 +20,11 @@
 #   4. dns — resolving dnsProbeName (default one.one.one.one) via
 #      `getent ahostsv4` — the glibc/NSS path applications actually
 #      use, so a local-resolver (dnsblockd-style) outage registers
-#      here and nowhere else.
+#      here and nowhere else. The ANSWER must be public: a private,
+#      loopback, link-local or unspecified address means the resolver
+#      synthesized it (a DNS blocker's zero-IP block page, a
+#      split-horizon zone) and the leg would read green forever with
+#      no packet leaving the host — count it as down.
 # The legs deliberately span providers (Quad9 / Cloudflare / whatever
 # the system resolver is): independent legs must not share one
 # provider's filtering mood. ICMP is the most policed leg — flow
@@ -63,6 +67,8 @@
 #   4. dns — resolving dnsProbeName (default one.one.one.one) via
 #      `getent ahostsv4` — the glibc/NSS path applications actually
 #      use, so a local-resolver outage shows here and nowhere else.
+#      A private/loopback/unspecified answer counts as DOWN (the
+#      resolver faked it; see the leg list above).
 # The legs deliberately span providers (Quad9 / Cloudflare / whatever
 # the system resolver is): independent legs must not share one
 # provider's filtering mood.
@@ -181,7 +187,7 @@
     dnsProbeName = lib.mkOption {
       type = lib.types.str;
       default = "one.one.one.one";
-      description = "Name resolved by the DNS leg via `getent ahostsv4` — the glibc/NSS path applications actually use, so a local-resolver (dnsblockd-style) outage registers here and nowhere else. Must be an EXTERNAL name: a wildcard-capturing local zone would answer any string and blind the leg";
+      description = "Name resolved by the DNS leg via `getent ahostsv4` — the glibc/NSS path applications actually use, so a local-resolver (dnsblockd-style) outage registers here and nowhere else. Must be an EXTERNAL name: a wildcard-capturing local zone would answer any string and blind the leg. It must also stay OFF any DNS blocker's blocklist — a blocked name resolves to the blocker's zero-IP page from config alone, so an answer in private/loopback/link-local/unspecified space counts as DOWN, never up";
     };
 
     degradedDwellSeconds = lib.mkOption {
@@ -229,6 +235,13 @@
   config =
     let
       cfg = config.services.offline-banner;
+
+      # The tcp+dns leg probe lives in its own file: shell.qml embeds it
+      # and checks.leg-contract EXECUTES it against a stub getent, so the
+      # leg's answer validation is verified by behavior, not by a grep
+      # (the 2026-11-10 PATH-phantom doctrine: name-greps stay green
+      # while the leg fails every real probe).
+      netProbeScript = builtins.readFile ./lib/net-probe.sh;
 
       offlineBannerShell = pkgs.writeTextDir "shell.qml" ''
         pragma ComponentBehavior: Bound
@@ -711,17 +724,18 @@
                 id: netProbe
 
                 // The TCP+DNS legs (2026-11-09). Two output lines, exact
-                // format: "tcp ok|fail" then "dns ok|fail". The TCP leg
-                // dials an IP literal through bash's /dev/tcp (no resolver
-                // in the path); the DNS leg walks getent → glibc/NSS (what
-                // applications see). `timeout` (coreutils) caps both — a
-                // silently filtered connect would hang forever otherwise,
-                // and the probe timeout is the SAME probeTimeoutSeconds
-                // the icmp leg uses. OFFLINE_BANNER_NET_PROBE_CMD (test
-                // seam) replaces the whole script.
-                command: root.netProbeOverride.length > 0 ? root.netProbeOverride : ["sh", "-c",
-                    "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" bash -c 'exec 3<>\"/dev/tcp/$OFFLINE_BANNER_TCP_HOST/$OFFLINE_BANNER_TCP_PORT\"' 2>/dev/null; then echo tcp ok; else echo tcp fail; fi; " +
-                    "if timeout \"$OFFLINE_BANNER_PROBE_TIMEOUT\" getent ahostsv4 \"$OFFLINE_BANNER_DNS_NAME\" >/dev/null 2>&1; then echo dns ok; else echo dns fail; fi"]
+                // format: "tcp ok|fail" then "dns ok|fail", from
+                // lib/net-probe.sh (embedded as a JS string literal). The
+                // TCP leg dials an IP literal through bash's /dev/tcp (no
+                // resolver in the path); the DNS leg walks getent →
+                // glibc/NSS (what applications see) and counts a
+                // private/loopback/unspecified answer as DOWN. `timeout`
+                // (coreutils) caps both — a silently filtered connect
+                // would hang forever otherwise, and the probe timeout is
+                // the SAME probeTimeoutSeconds the icmp leg uses.
+                // OFFLINE_BANNER_NET_PROBE_CMD (test seam) replaces the
+                // whole script.
+                command: root.netProbeOverride.length > 0 ? root.netProbeOverride : ["sh", "-c", ${builtins.toJSON netProbeScript}]
                 running: !root.demo
 
                 stdout: StdioCollector {

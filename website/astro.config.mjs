@@ -69,6 +69,7 @@ export default defineConfig({
           label: "Guides",
           items: [
             { label: "How It Works", slug: "guides/how-it-works" },
+            { label: "Shell Compatibility", slug: "guides/shell-compatibility" },
             { label: "Observability", slug: "guides/observability" },
           ],
         },

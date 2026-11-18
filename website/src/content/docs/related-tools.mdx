@@ -9,12 +9,18 @@ description: Siblings, consumers, and alternatives.
   module was extracted from (gen 904 ran it first).
 - [Quickshell](https://quickshell.outfoxxed.me/) — the QML shell runtime the
   banner renders in.
+- [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) — a
+  Quickshell-based shell the banner is proven to run beside (see
+  [Shell Compatibility](/guides/shell-compatibility/)).
 
 ## Consumers
 
 - `contrib/offline-banner-waybar` — a reference waybar widget reading the
   banner's JSON state file with fail-closed freshness semantics (see
   [Observability](/guides/observability/)).
+- `systemnix-banner` (SystemNix) — the same consumer logic as a
+  DankMaterialShell bar widget, single-sourced through the contrib script
+  (see [Shell Compatibility](/guides/shell-compatibility/)).
 
 ## Alternatives, honestly compared
 

@@ -79,6 +79,16 @@ probeFailures}` to the ledger before the counters reset, so each real outage
 leaves exactly one entry — never one per probe, never one for a blip that never
 showed a banner. See [The outage ledger](/guides/observability/#the-outage-ledger).
 
+## The second instance
+
+The banner renders in its own Quickshell process, started by its own hardened
+unit — never as a plugin into your shell. Crash isolation runs both ways (a
+shell crash cannot take the banner down, a banner bug cannot take your shell
+down), the systemd sandbox and the `OFFLINE_BANNER_*` env contract belong to
+the unit, and the shell you run becomes irrelevant. The shape is proven daily
+beside DankMaterialShell (itself Quickshell-based) — see
+[Shell Compatibility](/guides/shell-compatibility/).
+
 ## The startup race
 
 If the session starts with no active monitor (lid closed, headless boot),

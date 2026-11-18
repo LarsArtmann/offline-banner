@@ -1,0 +1,123 @@
+# Status: Release Blockers Fixed, Live Verdicts Harvested, v0.2.1 Prepped (T01/T02/T09/T10/T11/T16 + unplanned CI forensics)
+
+**Written:** 2026-11-18 11:16 CET · **Session:** execution of the 2026-11-17 22-00 pareto plan (T01–T20), started from HEAD `3ed7cef` (pushed) with two CI runs pending.
+**Exit state:** master `8a4fd9f` + one run in flight; release prep folded on master; v0.2.1 NOT yet tagged (waits on a green release-commit run); working tree carries uncommitted parallel-session edits (FEATURES/README/ROADMAP/flake.lock/flake.nix + a resurrected `global.out.css`) that are NOT mine.
+
+## Headline: the two reds on master are dead, and both were misdiagnosed for days
+
+1. **The 13-day Website deploy red was never a stale secret.** Row 73's inherited diagnosis was wrong. Root cause: the 2026-11-05 zizmor hardening (`9ace19a`) deleted the `printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"` line while swapping npm for the nix-pinned firebase-tools — the workflow never materialized the credentials file, so every deploy died `Failed to authenticate` behind a green lint. I created a fresh SA key (`5d2acd98…`, gcloud), updated the secret, fixed the materialization (`7f5a97c`), and got the first green deploy since 2026-11-05 (run `44249738046`: build ✓ 37 s, deploy ✓ 1 m42 s; live site + demo.mp4 re-verified 200 over HTTPS). A second dispatch (`44253835854`) also went fully green with the TS guard in place.
+2. **The Checks red was a broken zizmor packaging, not a lint finding.** The floating `nixpkgs#` channel resolved zizmor 1.32.0 whose nixpkgs build fails (aws-lc-sys panics) — on a docs-only push. The repo's own flake.lock rev carried the SAME broken packaging, so the planned "pin to the lock rev" would NOT have helped. Pinned both linters to the older proven rev (`31ecbaca`, actionlint 1.7.12 + zizmor 1.31.1, lockstep with the firebase pin, `ec0bc5f`).
+
+## a) FULLY DONE
+
+| Work | Evidence |
+| --- | --- |
+| **T10** lint tools pinned + green | `ec0bc5f`; run `44246289453` workflow-lint ✓ 27 s |
+| **T02** secret rotated, deploy materialization restored, first green deploy, live site verified | `7f5a97c`; runs `44249738046` (✓✓), `44253835854` (✓✓); curl 200 landing + demo.mp4; TODO row 73 closed with the corrected story |
+| **T01 remainder** CI verified on pushed HEAD; `4d896fb` verdict (website/flake.lock nixpkgs bump — harmless, build green on it, kept; remessage impossible post-push); branch/PR sweep clean (1 expected dependabot PR) | F02/F03/F04 |
+| **Unplanned blocker: flash-class re-show fixed at both layers** — CI failed `probe-transitions` ("degraded strip re-showed on an UNCHANGED leg set") twice. Product layer: the re-arm now DECIDES on the raw down-leg set (`lastDownLegsKey` guard) + journal forensics lines (`degraded re-arm [suppressed]/legs=…`, `degraded dwell expired`). Harness layer: the REAL mechanism was a **stale orphan state write** — the killed previous instance's spawned `sh -c printf..mv` lands late on slow CI and poisons the fade-poll with the previous scenario's `degradedVisible:false` (link-phase leftover), so the assert compared leftover-vs-current and cried "re-show" though the QML never re-showed. Fixed with `drain_state_writes` (pgrep-based, all 4 swap sites) + phase-guarded fade reads + journal dump on that FAIL line. | `d3be7bf`, `eb4060e`; verified x86 PASS + aarch64 3×/4× PASS; full `nix flake check --all-systems` green |
+| **T09** smoke-harness leftovers — all four: `.#smoke --print` dry-run (works, prints the full derived argv); **it exposed a latent bug**: the props file was baked to a `/build/.attr-*` sandbox path (passAsFile), so the args loop died on the first real run — the app was string-asserted, never executed; props now install into the store output. Computed keep-list coverage gate (every rendered `[Service]` directive must reach the transient or sit on the explicit `smokeDropWhitelist`; stale keep entries fail; `smokeKeepDirectives` lifted to flake scope). Negative tooth-proof fixture (%h-stripped variant must fail the gate). probe-transitions `%t`-ledger scenario (outage closed end-to-end into `$XDG_RUNTIME_DIR/offline-banner/history.jsonl`, reasons asserted) | `83de6b8` (+ daemon-swept bulk in `aa9e119`); smoke-script green, PT green x86 + aarch64 2×, full flake check green |
+| **T08** TypeScript guard (S2) — CI asserts resolved TS major == 6 before `astro check` (the 2ccdf6e silent-loss class becomes loud red); S1 (`^6.0.3` devDep) already existed; lock resolves 6.0.3 uniformly; peers block `<7` | `3a34f37`; Website run `44253835854` green WITH the guard |
+| **T11** docs-gates battery wired into CI (pinned rev `e305834`, G1: CI job step) — then its first CI run failed on **66 phantom B/hash findings** (shallow clone can't resolve `done at <hash>` markers) → `fetch-depth: 0` on the hygiene job; battery green in CI after (`44255699826` ✓ 2 m29 s) | `e7f87dc`, `93fc621` |
+| **T16** small decisions — `global.out.css` deleted (39 KB BuildFlow-dropped orphan, zero refs); tag-trigger CI deliberately declined (runbook re-verifies tagged source); release notes curated (recorded); all in AGENTS decision records | `373690e` |
+| **T14 (F63)** sandbox posture: `systemd-analyze security --offline=true` on the rendered unit = **5.8 MEDIUM** (31 green directives; user-unit analysis inflates the root/capability rows) — recorded in AGENTS with the withheld-options list and the seven-days-zero-faults evidence base | `a788471` |
+| **T06 flap verdict — PROVEN LIVE without waiting for an evening:** journal sweep over the gen-995 week (Nov 10 02:31 → Nov 18): **1502 `banner phase=degraded` transitions** (every icmp flap stayed a silent blue strip, zero false alarms) vs **13 `banner phase=offline` transitions ↔ 18 genuine ledger entries, every one with `net+tcp+dns` receipts** (7–208 s); **zero pw-play/sound journal failures across all 18 cue firings** (stderr surfacing live since ab56830 — firing is journal-proven). The pre-fix Nov 10 01:39–01:50 `shown` burst (pid 6750) is the documented PATH-phantom false-alarm class, outside the verdict | annotated into TODO row 77 + FEATURES rows (legs + sound) in `c733efc` |
+| **T17 prep** — 12-cue WAV matrix built and verified (`nix build .#sounds`, flat store layout); audition loop script ready | owner ears pending |
+| **Release prep for T03** — CHANGELOG `[Unreleased]` folded to `[0.2.1] — 2026-11-18` + compare-link footer; website `changelog.mdx` rewritten as `## 0.2.1 — 2026-11-18` (fixed the machine-mangled single-line-with-literal-`\n` bullet block from the corpus reflow; added the 226/StateDirectory, flash-class, and live-week stories); website verified: `astro check` 0 problems, build 11 pages, CSP patch, `html-validate` green | content landed on master via daemon commit `11039c3` (junk message, content complete) |
+| **Docs truth** — AGENTS gained: the re-arm-guard doctrine extension ("signals deliver; raw state decides"), both lint-blind phantom incidents + the meta-lesson (lint proves workflow TEXT, never runtime CONTRACT), the CI decisions (no tag trigger, curated notes, battery wiring), the sandbox rating, the BuildFlow zombie recurrence note; TODO rows 73/74/75/77 refreshed; battery PASS maintained throughout | `15e2037`, `a788471`, `373690e`, `c733efc` |
+
+## b) PARTIALLY DONE
+
+- **T03 v0.2.1** — prep complete (above) but **tag/release/tag-source verification NOT run**: the tree kept moving under me (parallel session + daemon + a BuildFlow pass), and the release runbook requires both workflows green on the exact release commit. Latest push (`8a4fd9f`, parallel-session content) has runs in flight at write time.
+- **T05 forced-outage evening** — journal halves are DONE (cues fired clean ×18; drop-in mechanics unchanged); owner ears on a cue + one real-monitor `grim` capture remain.
+- **T04 SystemNix relock** — recon done (SystemNix pins `320be2a`); relock to the v0.2.1 tag blocked on T03's tag; owner switch after.
+- **T14** — rating recorded; F62 (live quickshell-under-`SystemCallFilter=@system-service` probe) and F64 (adopt/withhold decisions) open — need an owner-supervised window (they touch the live unit's sandbox).
+- **T18 watch/verify** — `4d896fb` closed; journal retention implicitly evidenced (journal reaches back to Nov 10, 8 days); **TS7 upstream re-verify FAILED** (research subagent rate-limited) — retry pending; PR hygiene partially: the hyperframes PR re-based itself to **0.9.52** and a NEW starlight PR (0.42.10→0.43.1) appeared.
+- **T20 TODO diet** — rows were refreshed as work closed, but the re-rank/"next addition deletes one" pass is not done.
+
+## c) NOT STARTED
+
+- **T07** DMS plugin deploy + kill-unit `banner?` proof (needs the SystemNix-side eval/switch; the fail-closed tell is still deployed nowhere).
+- **T12** docs closing ritual (strike 20-10 §a, unify §d/§e archive canon per G2, ROADMAP theme-1 strike normalization, first supervised `docs-gates purge`).
+- **T13** hyperframes chain — recon only: **four version numbers disagree** (manifest `^0.8.216` — swept by 2ccdf6e WITHOUT a lock regen; lock `0.8.163`; AGENTS prose `0.8.214`; PR now wants `0.9.52`). A frozen install in `website/video` would die today.
+- **T15** website-CI quality jobs — G4 port-or-reject (ci-watch / a11y-guard / lighthouse) not decided beyond the plan's recommendation.
+- **T19** launch posts + social upload — untouched (owner surfaces).
+- **D1** vm-smoke-in-CI measure-then-decide — untouched.
+- **D3** lost-ledger backfill — unexamined this session (the 18-entry live ledger makes "accept" look even better).
+
+## d) TOTALLY FUCKED UP
+
+1. **Three daemon sweeps landed my work in junk-message commits that are now PUSHED** — `7e94788` (row-73 correction + AGENTS lessons), `017a958` (CHANGELOG bullets), `aa9e119`+`83de6b8` (T09 split mid-edit across two commits). No content lost, but origin history now carries real work under `chore: auto-commit` messages and a split message that doesn't describe its own diff. Post-push re-splitting would need a force-push — not allowed. My process fix (commit within seconds, `git log -1` precheck) came one race too late twice.
+2. **I wired the docs-gates battery into CI without testing it under CI's environment** — the shallow clone turned 66 legitimate hash markers into phantom failures and put a red on master for one push cycle. The standing "verify-before-implement" rule applies to CI wiring too; I verified the battery locally (full history) and missed the environment delta.
+3. **First commit attempt used pathspec `.` and swept website.yml into the flash-class fix commit** — caught and re-split BEFORE push, but it was exactly the daemon-race mistake I was guarding against, made by hand.
+4. **The inherited row-73 misdiagnosis cost 13 days of red deploys** — the previous session (and the plan I inherited) treated "stale secret" as fact; reading the actual deploy step found the dropped `printf` in minutes. Lesson recorded: re-derive root cause; never execute an inherited diagnosis.
+5. **BuildFlow struck back during the session** (07:20 pass): reflowed the markdown corpus (content-identical, kept to avoid churn-on-churn), bumped `flake.lock` + `website/package.json` (astro 7.4.12 etc. — swept to master with a daemon commit, CI green after the fact), and **re-dropped `global.out.css` as an untracked file minutes after I deleted it** (visible in the current tree). D4 (teach BuildFlow to skip / adopt `.buildflow.yml`) is no longer cosmetic — it actively fights the working tree mid-session.
+6. **Two agent sessions + the daemon committed and pushed concurrently all session** — the parallel glm-5.3 session pushed its own commits (`304f19c` shell-compat positioning + its own 11-09 status report), committed my in-flight flake.nix once (`eb4060e`, decent message), and pushed while I worked. No conflicts materialized, but nothing prevents double-execution of the same plan task except luck.
+
+## e) WHAT WE SHOULD IMPROVE
+
+- **Commit latency discipline**: `git add <specific files> && git commit` within seconds of finishing each edit batch; the daemon race window is 2–5 minutes.
+- **Test CI steps in CI's shape** (shallow clone, no store cache, no local env) before pushing them — a 30-second mental "what does this step see in CI" pass would have caught both the battery and (earlier) the materialization loss.
+- **Kill or upgrade the auto-commit daemon**: at minimum make it refuse dependency manifests and docs corpora; better, make it message-aware or per-session-disabled while an agent session is active.
+- **Parallel-session protocol**: a claim file (e.g. `docs/status/.session-claim`) or explicit task ownership so two sessions can't execute the same T-task; today's overlap was resolved by luck and fast commits.
+- **The release window needs a quiet tree**: tag only when the parallel session is idle — the runbook's "both workflows green on the exact release commit" is fragile while another writer is landing commits every few minutes.
+- **Pin vs verify**: "pin to the flake.lock rev" is not a safe default for CI tools — verify the pinned rev's binary actually builds (zizmor 1.32.0 lesson), and prefer pins moved in lockstep with a proven companion pin.
+
+## f) NEXT (ranked; ~46 items)
+
+1. **Tag v0.2.1** (T03 finish): confirm both workflows green on the release-prep commit → annotated tag → curated `gh release create` (highlights: legs/ladder, 226 fix live-proven, flash-class fix, PATH-phantom gate, first ledger week) → `nix flake check github:…/v0.2.1 --all-systems` + metadata resolve → close row 75.
+2. **Relock SystemNix to v0.2.1** (T04): `nix flake update offline-banner` in ../SystemNix → eval → owner switch → AGENTS Consumers + rows.
+3. **DMS plugin deploy + kill-unit `banner?` proof** (T07): enable `systemnix-banner`, eval/switch, kill the unit → error-red `banner?` within one heartbeat → restore; close rows 79 + 16's live half.
+4. **Owner ears + real-monitor grim** (T05 finish): one drop-in outage or the next natural one; annotate FEATURES rows finally; close row 77.
+5. **T13 hyperframes**: resolve the 4-number truth from disk (manifest `^0.8.216` vs lock `0.8.163` vs prose `0.8.214` vs PR `0.9.52`), fix the 2ccdf6e manifest/lock mismatch FIRST (a frozen `website/video` install dies today), then the intentional M23 update round under the age gate, then merge/close the PR with a render decision (lint/check ≠ render validation — postmortem rule).
+6. **Merge the starlight PR** (0.42.10→0.43.1, open, green) — but only after T13's lock round or it double-churns `website/pnpm-lock.yaml`.
+7. **picomatch HIGH alert**: merge Dependabot's update on sight (website dep, ReDoS).
+8. **hono cluster (6 medium + 1 low)**: ride T13's hyperframes round (naive hono-only merges fight the update).
+9. **T15 G4**: port ci-watch (red-master detection burned twice) or reject; judge a11y-guard/lighthouse on effort; record in AGENTS.
+10. **T12 docs closing ritual**: strike 20-10 §a (cadence ~due), unify §d/§e canon per G2 across the 12 archived files, ROADMAP theme-1 strike → plain prose, first supervised `docs-gates purge` (dry-run first).
+11. **D4 for real**: teach BuildFlow to skip this repo or adopt `.buildflow.yml` — it re-dropped `global.out.css` and reflowed the corpus DURING this session.
+12. **Delete the resurrected `global.out.css` again** + make the deletion stick (gitignore entry or BuildFlow skip).
+13. **Retry the TS7 upstream research** (rate-limited this session) — refresh row 80 facts (issue #17852 state, @astrojs/check peers, TS 7.1).
+14. **D1**: one timed CI run of vm-smoke, then the promote-or-keep-out decision.
+15. **D3**: record the accept verdict on lost-ledger backfill (18 live entries make accept stronger).
+16. **SA key hygiene (owner console)**: `github-website-deploy@lars-software` holds 11 enabled keys — disable/delete the dead ones; note the fresh `5d2acd98`.
+17. **Social preview upload** (owner console): `assets/branding/social-preview.png` → Settings → Social preview; finish row 73's last leg.
+18. **T19 launch posts** (owner): post Discourse + r/NixOS drafts (now v0.2.1-accurate), cross-link from README.
+19. **T17 audition** (owner ears): 12 cues via `scripts/play-sounds.sh`, tune verdicts.
+20. **T14 F62/F64**: live quickshell-under-`SystemCallFilter=@system-service` probe + adopt/withhold decisions + AGENTS update (owner-supervised window).
+21. **Audit the parallel session's uncommitted tree** (FEATURES/README/ROADMAP/flake.lock/flake.nix `M` + its 11-09 status report) — read it, judge it, then commit it deliberately (it may be mid-edit RIGHT NOW).
+22. **flake.lock double-bump**: the parallel session/BuildFlow bumped nixpkgs twice today (`f4a03c0`→`1a08097`→?) — decide whether ad-hoc lock bumps belong on master un-reviewed or gated behind a deliberate update pass.
+23. **Row 80**: TS7 re-verify outcome + exit strategy (upgrade path when @astrojs/check supports 7).
+24. **Journal retention note** (T18.3): the user journal demonstrably reaches 8+ days back on evo-x2 — record whether that's enough for forensics or set retention.
+25. **Smoke app runtime proof**: run a REAL `nix run .#smoke` once on evo-x2 (the props fix means the app finally works end-to-end — first actual execution ever; the runbook claims it as the mandatory pre-switch gate).
+26. **Dependabot Updates cadence**: two updates ran 10 m each today and re-based the hyperframes PR — consider pinning `ignore` for `website/video` until T13 lands.
+27. **`README.md`/`FEATURES.md`/`ROADMAP.md` uncommitted parallel edits** — same as 21, folded into the deliberate-commit pass.
+28. **CHANGELOG compare-link sanity**: after tagging, verify the new footer links resolve.
+29. **Release notes body**: paste curated section (already written in CHANGELOG 0.2.1) + the unblock-command removal note (StateDirectory fix makes the manual mkdir obsolete).
+30. **Website deploy after release-prep**: the changelog.mdx changes will deploy via the next `website/**` push — verify the live changelog page renders 0.2.1.
+31. **docs/status index**: the parallel session added its own report row — confirm my row + theirs both indexed (battery routing gate enforces it).
+32. **Archive the parallel session's 11-09 report + mine when superseded** (cadence threshold 21 days; the 10-29 report is 20 days old — next in line).
+33. **AGENTS "CI runners" paragraph**: add the zizmor-pin + battery + fetch-depth facts to the runner-drift watchlist.
+34. **`nix run .#smoke -- --print`** in the runbook as the pre-flight (zero-side-effect preview of the transient argv).
+35. **vm-smoke D1 timing**: if promoted, scope it to x86_64-only in CI first.
+36. **G2 §d/§e canon**: pick strike-with-verdicts (recommended — matches corpus history) or bare-behind-banner; apply uniformly.
+37. **G5 release-notes policy**: already recorded curated — mirror it into the runbook's release step text.
+38. **G3 merge path**: after T13's round, the PR merge needs re-lint + re-check + a real RENDER of demo.mp4 with byte-change recorded.
+39. **G4**: if ci-watch ports, schedule it off-peak (cron in workflow) to avoid the congested morning window seen today.
+40. **CI congestion**: today's runs queued 4–10 min (10–16 m for Checks) — consider splitting the aarch64 PT check to a scheduled job if the queue stays this bad.
+41. **Ledger growth**: 18 entries/week on evo-x2 — the ROADMAP theme-4 growth guard has real numbers now.
+42. **omarchy-shell claim**: the parallel session's shell-compat page says "expected-untested, plugin route declined" — verify that claim against the repo's own doctrine before the launch posts repeat it.
+43. **Discourse/Reddit drafts**: add the flash-class + live-week findings (1502/13/18) to the incident-honesty section — it's the strongest evidence story the project has.
+44. **TODO row 16/79**: pre-write the DMS kill-unit proof steps so the switch window executes in one pass.
+45. **Session claim protocol** (from e): propose it to the owner before the next two-session day.
+46. **Retrospective on the inherited-diagnosis failure**: add a lesson to crush-config `references/lessons.md` (cross-project: re-derive, never inherit, root-cause diagnoses in inherited TODO rows).
+
+## g) Questions I cannot answer myself
+
+1. **Is the second glm-5.3 session supposed to be working this same plan in parallel?** It landed shell-compat positioning (`304f19c`), its own status report, and is editing FEATURES/README/ROADMAP/flake.* right now. Should I treat docs/website as ITS territory and take SystemNix/release/T13, or is it a stray session I should ask you to close?
+2. **D2 release go**: with prep complete and verified, do I tag v0.2.1 the moment both workflows are green on one commit — even though the tree is moving under parallel writes (i.e., may I pause/coordinate the other session for the tag window)?
+3. **BuildFlow (D4)**: is the 07:20/10:1x passes you running it manually on this repo, or a scheduled job I can't see from here? Deciding "teach it to skip offline-banner" vs "adopt `.buildflow.yml`" needs to know whether it re-strikes on every pass — and whether you want the markdown corpus protected (the AGENTS hand-formatted decision says yes; BuildFlow's behavior says no).
+
+---
+
+_Point-in-time snapshot, 2026-11-18 11:16 CET. Written per the docs-health contract; indexed in `docs/status/README.md` at write time. When a later session brings this current, use docs-health ANNOTATE — never rewrite._

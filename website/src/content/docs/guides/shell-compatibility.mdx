@@ -1,0 +1,99 @@
+---
+title: Shell Compatibility
+description: The banner is not a plugin into your shell — it is its own hardened unit. What that buys you, and how it plays with DankMaterialShell, waybar, and Omarchy.
+---
+
+## Not a plugin, by design
+
+The banner renders in its own [Quickshell](https://quickshell.outfoxxed.me/)
+process, started by its own hardened `systemd --user` unit. It never plugs
+into your bar's or shell's plugin API. That is a design rule, not an
+accident:
+
+- **Crash isolation, both ways.** A banner bug cannot take your bar or shell
+  down, and a shell crash or reload cannot take the banner down. Two
+  processes, one truth.
+- **The sandbox stays.** The systemd hardening
+  ([`ProtectSystem=strict`, `MemoryMax`, …](/guides/how-it-works/#what-it-is-verified-by))
+  belongs to the unit. A plugin inside your shell process runs unsandboxed
+  with your full user permissions.
+- **Live tuning survives.** The `OFFLINE_BANNER_*` env contract — drop-in
+  overrides, demo mode — is a unit surface. Plugins have no equivalent.
+- **Your shell is irrelevant.** The strip is a layer-shell surface per
+  monitor; it pushes down whatever sits at the top of the screen, no matter
+  which shell put it there.
+
+## Where it is proven
+
+| Compositor    | Status                                                                                                            |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| niri          | **Proven live** — the origin host's daily desktop                                                                  |
+| sway          | **Proven headless in CI** — the real QML, driven through outages with pixel-asserted strips (software rendering)   |
+| Hyprland      | Expected, untested — same layer-shell contract; no host has run it yet                                             |
+
+| Shell / bar                                  | The banner beside it                                                                     | Status                          |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------- |
+| [DankMaterialShell](#dankmaterialshell)      | Own process, next to DMS's own Quickshell process                                         | **Proven live** (origin host)   |
+| waybar                                       | Own process + the reference consumer script in the bar                                    | Reference consumer ships        |
+| [Omarchy's shell](#omarchy) (omarchy-shell)  | Own process, next to omarchy-shell's own Quickshell process — same shape as the DMS case  | Expected, untested              |
+| GNOME / KDE                                  | —                                                                                         | Not for you ([limitations](/limitations/)) |
+
+One Quickshell process beside another is the normal shape of this design —
+proven daily, not theorized.
+
+## DankMaterialShell
+
+[DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) is
+itself a Quickshell-based shell (niri + Hyprland). The origin host runs it as
+the daily bar, with the banner beside it as a second Quickshell process:
+
+- **The banner** — its own hardened unit, own process, one strip per monitor.
+  The host's first real outage rode this exact pairing end to end: alarm,
+  cue, recovery, and the ledger append under the sandbox.
+- **The bar widget** — a small DMS plugin (`systemnix-banner` in
+  [SystemNix](https://github.com/LarsArtmann/SystemNix)) runs the upstream
+  contrib consumer against the banner's JSON state file every 5 s: dim while
+  fine, info-blue while degraded, error while offline, and a hard
+  `banner?` when the heartbeat is stale or the consumer breaks — a dead
+  banner must surface, never go silent.
+
+Neither side knows the other exists. The only contract between them is the
+state file. That is the architecture earning its keep: two Quickshell
+processes, zero plugin coupling.
+
+## Omarchy
+
+[Omarchy](https://omarchy.org) is the Arch-based desktop by DHH: Hyprland,
+systemd, and a whole shell built as a single Quickshell process
+(`omarchy-shell`). The banner's pattern fits unchanged — its own user unit
+starting a second Quickshell process beside it, exactly the shape proven
+daily with DankMaterialShell. Omarchy's own plugin rules even point the same
+way: plugins share the `omarchy-shell` process, and the official development
+guide says *"never start a second Quickshell process for a plugin"* — which
+is the exact inverse of this module's design rule, and why the banner will
+stay a standalone unit there too. A plugin build would trade away the
+sandbox, the env contract, and the crash isolation for a place in a plugin
+list.
+
+Status today, honestly:
+
+- **Untested.** No Omarchy host has run the banner. Its compositor
+  (Hyprland) is the same one this project lists as expected-but-untested —
+  one Omarchy pass would close both at once.
+- **Not packaged for Arch.** Distribution is NixOS-first; an Arch install
+  path (extracted QML + plain unit) is demand-gated. If you would run it on
+  Omarchy, say so in the
+  [issues](https://github.com/LarsArtmann/offline-banner/issues) — that is
+  the signal that promotes it.
+
+## What this means for you
+
+- **Quickshell-based shell (DMS, …)** — expected to work out of the box;
+  proven beside DankMaterialShell on niri.
+- **waybar** — banner plus the reference consumer in
+  `contrib/offline-banner-waybar` (see
+  [Observability](/guides/observability/)).
+- **Omarchy** — the shape fits, nothing is packaged yet; open an issue if
+  you want it.
+- **GNOME / KDE, or X11** — not for you; see
+  [Known Limitations](/limitations/).
