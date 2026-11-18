@@ -149,12 +149,12 @@
               args+=(-p "Environment=OFFLINE_BANNER_DEMO=1")
             if [ "''${1:-}" = "--print" ]; then
               printf 'systemd-run --user --unit=%s' "$name"
-              [ "''${#args[@]}" -eq 0 ] || printf ' %s' "''${args[@]}"
-              printf ' -- quickshell -p %s\n' "$qml_dir"
+              for a in "''${args[@]}"; do printf ' %q' "$a"; done
+              printf ' -- quickshell -p %q\n' "$qml_dir"
               exit 0
             fi
             echo "offline-banner-smoke: transient '$name' under the rendered sandbox (specifiers substituted: %h -> $HOME, %t -> $runtime)"
-            exec systemd-run --user --unit="$name" ''${args[@]} -- quickshell -p "$qml_dir"
+            exec systemd-run --user --unit="$name" "''${args[@]}" -- quickshell -p "$qml_dir"
             EOF
             sed -e "s|@propsFile@|$out/share/props.txt|" -e "s|@qmlDir@|$qmlDir|" -i "$out/bin/offline-banner-smoke"
             chmod +x "$out/bin/offline-banner-smoke"
@@ -759,36 +759,85 @@
                 ];
               }
               ''
-                bash -n "$script"
-                grep -q "exec systemd-run --user" "$script" || { echo "FAIL: smoke script lost the systemd-run exec"; exit 1; }
-                grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
-                grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
-                grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
-                grep -q -- '--print' "$script" || { echo "FAIL: smoke script lost the --print dry-run"; exit 1; }
+                                bash -n "$script"
+                                grep -q "exec systemd-run --user" "$script" || { echo "FAIL: smoke script lost the systemd-run exec"; exit 1; }
+                                grep -q 'line="''${line//%h/$HOME}"' "$script" || { echo "FAIL: smoke script lost the %h substitution (ledger hole untested)"; exit 1; }
+                                grep -q 'line="''${line//%t/$runtime}"' "$script" || { echo "FAIL: smoke script lost the %t substitution"; exit 1; }
+                                grep -q 'done < "$props_file"' "$script" || { echo "FAIL: smoke script no longer consumes the derived props file"; exit 1; }
+                                grep -q -- '--print' "$script" || { echo "FAIL: smoke script lost the --print dry-run"; exit 1; }
 
-                # Negative tooth-proof: a mangled variant with the %h
-                # substitution stripped MUST fail the structural gate above —
-                # this proves the gate fires on drift, not that it merely
-                # exists.
-                sed 's|%h/$HOME|SUBSTITUTION-STRIPPED|' "$script" > broken-smoke
-                if grep -q 'line="''${line//%h/$HOME}"' broken-smoke; then
-                  echo "FAIL: negative fixture failed — gate would not fire on a %h-stripped smoke script"
-                  exit 1
-                fi
+                                # Negative tooth-proof: a mangled variant with the %h
+                                # substitution stripped MUST fail the structural gate above —
+                                # this proves the gate fires on drift, not that it merely
+                                # exists.
+                                sed 's|%h/$HOME|SUBSTITUTION-STRIPPED|' "$script" > broken-smoke
+                                if grep -q 'line="''${line//%h/$HOME}"' broken-smoke; then
+                                  echo "FAIL: negative fixture failed — gate would not fire on a %h-stripped smoke script"
+                                  exit 1
+                                fi
 
-                # Computed keep-list coverage, both directions: every
-                # [Service] directive the rendered unit carries must sit on
-                # the keep list (→ reaches the transient) or the drop
-                # whitelist; and the keep list must be stale-free.
-                sed -n '/^\[Service\]/,/^\[/p' "$unitTextPath" \
-                  | grep -oE '^[A-Za-z0-9]+=' | tr -d '=' | sort -u > unit-keys.txt
-                printf '%s\n' Type ExecStart Restart RestartSec Environment | sort -u > drop-keys.txt
-                echo "$keepList" | tr ' ' '\n' | sort -u > keep-keys.txt
-                drop_not_kept=$(comm -23 unit-keys.txt <(cat drop-keys.txt keep-keys.txt | sort -u) | tr '\n' ' ')
-                [ -z "$drop_not_kept" ] || { echo "FAIL: rendered directives never reach the smoke transient (add to smokeKeepDirectives or smokeDropWhitelist): $drop_not_kept"; exit 1; }
-                stale_kept=$(comm -13 unit-keys.txt keep-keys.txt | tr '\n' ' ')
-                [ -z "$stale_kept" ] || { echo "FAIL: smokeKeepDirectives carries keys the unit no longer has: $stale_kept"; exit 1; }
-                touch "$out"
+                                # Computed keep-list coverage, both directions: every
+                                # [Service] directive the rendered unit carries must sit on
+                                # the keep list (→ reaches the transient) or the drop
+                                # whitelist; and the keep list must be stale-free.
+                                sed -n '/^\[Service\]/,/^\[/p' "$unitTextPath" \
+                                  | grep -oE '^[A-Za-z0-9]+=' | tr -d '=' | sort -u > unit-keys.txt
+                                printf '%s\n' Type ExecStart Restart RestartSec Environment | sort -u > drop-keys.txt
+                                echo "$keepList" | tr ' ' '\n' | sort -u > keep-keys.txt
+                                drop_not_kept=$(comm -23 unit-keys.txt <(cat drop-keys.txt keep-keys.txt | sort -u) | tr '\n' ' ')
+                                [ -z "$drop_not_kept" ] || { echo "FAIL: rendered directives never reach the smoke transient (add to smokeKeepDirectives or smokeDropWhitelist): $drop_not_kept"; exit 1; }
+                                stale_kept=$(comm -13 unit-keys.txt keep-keys.txt | tr '\n' ' ')
+                                [ -z "$stale_kept" ] || { echo "FAIL: smokeKeepDirectives carries keys the unit no longer has: $stale_kept"; exit 1; }
+
+                                # Execution gate (argv integrity): the app must hand
+                                # systemd-run every multi-word directive as ONE argv token.
+                                # Greps cannot see word-splitting, so this executes the real
+                                # app under a systemd-run shim — the 2026-11-18 live bug (an
+                                # unquoted array expansion split RuntimeDirectory and
+                                # ReadWritePaths into free-standing words, and systemd-run
+                                # exec'd the first fragment as the command) shipped through
+                                # exactly this check's structural greps.
+                                mkdir shimbin fakehome
+                                cat > shimbin/systemd-run <<SHIMEOF
+                #!/usr/bin/env bash
+                printf '%s\n' "$@" > "$ARGV_DUMP"
+                exit 0
+                SHIMEOF
+                                printf '#!/usr/bin/env bash\nexit 0\n' > shimbin/systemctl
+                                chmod +x shimbin/systemd-run shimbin/systemctl
+                                export HOME="$PWD/fakehome"
+
+                                assert_whole_tokens() {
+                                  grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' "$1" ||
+                                    { echo "FAIL: RuntimeDirectory did not arrive as one argv token"; exit 1; }
+                                  grep -Eqx 'ReadWritePaths=([^ ]+ ){2}[^ ]+' "$1" ||
+                                    { echo "FAIL: ReadWritePaths did not arrive as one argv token"; exit 1; }
+                                  grep -Eqx 'RestrictAddressFamilies=([^ ]+ ){3}[^ ]+' "$1" ||
+                                    { echo "FAIL: RestrictAddressFamilies did not arrive as one argv token"; exit 1; }
+                                  awk '/^--$/{f=1;next} f && $0=="quickshell"{ok=1} END{exit !ok}' "$1" ||
+                                    { echo "FAIL: the token after -- is not the quickshell command"; exit 1; }
+                                }
+
+                                ARGV_DUMP="$PWD/argv-app" PATH="$PWD/shimbin:$PATH" bash "$script" > /dev/null
+                                assert_whole_tokens argv-app
+
+                                # The --print output is the documented copy-paste form: it
+                                # must re-parse through a real shell to the SAME argv.
+                                bash "$script" --print > printed.sh
+                                ARGV_DUMP="$PWD/argv-printed" PATH="$PWD/shimbin:$PATH" bash printed.sh > /dev/null
+                                cmp argv-app argv-printed ||
+                                  { echo "FAIL: --print output does not re-execute to the app's argv"; exit 1; }
+
+                                # Negative tooth: the unquoted variant (the shipped bug) must
+                                # split and fail the same gate.
+                                sed 's/"''${args\[@\]}"/''${args[@]}/' "$script" > unquoted-smoke
+                                ARGV_DUMP="$PWD/argv-broken" PATH="$PWD/shimbin:$PATH" bash unquoted-smoke > /dev/null || true
+                                if grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' argv-broken; then
+                                  echo "FAIL: negative fixture failed — unquoted form still produced whole tokens"
+                                  exit 1
+                                fi
+
+                                touch "$out"
               '';
           # Unit-syntax gate: systemd-analyze verify on the rendered unit —
           # catches pin-class typos in serviceConfig mechanically (proven:
