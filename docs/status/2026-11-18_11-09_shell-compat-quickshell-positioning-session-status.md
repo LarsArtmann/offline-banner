@@ -108,8 +108,8 @@ Session window: ~07:30–08:00 CET work, CI verified through 07:06, re-checked
 
 ## d) TOTALLY FUCKED UP
 
-*No product damage shipped; all items below are process errors I made. CI is
-green on everything I pushed.*
+_No product damage shipped; all items below are process errors I made. CI is
+green on everything I pushed._
 
 1. **I pushed `eb4060e` (a `flake.nix` change) without the mandated local
    aarch64 emulation pass.** AGENTS.md: the aarch64 `probe-transitions` run
@@ -196,10 +196,10 @@ from this session; 13+ are pre-existing open items noticed this session
 15. D1 decision: promote `packages.vm-smoke` into `checks` or not
     (pre-existing, owner-gated). H / M / CI.
 16. Live-retuning without restart / ExecReload story (pre-existing ROADMAP).
-   M / M / Feature.
+    M / M / Feature.
 17. Quiet-hours awareness, "still offline" reminder, custom sound-theme dir,
-   ledger analytics (pre-existing ROADMAP raw ideas — demand-gated).
-   L / M-L / Feature.
+    ledger analytics (pre-existing ROADMAP raw ideas — demand-gated).
+    L / M-L / Feature.
 18. Confirm the parallel session's docs-gates fix (`93fc621`) is the final
     shape for foreign-repo hash markers; coordinate before touching anything
     docs-gates-shaped. L / S / CI.
@@ -220,5 +220,5 @@ from this session; 13+ are pre-existing open items noticed this session
 
 ---
 
-*Snapshot per status-report skill; HARVEST of section (f) into TODO_LIST.md
-intentionally deferred — the owner said wait for instructions.*
+_Snapshot per status-report skill; HARVEST of section (f) into TODO_LIST.md
+intentionally deferred — the owner said wait for instructions._

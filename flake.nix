@@ -72,13 +72,6 @@
       # Transient-hostile or separately-handled service keys the smoke
       # transient deliberately drops (Type/ExecStart/Restart define the
       # run itself; Environment is rendered from the env map).
-      smokeDropWhitelist = [
-        "Type"
-        "ExecStart"
-        "Restart"
-        "RestartSec"
-        "Environment"
-      ];
       # The runbook's hardened smoke test as versioned code: the module's
       # EXACT serviceConfig sandbox as a transient user unit, with
       # unit-file specifiers substituted literally (%h -> $HOME, %t ->

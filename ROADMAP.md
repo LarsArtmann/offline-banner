@@ -87,7 +87,7 @@ Demand-gated or audience-gated; none of these have a pull signal yet:
   Hyprland + quickshell-from-pacman; the second-instance pattern beside
   `omarchy-shell` is the same shape proven daily beside DankMaterialShell).
   Demand-gated: the shell-compatibility docs page points Omarchy users at
-  the issue tracker — that is the promoting signal. The *plugin* route is
+  the issue tracker — that is the promoting signal. The _plugin_ route is
   closed by doctrine on both sides (Omarchy: plugins share the
   omarchy-shell process, "never start a second Quickshell process for a
   plugin"; this repo: no bar-plugin mode, non-negotiable below).
