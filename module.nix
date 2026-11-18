@@ -369,6 +369,12 @@
             // be silenced by the previous one's dismissal.
             property bool dismissedDegraded: false
             property bool dwellExpired: false
+            // The re-arm guard's memory of the last down-leg SET: the
+            // engine's changed-signal for a var binding is not trusted
+            // for the flash contract (CI 2026-11-18 emulated aarch64: a
+            // re-show wrote degradedVisible=true on an unchanged set) —
+            // the raw set decides, the signal merely delivers.
+            property string lastDownLegsKey: ""
             readonly property bool degradedVisible: root.phase === "degraded"
                 && !root.dismissedDegraded
                 && !root.dwellExpired
@@ -532,10 +538,20 @@
             }
             onDownLegsChanged: {
                 // New down-leg composition = a fresh fact: reset dwell AND
-                // the degraded dismissal, so the strip re-informs. (The
-                // binding only re-evaluates when a leg CROSSES its
-                // threshold — plain failure-count creep never fires it,
-                // which is what keeps a flapping leg from flashing.)
+                // the degraded dismissal, so the strip re-informs. The
+                // re-arm DECIDES on the raw set (lastDownLegsKey), never
+                // on the signal alone: a same-content changed-signal
+                // (engine-observed 2026-11-18 on emulated aarch64) would
+                // re-show a faded strip — the flash class this contract
+                // forbids. Plain failure-count creep still never reaches
+                // here at all (the threshold bindings hold their value).
+                const key = root.downLegs.join(",");
+                if (key === root.lastDownLegsKey) {
+                    console.log("[offline-banner] degraded re-arm suppressed (unchanged set legs=" + key + ")");
+                    return;
+                }
+                root.lastDownLegsKey = key;
+                console.log("[offline-banner] degraded re-arm legs=" + key);
                 root.dwellExpired = false;
                 root.dismissedDegraded = false;
                 if (root.degradedDwellMs > 0)
@@ -742,7 +758,10 @@
                 repeat: false
                 running: root.phase === "degraded" && root.degradedDwellMs > 0
 
-                onTriggered: root.dwellExpired = true
+                onTriggered: {
+                    root.dwellExpired = true;
+                    console.log("[offline-banner] degraded dwell expired");
+                }
             }
 
             // Rewritten by emitState() on every probe and every transition
