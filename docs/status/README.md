@@ -7,6 +7,13 @@ are never rewritten; open items are harvested forward into `TODO_LIST.md` /
 carried item annotated inline, `check-rows --strict` + `bare-rows` gated
 BEFORE the move (docs-health 2026-11-17 sweep; manifest below).
 
+**Annotation canon (G2, decided 2026-11-18):** two classes, already uniform —
+(1) WORK items in any report get strike-with-verdict annotations (evidence +
+routed-to row), matching the corpus history; (2) PROCESS sections (§d/§e of
+cadence archives) stay bare-behind-banner as the historical self-review
+record — the banner above the report routes their open tails. Do not
+re-litigate per file; this note is the canon.
+
 ## Archived (fully resolved — do not reopen; the content is settled and routed)
 
 | File (in `archived/`)                                                                                                                                             | Classification + deciding reason                                                                                                                                                                                                                                                       |

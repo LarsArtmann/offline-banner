@@ -14,7 +14,7 @@
 The probe answers one boolean honestly. Ideas that could widen what it can
 say without compromising that honesty:
 
-- **~~Optional DNS-leg probe~~ — REALIZED, differently (2026-11-09/10):** the
+- **Optional DNS-leg probe — REALIZED, differently (2026-11-09/10):** the
   legs build shipped a DNS leg as a permanent third net leg (`dnsProbeName`,
   default `one.one.one.one` via `getent`), not an opt-in: the legs deliberately
   span providers so one provider's filtering mood cannot fake an outage, and

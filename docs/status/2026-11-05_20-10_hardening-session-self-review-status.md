@@ -8,6 +8,8 @@
 
 ## a) FULLY DONE
 
+> **RESOLVED (2026-11-18):** every item in this section is verified done in the live tree — M09/M10/M15/M16/M06/M18/M25/M26 shipped and CI-gated; the smoke app gained its first real end-to-end execution + the args/PATH fixes (2026-11-18); the deploy step ran green end-to-end on 2026-11-18. Table kept as history.
+
 | Item                                                | Evidence                                                                                                                                                                                                                                                                                                        |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M09 — ReadWritePaths derived from provisioned lists | module.nix `provisionedRuntimeDirs`/`provisionedStateDirs`; rendered unit inspected: same 3 holes + 2 provisioners as before (set-identical; %t line order differs, contract pins are per-line)                                                                                                                 |
