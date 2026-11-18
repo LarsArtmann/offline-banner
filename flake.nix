@@ -94,20 +94,85 @@
             "${name}=${
               if builtins.isList value then nixpkgs.lib.concatStringsSep " " value else toString value
             }";
-          propsLines =
-            map (name: renderDirective name serviceConfig.${name}) (
-              nixpkgs.lib.filter (name: nixpkgs.lib.elem name keepDirectives) (
-                nixpkgs.lib.attrNames serviceConfig
+          # Namespace isolation (2026-11-18 live-desktop hazard): the
+          # transient used to share the live unit's offline-banner runtime
+          # dir — it overwrote the live state file, and stopping the
+          # transient deleted the dir the live unit bind-mounts (only a
+          # live-unit restart recovered). Every provisioned dir except
+          # quickshell gets a -smoke suffix in the props; quickshell's
+          # runtime layout is quickshell-the-binary's own hardcoded path,
+          # so it stays shared and the script injects
+          # RuntimeDirectoryPreserve=true to keep stop-time deletion off
+          # the live unit's bind. The QML follows the rename via the
+          # OFFLINE_BANNER_STATE_DIR seam (module.nix emitState) and the
+          # ledger keeps its %h/.local/state/<name> provisioning shape.
+          smokeDirSuffix = "-smoke";
+          unitRuntimeDirs = serviceConfig.RuntimeDirectory or [ ];
+          keptRuntimeDirs = builtins.filter (d: d == "quickshell") unitRuntimeDirs;
+          renamedRuntimeDirs = builtins.filter (d: d != "quickshell") unitRuntimeDirs;
+          unitStateDirs = serviceConfig.StateDirectory or [ ];
+          renameFrom = [
+            "RuntimeDirectory=${nixpkgs.lib.concatStringsSep " " unitRuntimeDirs}"
+          ]
+          ++ nixpkgs.lib.optionals (unitStateDirs != [ ]) [
+            "StateDirectory=${nixpkgs.lib.concatStringsSep " " unitStateDirs}"
+          ]
+          ++ map (d: "%t/${d}") renamedRuntimeDirs
+          ++ map (s: "%h/.local/state/${s}") unitStateDirs;
+          renameTo = [
+            "RuntimeDirectory=${
+              nixpkgs.lib.concatStringsSep " " (
+                (map (d: "${d}${smokeDirSuffix}") renamedRuntimeDirs) ++ keptRuntimeDirs
               )
+            }"
+          ]
+          ++ nixpkgs.lib.optionals (unitStateDirs != [ ]) [
+            "StateDirectory=${
+              nixpkgs.lib.concatStringsSep " " (map (s: "${s}${smokeDirSuffix}") unitStateDirs)
+            }"
+          ]
+          ++ map (d: "%t/${d}${smokeDirSuffix}") renamedRuntimeDirs
+          ++ map (s: "%h/.local/state/${s}${smokeDirSuffix}") unitStateDirs;
+          smokeLine = line: nixpkgs.lib.replaceStrings renameFrom renameTo line;
+          # Sound cues stay inert in the transient by default (they belong
+          # to the live unit; auditioning rides `nix run .#sounds` +
+          # scripts/play-sounds.sh). The unit's sound env moves to a second
+          # props file, consumed only when OFFLINE_BANNER_SMOKE_SOUND=1.
+          soundEnvKeys = [
+            "OFFLINE_BANNER_SOUND_THEME"
+            "OFFLINE_BANNER_SOUND_VOLUME"
+            "OFFLINE_BANNER_SOUNDS"
+          ];
+          envLines = nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") (
+            serviceConfig.Environment or { }
+          );
+          isSoundLine =
+            line: nixpkgs.lib.any (key: nixpkgs.lib.hasPrefix "Environment=${key}=" line) soundEnvKeys;
+          propsLines =
+            map smokeLine (
+              map (name: renderDirective name serviceConfig.${name}) (
+                nixpkgs.lib.filter (name: nixpkgs.lib.elem name keepDirectives) (
+                  nixpkgs.lib.attrNames serviceConfig
+                )
+              )
+              ++ nixpkgs.lib.filter (line: !isSoundLine line) envLines
             )
-            ++ nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") (
-              serviceConfig.Environment or { }
-            );
+            # The state-dir seam: the QML reads OFFLINE_BANNER_STATE_DIR;
+            # this line is what keeps the smoke state file inside the
+            # renamed dir the unit provisions.
+            ++ nixpkgs.lib.optionals (renamedRuntimeDirs != [ ]) [
+              "Environment=OFFLINE_BANNER_STATE_DIR=${nixpkgs.lib.head renamedRuntimeDirs}${smokeDirSuffix}"
+            ];
+          soundPropsLines = map smokeLine (nixpkgs.lib.filter isSoundLine envLines);
         in
         pkgs.runCommand "offline-banner-smoke"
           {
             propsText = nixpkgs.lib.concatStringsSep "\n" propsLines + "\n";
-            passAsFile = [ "propsText" ];
+            soundPropsText = nixpkgs.lib.concatStringsSep "\n" soundPropsLines + "\n";
+            passAsFile = [
+              "propsText"
+              "soundPropsText"
+            ];
             qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
           }
           ''
@@ -118,17 +183,22 @@
             # on line 1 of real use (latent since birth; the --print
             # dry-run exposed it 2026-11-18).
             cp "$propsTextPath" "$out/share/props.txt"
+            cp "$soundPropsTextPath" "$out/share/props-sound.txt"
             cat > "$out/bin/offline-banner-smoke" <<'EOF'
             #!/usr/bin/env bash
             # Hardened smoke test: transient user unit under the rendered
             # offline-banner sandbox, specifiers substituted (%h -> $HOME,
             # %t -> $XDG_RUNTIME_DIR) so the %h ledger hole IS exercised.
-            # Checklist (AGENTS.md runbook): unit active, probe ok, forced
-            # outage shows + writes the ledger, demo shows, RSS << MemoryMax,
-            # fontconfig cache warnings gone. Stop with:
+            # The transient provisions *-smoke dirs (no shared namespace
+            # with the live unit) and stays sound-silent unless
+            # OFFLINE_BANNER_SMOKE_SOUND=1. Checklist (AGENTS.md runbook):
+            # unit active, probe ok, forced outage shows + writes the
+            # ledger, demo shows, RSS << MemoryMax, fontconfig cache
+            # warnings gone. Stop with:
             #   systemctl --user stop offline-banner-smoke
             set -euo pipefail
             props_file="@propsFile@"
+            sound_props_file="@soundPropsFile@"
             qml_dir="@qmlDir@"
             qs_bin="@quickshellBin@"
             name="offline-banner-smoke"
@@ -137,17 +207,25 @@
               systemctl --user stop "$name.service" 2>/dev/null || true
               systemctl --user reset-failed "$name.service" 2>/dev/null || true
             fi
+            read_props() {
+              while IFS= read -r line; do
+                [ -n "$line" ] || continue
+                line="''${line//%h/$HOME}"
+                line="''${line//%t/$runtime}"
+                args+=("-p" "$line")
+              done < "$1"
+            }
             args=()
-            while IFS= read -r line; do
-              [ -n "$line" ] || continue
-              line="''${line//%h/$HOME}"
-              line="''${line//%t/$runtime}"
-              args+=(-p "$line")
-            done < "$props_file"
+            read_props "$props_file"
+            # The shared quickshell runtime dir must survive the transient's
+            # stop — deletion would orphan the live unit's namespace bind
+            # (2026-11-18 hazard).
+            args+=(-p "RuntimeDirectoryPreserve=true")
             [ -z "''${OFFLINE_BANNER_SMOKE_PROBE_HOST:-}" ] ||
               args+=(-p "Environment=OFFLINE_BANNER_PROBE_HOST=$OFFLINE_BANNER_SMOKE_PROBE_HOST")
             [ -z "''${OFFLINE_BANNER_SMOKE_DEMO:-}" ] ||
               args+=(-p "Environment=OFFLINE_BANNER_DEMO=1")
+            [ "''${OFFLINE_BANNER_SMOKE_SOUND:-}" != "1" ] || read_props "$sound_props_file"
             if [ "''${1:-}" = "--print" ]; then
               printf 'systemd-run --user --unit=%s' "$name"
               for a in "''${args[@]}"; do printf ' %q' "$a"; done
@@ -157,7 +235,7 @@
             echo "offline-banner-smoke: transient '$name' under the rendered sandbox (specifiers substituted: %h -> $HOME, %t -> $runtime)"
             exec systemd-run --user --unit="$name" "''${args[@]}" -- "$qs_bin" -p "$qml_dir"
             EOF
-            sed -e "s|@propsFile@|$out/share/props.txt|" -e "s|@qmlDir@|$qmlDir|" -e "s|@quickshellBin@|${enabled.config.services.offline-banner.package}/bin/quickshell|" -i "$out/bin/offline-banner-smoke"
+            sed -e "s|@propsFile@|$out/share/props.txt|" -e "s|@soundPropsFile@|$out/share/props-sound.txt|" -e "s|@qmlDir@|$qmlDir|" -e "s|@quickshellBin@|${enabled.config.services.offline-banner.package}/bin/quickshell|" -i "$out/bin/offline-banner-smoke"
             chmod +x "$out/bin/offline-banner-smoke"
           '';
 
@@ -745,6 +823,8 @@
             pkgs.runCommand "offline-banner-smoke-script"
               {
                 script = "${smokeRunner system}/bin/offline-banner-smoke";
+                propsFile = "${smokeRunner system}/share/props.txt";
+                soundPropsFile = "${smokeRunner system}/share/props-sound.txt";
                 quickshellBin = "${smokeEnabled.config.services.offline-banner.package}/bin/quickshell";
                 # The rendered unit + the lifted keep list: the coverage gate
                 # below is COMPUTED from these — a new sandbox directive that
@@ -771,6 +851,33 @@
                   # never a bare name riding whatever PATH the caller happens
                   # to have (PATH-phantom doctrine).
                   grep -Fq "qs_bin=\"$quickshellBin\"" "$script" || { echo "FAIL: smoke script no longer resolves the quickshell store binary"; exit 1; }
+
+                  # Namespace isolation (2026-11-18 live-desktop hazard): the
+                  # transient must provision its own dirs — no unsuffixed
+                  # offline-banner shape may survive the props rewrite, and
+                  # the state-dir seam must ride along so the state file
+                  # lands inside the renamed dir.
+                  grep -Eqx 'RuntimeDirectory=offline-banner-smoke quickshell' "$propsFile" ||
+                    { echo "FAIL: smoke RuntimeDirectory not renamed to *-smoke (shared-namespace hazard)"; exit 1; }
+                  grep -Eqx 'StateDirectory=offline-banner-smoke' "$propsFile" ||
+                    { echo "FAIL: smoke StateDirectory not renamed to *-smoke (ledger would land in the live unit's state dir)"; exit 1; }
+                  grep -qxF 'Environment=OFFLINE_BANNER_STATE_DIR=offline-banner-smoke' "$propsFile" ||
+                    { echo "FAIL: smoke props lost the OFFLINE_BANNER_STATE_DIR seam (state file would hit the live unit's dir)"; exit 1; }
+                  if grep -Eq '%t/offline-banner([^-]|$)|%h/\.local/state/offline-banner([^-]|$)' "$propsFile"; then
+                    echo "FAIL: smoke props still carry an unsuffixed offline-banner path (shared-namespace hazard)"
+                    exit 1
+                  fi
+                  # Sound silence: the transient is sound-silent by default;
+                  # the unit's sound env lives in props-sound.txt and reaches
+                  # the argv only under OFFLINE_BANNER_SMOKE_SOUND=1.
+                  if grep -q 'Environment=OFFLINE_BANNER_SOUND' "$propsFile"; then
+                    echo "FAIL: smoke props carry sound env (transient must be silent by default)"
+                    exit 1
+                  fi
+                  for key in OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_VOLUME OFFLINE_BANNER_SOUNDS; do
+                    grep -q "Environment=$key=" "$soundPropsFile" ||
+                      { echo "FAIL: sound props lost $key"; exit 1; }
+                  done
 
                   # Negative tooth-proof: a mangled variant with the %h
                   # substitution stripped MUST fail the structural gate above —
@@ -826,6 +933,23 @@
 
                   ARGV_DUMP="$PWD/argv-app" PATH="$PWD/shimbin:$PATH" bash "$script" > /dev/null
                   assert_whole_tokens argv-app
+
+                  # The preserve prop + the seam must reach the transient's
+                  # argv (execution-level, not grep-level — PATH-phantom
+                  # doctrine), and sound env must NOT ride by default.
+                  grep -qxF 'RuntimeDirectoryPreserve=true' argv-app ||
+                    { echo "FAIL: smoke argv lost RuntimeDirectoryPreserve (transient stop would delete the shared quickshell dir)"; exit 1; }
+                  grep -qxF 'Environment=OFFLINE_BANNER_STATE_DIR=offline-banner-smoke' argv-app ||
+                    { echo "FAIL: smoke argv lost the OFFLINE_BANNER_STATE_DIR seam"; exit 1; }
+                  if grep -q 'OFFLINE_BANNER_SOUND' argv-app; then
+                    echo "FAIL: smoke argv carries sound env without OFFLINE_BANNER_SMOKE_SOUND=1"
+                    exit 1
+                  fi
+                  ARGV_DUMP="$PWD/argv-sound" OFFLINE_BANNER_SMOKE_SOUND=1 PATH="$PWD/shimbin:$PATH" bash "$script" > /dev/null
+                  for key in OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_VOLUME OFFLINE_BANNER_SOUNDS; do
+                    grep -q "Environment=$key=" argv-sound ||
+                      { echo "FAIL: OFFLINE_BANNER_SMOKE_SOUND=1 did not inject $key into the transient argv"; exit 1; }
+                  done
 
                   # The --print output is the documented copy-paste form: it
                   # must re-parse through a real shell to the SAME argv.
@@ -1446,6 +1570,35 @@
                 drain_state_writes
                 unset OFFLINE_BANNER_HISTORY
 
+                # --- OFFLINE_BANNER_STATE_DIR seam (2026-11-18): the smoke
+                # transient renames its runtime dir to offline-banner-smoke
+                # and points the QML at it via this env. Prove the seam
+                # END-TO-END on the real QML: a fresh instance with the
+                # redirect must write its state file into the redirected
+                # dir and NEVER into the default one (the live unit's).
+                kill "$qs_pid" 2>/dev/null || true
+                wait "$qs_pid" 2>/dev/null || true
+                drain_state_writes
+                rm -f "$state"
+                mkdir -p "$XDG_RUNTIME_DIR/offline-banner-smoke"
+                export OFFLINE_BANNER_STATE_DIR=offline-banner-smoke
+                echo ok > control
+                printf 'tcp fail\ndns ok\n' > control-net
+                quickshell -p "$qmlDir" >qs-seam.log 2>&1 &
+                qs_pid=$!
+                seam_state="$XDG_RUNTIME_DIR/offline-banner-smoke/state"
+                for i in $(seq 1 40); do
+                    [ -s "$seam_state" ] && break
+                    sleep 0.25
+                done
+                [ -s "$seam_state" ] || { echo "FAIL: STATE_DIR seam never produced a state file in the redirected dir"; tail -40 qs-seam.log >&2; exit 1; }
+                [ "$(jq -r '.active | tostring' "$seam_state")" = "true" ] || { echo "FAIL: seam state file wrong content: $(cat "$seam_state")"; exit 1; }
+                # Same write event produced (or leaked) the default file —
+                # one settle interval, then the negative must hold.
+                sleep 1
+                [ ! -e "$XDG_RUNTIME_DIR/offline-banner/state" ] || { echo "FAIL: seam instance ALSO wrote the default state file (leak into the live unit's dir)"; exit 1; }
+                unset OFFLINE_BANNER_STATE_DIR
+
                 # Demo mode: a second instance must force-show with probes
                 # skipped (previous instance fully reaped first so no stale
                 # state write can race the fresh state file).
@@ -1693,7 +1846,7 @@
               ''
                 grep -q "WlrLayershell.namespace: \"$ns\"" "$qmlDrv/shell.qml" \
                   || { echo "FAIL: built QML lost the layerNamespace interpolation"; exit 1; }
-                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD OFFLINE_BANNER_TCP_HOST OFFLINE_BANNER_TCP_PORT OFFLINE_BANNER_DNS_NAME OFFLINE_BANNER_DEGRADED_DWELL OFFLINE_BANNER_NET_PROBE_CMD OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_CMD OFFLINE_BANNER_HISTORY pw-play tcp fail dns ok; do
+                for marker in OFFLINE_BANNER_PROBE_HOST OFFLINE_BANNER_SYSROOT OFFLINE_BANNER_PROBE_CMD OFFLINE_BANNER_TCP_HOST OFFLINE_BANNER_TCP_PORT OFFLINE_BANNER_DNS_NAME OFFLINE_BANNER_DEGRADED_DWELL OFFLINE_BANNER_NET_PROBE_CMD OFFLINE_BANNER_STATE_DIR OFFLINE_BANNER_SOUND_THEME OFFLINE_BANNER_SOUND_CMD OFFLINE_BANNER_HISTORY pw-play tcp fail dns ok; do
                   grep -q "$marker" "$qmlDrv/shell.qml" \
                     || { echo "FAIL: built QML lost $marker"; exit 1; }
                 done

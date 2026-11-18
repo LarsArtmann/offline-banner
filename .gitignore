@@ -77,3 +77,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 # <<< buildflow-managed (.gitignore) <<<
+
+# parallel-session claim file (never commit — live coordination only)
+docs/status/.session-claim
