@@ -1,4 +1,5 @@
 <!-- Status report for the 2026-10-28/29 sounds + outage-ledger session. Point-in-time
+> **Live remainder:** none — every item shipped in v0.2.0 (sounds, ledger, render-smoke, shell-scripts) or harvested into TODO_LIST rows closed since (row 22 audition stays owner-open). Archived 2026-11-18 23:1x per the cadence gate (16 > 15).
      snapshot; open items harvested forward into TODO_LIST.md / ROADMAP.md. -->
 
 # Status: sounds + persistent outage ledger (2026-10-28 → 10-29, 01:51)
