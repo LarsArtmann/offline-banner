@@ -38,17 +38,19 @@ Submodules (from local go.mod files):
 ## 3. Usage evidence in offline-banner
 
 ```
-rg -n "go-atomic-write|atomicwrite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' → 2 matches, both doc-only:
-  TODO_LIST.md:58                — go-atomic-write named as an MIT fleet published-library convention peer (LICENSE decision)
-  docs/status/archived/2026-10-17_01-59_full-execution-and-live-smoke-status.md:16 — same LICENSE-convention context
+rg -n "go-atomic-write|atomicwrite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' --glob '!docs/status/**' → 4 living-file matches (2026-11-18 post-adoption recount), prose/comments only:
+  module.nix (emitState recipe comment)  — cites this library's stage-collision doctrine as the spec for the pid-unique temp
+  CHANGELOG.md ([Unreleased])            — the pid-unique-temp fix bullet cites the same doctrine
+  TODO_LIST.md ×2                        — LICENSE-convention peer + the routed hardening row (DONE 2026-11-18)
 find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \) -not -path '*/.git/*' → 0 files
+(Archived docs/status snapshots add 9 point-in-time mentions — session records, excluded from the living count. The original session count was "2 matches"; the routing row and the two citations above landed after verification.)
 ```
 
-Zero code references — the two name hits are the owner's fleet-wide license convention, not usage (the `!docs/review/**` glob excludes this audit's own reports; without it, the grep self-matches). No Go runtime exists in the consumer (verified 2026-11-18). But the *conceptual* usage trace is exact and load-bearing:
+Zero dependency surface — the name hits are the owner's fleet-wide license convention, a doctrine citation comment, and changelog/TODO prose, not usage (the `!docs/review/**` glob excludes this audit's own reports; without it, the grep self-matches; the `!docs/status/**` glob excludes point-in-time session records so the count stops rotting with every snapshot). No Go runtime exists in the consumer (verified 2026-11-18). But the *conceptual* usage trace is exact and load-bearing:
 
-- **The recipe** — `/home/lars/projects/offline-banner/module.nix:594`, inside `emitState()`:
-  `"printf '%s' \"$2\" > \"$1.tmp\" && mv -f \"$1.tmp\" \"$1\""` run via `sh -c` as a spawned Quickshell `Process`.
-- **The documented why** — module.nix comment: *"Atomic rename (tmp + mv): a plain truncate-write has a window where readers (waybar polls, the probe-transitions asserts) see an EMPTY state file — CI-proven x86_64 2026-11-10. mv within the same directory is rename(2), so consumers only ever see a complete old or new state."*
+- **The recipe** — `/home/lars/projects/offline-banner/module.nix` (~:594, emitState):
+  `"printf '%s' \"$2\" > \"$1.$$.tmp\" && mv -f \"$1.$$.tmp\" \"$1\""` run via `sh -c` as a spawned Quickshell `Process` — **the fixed temp name was replaced with the pid-unique stage on 2026-11-18 (§4.1 IMPLEMENTED)**, live-proven through a real sandboxed transient the same evening.
+- **The documented why** — module.nix comment: *"Atomic rename (tmp + mv): a plain truncate-write has a window where readers (waybar polls, the probe-transitions asserts) see an EMPTY state file — CI-proven x86_64 2026-11-10. mv within the same directory is rename(2), so consumers only ever see a complete old or new state. The stage temp is pid-unique ($$ = the spawned sh's pid) ... go-atomic-write's stage-collision doctrine is the spec."*
 - **The CI proof** — `flake.nix` `assert_state_jq`: *"a read right after a journal match sees the pre-transition state and, pre-atomic-rename, could even catch the file empty mid-truncate (CI-proven x86_64 2026-11-10). Single reads of this file are therefore never evidence — poll."*
 - **The second race the library's contract does NOT cover** — `flake.nix` `drain_state_writes`: the spawned `sh -c printf..mv` survives a quickshell kill, and a late orphan `mv` can land the *previous scenario's complete* state after the next instance's writes (CI-proven 2026-11-18). Atomicity was never the problem there — ordering was.
 
@@ -62,7 +64,7 @@ Zero code references — the two name hits are the owner's fleet-wide license co
 
 **Where the recipe falls short of the contract, and whether it matters:**
 
-1. **Fixed temp name vs unique suffix.** `"$1.tmp"` is safe only while `emitState()` is the sole writer. The 2026-11-18 orphan-`mv` incident proved spawned writers can overlap across instance lifetimes in practice (caught by test draining, not by the recipe). The library's `crypto/rand` suffix (`"$1.$$.tmp"` in sh — pid is enough here) is a one-token change that removes the assumption. This is the single most valuable doctrine import, and it costs nothing.
+1. **Fixed temp name vs unique suffix — IMPLEMENTED 2026-11-18.** `"$1.tmp"` was safe only while `emitState()` was the sole writer. The 2026-11-18 orphan-`mv` incident proved spawned writers can overlap across instance lifetimes in practice (caught by test draining, not by the recipe). The library's unique-suffix rule (`"$1.$$.tmp"` in sh — pid is enough here) is now IN the recipe, live-proven through a sandboxed transient. The last assumption is removed.
 2. **No fsync before rename.** POSIX sh cannot fsync a single file. On a power loss between `>` and the writeback, the renamed target can be short or zero-length on filesystems without rename-flush heuristics; ext4's `auto_da_alloc` specifically detects rename-over-existing and flushes, so on NixOS's default ext4 the practical window is small. Decisive for the verdict: the data is *ephemeral runtime state* whose consumers fail closed — a zero-length or stale `updatedAt` reads as "unit dead", which is the correct presentation anyway. The gap is real on paper and trivial by design.
 3. **No TOCTOU machinery.** One writer, read-only consumers: the fingerprint/flock half of the library has no race to catch here. Note the library itself documents why its zero-fingerprint first-write path checks existence *before* flock (flock's `O_CREATE` would false-positive) — nice contract subtlety, irrelevant to a single-writer sh recipe.
 4. **`WriteIfChanged` is an anti-feature for a heartbeat.** The library markets no-mtime-bump as a benefit for file-watcher users; the state file's whole job is to *change* on every probe so staleness proves death. A doctrine collision worth remembering in reverse: dedup-on-write and liveness-heartbeat are opposing requirements on the same file-writing primitive.
@@ -75,7 +77,7 @@ This is the fleet run's proof that a justified NOT-APPLICABLE can still transfer
 
 ## 6. If the flip trigger fires
 
-1. **A second sh writer joins the state file** (debug tool, migration script): do NOT reach for Go — first harden the recipe to `printf '%s' "$3" > "$1.$$".tmp && mv -f "$1.$$".tmp "$1"` and serialize writers, citing go-atomic-write's stage_collision doctrine. The library becomes attractive only if the writers get read-modify-write semantics.
+1. **A second sh writer joins the state file** (debug tool, migration script): do NOT reach for Go — the recipe already stages pid-uniquely (`"$1.$$.tmp"`, applied 2026-11-18), so serialize writers next, citing go-atomic-write's stage_collision doctrine. The library becomes attractive only if the writers get read-modify-write semantics.
 2. **Real Go code appears that writes shared/read files** (companion CLI, exporter): adopt `atomicwrite.WriteVerified` with `FingerprintFile` for read-modify-write paths and plain `Write` for first-writes; keep `ErrConcurrentModification` handling at the call site (re-read + retry) rather than wrapping it.
 3. **The state file gains durability requirements** (survives reboot, feeds a ledger): that is the moment the sh recipe's missing fsync stops being harmless — port the writer into Go (`WriteFunc` streaming if the document grows) or add a tiny fsync helper, because "fail closed" stops covering data you promised to keep.
 4. **Never** swap the heartbeat file to a `WriteIfChanged`-style dedup — content-diff suppression silently kills the liveness signal the whole observability story rests on.
@@ -84,8 +86,8 @@ This is the fleet run's proof that a justified NOT-APPLICABLE can still transfer
 
 ```bash
 git -C /home/lars/projects/go-atomic-write describe --tags                          # v0.6.2-42-g4f10347 (or newer)
-rg -n "go-atomic-write|atomicwrite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'  # 2 doc-only matches (LICENSE convention), 0 code
+rg -n "go-atomic-write|atomicwrite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' --glob '!docs/status/**'  # 4 living-file prose/comment matches (2026-11-18), 0 dependency surface
 find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' \) -not -path '*/.git/*'  # 0 files
-rg -n 'printf .*tmp.*mv' /home/lars/projects/offline-banner/module.nix              # the sh recipe (line ~594)
+rg -n 'printf .*tmp.*mv' /home/lars/projects/offline-banner/module.nix              # the sh recipe (~:594, pid-unique since 2026-11-18)
 rg -n "empty.*mid-truncate|CI-proven" /home/lars/projects/offline-banner/flake.nix | head -5  # the CI-proven tear + drain doctrine
 ```

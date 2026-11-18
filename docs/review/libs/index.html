@@ -972,14 +972,20 @@
           </p>
         </div>
         <p>
-          Honesty notes: (1) the only consumer references to any library name are 8 doc-only prose
-          mentions (LICENSE-convention notes in <code>TODO_LIST.md</code> and archived status docs:
-          go-atomic-write 3, cmdguard 2, templ-components 2, go-cqrs-lite 1) — zero in code or
-          config; (2) every evidence grep excludes <code>docs/review/**</code> so the reports do
-          not match themselves — run them from the repo root, or the relative glob stops matching
-          (an rg CWD subtlety the verify appendix pins); (3) the unit runs
+          Honesty notes: (1) the only consumer references to any library name are prose and
+          comments (2026-11-18 living-file recount, excluding this audit and status snapshots:
+          go-atomic-write 4 — a CHANGELOG doctrine citation, the module.nix recipe comment, the
+          TODO_LIST LICENSE row + hardening row; cmdguard 1, templ-components 1, go-cqrs-lite 1,
+          all TODO_LIST LICENSE-convention rows) — zero imports, config, or dependency surface;
+          go-atomic-write's unique-temp doctrine was IMPLEMENTED the same day (the state-file
+          stage is now pid-unique); (2) every evidence grep excludes <code>docs/review/**</code>
+          so the reports do not match themselves — run them from the repo root, or the relative
+          glob stops matching (an rg CWD subtlety the verify appendix pins); (3) the unit runs
           <code>Restart = "always"</code> (module.nix:1162), not <code>on-failure</code> — caught
-          and corrected mid-run.
+          and corrected mid-run; (4) the earlier "21 vs 22" link-count artifact does not exist in
+          the committed index — verified 2026-11-18: 22 hrefs, 22 unique, 22 files on disk, every
+          report linked and every link resolving, both directions (the stale count was taken
+          mid-session against a moving working tree).
         </p>
 
         <!-- Doctrine Carries -->

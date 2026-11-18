@@ -25,7 +25,19 @@ mood cannot fake a whole-network outage:
    `timeout` so a silently filtered connect cannot hang the probe.
 4. **DNS leg** — `getent ahostsv4 dnsProbeName` (default `one.one.one.one`):
    the glibc/NSS path applications actually use, so a local-resolver outage
-   registers here and nowhere else.
+   registers here and nowhere else. Answers that could only have been
+   synthesized locally — private, loopback, link-local, unspecified, or
+   empty — count as DOWN: a DNS blocker's zero-IP block page (or a
+   split-horizon zone) cannot satisfy the leg anymore.
+
+:::note[v0.2.2 behavior change]
+A blocked or locally-answered probe name used to keep the DNS leg up
+forever, which hid real outages behind a false-up. If your
+`dnsProbeName` sits on a DNS blocker's blocklist (the default
+`one.one.one.one` is on several), the leg will now correctly fail —
+either accept the stricter verdict or switch to a name your resolver
+answers with public addresses only.
+:::
 
 A probe that cannot even run counts as a failure — fail visible, never fail
 silent.
