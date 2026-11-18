@@ -24,6 +24,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Full history: the docs-gates battery's B/hash gate verifies
+          # `done at <hash>` markers against real commits — a shallow
+          # clone (default) turns every week-old marker into a false
+          # finding (CI-proven 2026-11-18: 66 phantom findings behind a
+          # locally-green battery).
+          fetch-depth: 0
 
       # The lint runs nix-provided tools, so it needs the SAME pinned
       # installer the nix-check job uses. This job shipped WITHOUT the
