@@ -60,6 +60,8 @@ bash ~/projects/SKILLS/scripts/hf-env.sh -- node node_modules/hyperframes/bin/hy
 
 Living doc pointers: feature inventory + evidence in `FEATURES.md`, future direction + non-goals in `ROADMAP.md`, dispatch queue in `TODO_LIST.md`, history in `CHANGELOG.md` (append-only), status snapshots under `docs/status/` (indexed by `docs/status/README.md`), plans under `docs/planning/`.
 
+Library fleet reviews (2026-11-18): all 22 first-party Go libraries audited in `docs/review/libs/` (index: `index.html`, render-verified) — verdict **22× NOT-APPLICABLE, structural** (the repo has zero Go code: 0 `go.mod`, 0 `*.go`), zero dependencies added; each report pins the reviewed version (`git describe --tags`, latest local tag) + a flip trigger, so RE-RUN the audit only when one of those tags moves or any Go artifact joins this repo. Five doctrine carries recorded (atomic-write tmp+mv contract, systemd-supervises, polling-heartbeat liveness, dedup-on-committed-state, classify-before-strings); the one actionable carry (unique `$$.tmp` temp name for the state-file writer) is routed to `TODO_LIST.md` Quality. Evidence greps in those reports exclude `docs/review/**` and MUST be run from the repo root (rg matches exclusion globs against CWD-relative paths).
+
 ## Checks
 
 Ten flake checks (green on both systems, CI-enforced via branch protection):
