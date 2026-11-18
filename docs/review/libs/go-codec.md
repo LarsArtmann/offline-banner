@@ -43,10 +43,10 @@ Single module, single package — no sub-packages. All 19 non-test source files 
 
 Exact commands and results (run 2026-11-18):
 
-- `rg -ci "go-codec" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches** (rg exit 1)
-- `rg -in "codec|cbor" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → only `@jridgewell/sourcemap-codec` entries in `website/pnpm-lock.yaml` — an unrelated JS sourcemap transitive dependency, not this library
-- `rg -n "JSON.stringify|JSON.parse" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **`module.nix:597`** (state file), **`module.nix:664`** (outage ledger JSONL), plus two Astro `ld+json` SEO snippets in `website/src/layouts/LandingLayout.astro` — i.e., all serialization is QML/JS-side
-- `rg -ln "jq " /home/lars/projects/offline-banner` → `flake.nix`, `contrib/offline-banner-waybar`, docs — the consumer side of the JSON contracts
+- `rg -ci "go-codec" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches** (rg exit 1; the `!docs/review/**` glob excludes this review's own reports)
+- `rg -in "codec|cbor" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → only `@jridgewell/sourcemap-codec` entries in `website/pnpm-lock.yaml` — an unrelated JS sourcemap transitive dependency, not this library
+- `rg -n "JSON.stringify|JSON.parse" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **`module.nix:597`** (state file), **`module.nix:664`** (outage ledger JSONL), plus two Astro `ld+json` SEO snippets in `website/src/layouts/LandingLayout.astro` — i.e., all serialization is QML/JS-side
+- `rg -ln "jq " /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → `flake.nix`, `contrib/offline-banner-waybar`, docs — the consumer side of the JSON contracts
 - `fd -e go . /home/lars/projects/offline-banner` → **0 files**; `find /home/lars/projects/offline-banner -name go.mod -not -path '*/.git/*'` → **0 files**
 
 **Zero references, and no Go runtime exists to instantiate any codec.** The repo's serialization story is complete without Go: QML writes, waybar/`jq` read, `probe-transitions` asserts shapes in CI.
@@ -81,8 +81,8 @@ git -C /home/lars/projects/go-codec log -1 --format='%h %ad' --date=short
 # → 98bb1bc 2026-11-15
 find /home/lars/projects/go-codec -name go.mod -not -path '*/.git/*' | wc -l
 # → 1
-rg -ci "go-codec" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' || echo "0 matches"
-# → 0 matches
+rg -ci "go-codec" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**' || echo "0 matches"
+# → 0 matches   (glob excludes these review reports — the only files mentioning go-codec)
 rg -n "JSON.stringify" /home/lars/projects/offline-banner/module.nix
 # → 597: … JSON.stringify({   /   664: … JSON.stringify({   (QML-side serialization, no Go)
 ```

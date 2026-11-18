@@ -40,8 +40,8 @@
 
 Exact commands and results (run 2026-11-18):
 
-- `rg -n "ServeMux|Registry" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches** (rg exit 1)
-- `rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches**
+- `rg -n "ServeMux|Registry" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches** (rg exit 1; the glob excludes this review's own reports)
+- `rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches**
 - `fd -e go . /home/lars/projects/offline-banner` → **0 files**; `find /home/lars/projects/offline-banner -name go.mod -not -path '*/.git/*'` → **0 files**
 
 The repo's executable surfaces are: the systemd user unit running Quickshell with the QML banner engine (inlined in `module.nix`), the shell helper `lib/net-probe.sh`, the waybar consumer in `contrib/`, and the static Astro website under `website/` served by Firebase Hosting. **Zero references, and structurally no HTTP server for a route listing to describe.**
@@ -76,8 +76,8 @@ cat /home/lars/projects/httputil/endpoints/go.mod
 # → module github.com/larsartmann/httputil/endpoints ; go 1.27  (no require block = zero dependencies)
 find /home/lars/projects/httputil/endpoints -mindepth 2 -name '*.go' -not -path '*/.git/*' | wc -l
 # → 0  (single flat package; no sub-packages)
-rg -ci "ServeMux" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' || echo "0 matches"
-# → 0 matches
+rg -ci "ServeMux" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**' || echo "0 matches"
+# → 0 matches   (glob excludes these review reports — the only files mentioning ServeMux)
 fd -e go . /home/lars/projects/offline-banner | wc -l
 # → 0
 ```

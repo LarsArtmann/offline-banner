@@ -42,8 +42,8 @@ The honest structural note: offline-banner *does* measure exactly the kind of ph
 
 Exact commands and results (run 2026-11-18):
 
-- `rg -ci "server-timing|servertiming" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches** (rg exit 1)
-- `rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches** (parent library equally absent)
+- `rg -ci "server-timing|servertiming" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches** (rg exit 1; the glob excludes this review's own reports)
+- `rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches** (parent library equally absent)
 - `fd -e go . /home/lars/projects/offline-banner` → **0 files**; `find /home/lars/projects/offline-banner -name go.mod -not -path '*/.git/*'` → **0 files**
 
 The only HTTP in the consumer is outbound probe traffic spawned as child processes (ICMP exec, `/dev/tcp` dial in `lib/net-probe.sh`, `getent ahostsv4` DNS) and the static website served by Firebase Hosting. **Zero references; no Go runtime exists to import this submodule.**
@@ -74,8 +74,8 @@ cat /home/lars/projects/httputil/server_timing/go.mod
 # → module github.com/larsartmann/httputil/server_timing ; go 1.27  (no require block = zero dependencies)
 ls /home/lars/projects/httputil/server_timing/
 # → doc.go example_test.go middleware.go server_timing.go …(tests, testdata)
-rg -ci "server-timing|servertiming" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' || echo "0 matches"
-# → 0 matches
+rg -ci "server-timing|servertiming" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**' || echo "0 matches"
+# → 0 matches   (glob excludes these review reports — the only files mentioning server-timing)
 fd -e go . /home/lars/projects/offline-banner | wc -l
 # → 0
 ```

@@ -49,8 +49,8 @@ Two capabilities are additionally split out as zero-dependency Go submodules (ow
 
 Exact commands and results (run 2026-11-18):
 
-- `rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches** (rg exit 1)
-- `rg -ci "go-codec" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'` → **0 matches** (sanity: neither library is referenced at all)
+- `rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches** (rg exit 1; the `!docs/review/**` glob excludes this review's own reports, which are otherwise the only mentions)
+- `rg -ci "go-codec" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'` → **0 matches** (sanity: neither library is referenced at all)
 - `fd -e go . /home/lars/projects/offline-banner` → **0 files**
 - `find /home/lars/projects/offline-banner -name 'go.mod' -not -path '*/.git/*'` → **0 files**
 - `find /home/lars/projects/offline-banner -name 'go.sum' -not -path '*/.git/*'` → **0 files**
@@ -89,8 +89,8 @@ git -C /home/lars/projects/httputil log -1 --format='%h %ad' --date=short
 # → 8a0cdc2 2026-11-17
 find /home/lars/projects/httputil -name go.mod -not -path '*/.git/*' | wc -l
 # → 4  (root, endpoints/, server_timing/, testdata/otelinterop/)
-rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' || echo "0 matches"
-# → 0 matches
+rg -ci "httputil" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**' || echo "0 matches"
+# → 0 matches   (glob excludes these review reports — the only files mentioning httputil)
 fd -e go . /home/lars/projects/offline-banner | wc -l
 # → 0
 ```

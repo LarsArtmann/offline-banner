@@ -35,7 +35,7 @@ Submodules (from local go.mod files):
 ## 3. Usage evidence in offline-banner
 
 ```
-rg -n "go-retry" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'  → 0 matches
+rg -n "go-retry" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'  → 0 matches
 find /home/lars/projects/offline-banner -name "*.go"   (excl .git, node_modules)          → 0 files
 find /home/lars/projects/offline-banner -name "go.mod"                                    → 0 files
 ```
@@ -66,7 +66,7 @@ go-retry keeps improving for Go consumers with zero maintenance cost flowing bac
 
 ```bash
 git -C /home/lars/projects/go-retry describe --tags         # v0.9.0-7-g356fbd4 (or newer)
-rg -n "go-retry" /home/lars/projects/offline-banner --glob '!.git'         # 0 matches
+rg -n "go-retry" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'         # 0 matches (the glob excludes this report itself, which contains the search term)
 find /home/lars/projects/offline-banner -name "go.mod" -not -path "*/.git/*" # 0 files
 rg -n "OFFLINE_BANNER_INTERVAL|OFFLINE_BANNER_FAILURES" /home/lars/projects/offline-banner/module.nix | head -5   # the QML-native retry policy exists
 ```

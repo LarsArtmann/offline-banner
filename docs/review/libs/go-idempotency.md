@@ -35,7 +35,7 @@ Submodules (from local go.mod files):
 ## 3. Usage evidence in offline-banner
 
 ```
-rg -n "go-idempotency" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'  → 0 matches
+rg -n "go-idempotency" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'  → 0 matches
 find /home/lars/projects/offline-banner -name "*.go"   (excl .git, node_modules)                → 0 files
 find /home/lars/projects/offline-banner -name "go.mod"                                          → 0 files
 ```
@@ -66,6 +66,6 @@ Correct verdict for the fleet constraint: offline-banner should not carry a Go S
 
 ```bash
 git -C /home/lars/projects/go-idempotency describe --tags    # idemtest/v0.1.1-3-g80c3129 (or newer)
-rg -n "go-idempotency" /home/lars/projects/offline-banner --glob '!.git'   # 0 matches
+rg -n "go-idempotency" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'   # 0 matches (the glob excludes this report itself, which contains the search term)
 find /home/lars/projects/offline-banner -name "go.mod" -not -path "*/.git/*" # 0 files
 ```

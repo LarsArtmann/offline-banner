@@ -41,7 +41,7 @@ Submodules (from local go.mod files):
 ## 3. Usage evidence in offline-banner
 
 ```
-rg -n "go-error-family" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules'  → 0 matches
+rg -n "go-error-family" /home/lars/projects/offline-banner --glob '!.git' --glob '!node_modules' --glob '!docs/review/**'  → 0 matches
 find /home/lars/projects/offline-banner -name "*.go"   (excl .git, node_modules)               → 0 files
 find /home/lars/projects/offline-banner -name "go.mod"                                         → 0 files
 ```
@@ -74,7 +74,7 @@ This is the verdict that serves the owner's constraint best: go-error-family kee
 
 ```bash
 git -C /home/lars/projects/go-error-family describe --tags   # v0.12.0-12-g898004e (or newer on re-review)
-rg -n "go-error-family" /home/lars/projects/offline-banner --glob '!.git'   # 0 matches
+rg -n "go-error-family" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'   # 0 matches (the glob excludes this report itself, which contains the search term)
 find /home/lars/projects/offline-banner -name "go.mod" -not -path "*/.git/*" # 0 files
 find /home/lars/projects/offline-banner -name "*.go" -not -path "*/.git/*"   # 0 files
 ```
