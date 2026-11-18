@@ -91,7 +91,7 @@
           keepDirectives = smokeKeepDirectives;
           renderDirective =
             name: value:
-            "-p ${name}=${
+            "${name}=${
               if builtins.isList value then nixpkgs.lib.concatStringsSep " " value else toString value
             }";
           propsLines =
@@ -100,7 +100,7 @@
                 nixpkgs.lib.attrNames serviceConfig
               )
             )
-            ++ nixpkgs.lib.mapAttrsToList (name: value: "-p Environment=${name}=${toString value}") (
+            ++ nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") (
               serviceConfig.Environment or { }
             );
         in
@@ -142,7 +142,7 @@
               [ -n "$line" ] || continue
               line="''${line//%h/$HOME}"
               line="''${line//%t/$runtime}"
-              args+=("$line")
+              args+=(-p "$line")
             done < "$props_file"
             [ -z "''${OFFLINE_BANNER_SMOKE_PROBE_HOST:-}" ] ||
               args+=(-p "Environment=OFFLINE_BANNER_PROBE_HOST=$OFFLINE_BANNER_SMOKE_PROBE_HOST")
@@ -814,11 +814,11 @@
                   export HOME="$PWD/fakehome"
 
                   assert_whole_tokens() {
-                    grep -Eqx -- '-p RuntimeDirectory=[^ ]+ [^ ]+' "$1" ||
+                    grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' "$1" ||
                       { echo "FAIL: RuntimeDirectory did not arrive as one argv token"; exit 1; }
-                    grep -Eqx -- '-p ReadWritePaths=([^ ]+ ){2}[^ ]+' "$1" ||
+                    grep -Eqx 'ReadWritePaths=([^ ]+ ){2}[^ ]+' "$1" ||
                       { echo "FAIL: ReadWritePaths did not arrive as one argv token"; exit 1; }
-                    grep -Eqx -- '-p RestrictAddressFamilies=([^ ]+ ){3}[^ ]+' "$1" ||
+                    grep -Eqx 'RestrictAddressFamilies=([^ ]+ ){3}[^ ]+' "$1" ||
                       { echo "FAIL: RestrictAddressFamilies did not arrive as one argv token"; exit 1; }
                     awk -v qs="$quickshellBin" '/^--$/{f=1;next} f && $0==qs{ok=1} END{exit !ok}' "$1" ||
                       { echo "FAIL: the token after -- is not the quickshell command"; exit 1; }
@@ -838,7 +838,7 @@
                   # split and fail the same gate.
                   sed 's/"''${args\[@\]}"/''${args[@]}/' "$script" > unquoted-smoke
                   ARGV_DUMP="$PWD/argv-broken" PATH="$PWD/shimbin:$PATH" bash unquoted-smoke > /dev/null || true
-                  if grep -Eqx -- '-p RuntimeDirectory=[^ ]+ [^ ]+' argv-broken; then
+                  if grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' argv-broken; then
                     echo "FAIL: negative fixture failed — unquoted form still produced whole tokens"
                     exit 1
                   fi
