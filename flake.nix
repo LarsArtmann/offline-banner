@@ -152,7 +152,9 @@
             "OFFLINE_BANNER_SOUND_VOLUME"
             "OFFLINE_BANNER_SOUNDS"
           ];
-          envLines = nixpkgs.lib.mapAttrsToList (name: value: "Environment=${name}=${toString value}") unitEnvironment;
+          envLines = nixpkgs.lib.mapAttrsToList (
+            name: value: "Environment=${name}=${toString value}"
+          ) unitEnvironment;
           isSoundLine =
             line: nixpkgs.lib.any (key: nixpkgs.lib.hasPrefix "Environment=${key}=" line) soundEnvKeys;
           propsLines =
