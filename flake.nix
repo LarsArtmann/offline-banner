@@ -804,7 +804,7 @@
                   # exec'd the first fragment as the command) shipped through
                   # exactly this check's structural greps.
                   mkdir shimbin fakehome
-                  cat > shimbin/systemd-run <<SHIMEOF
+                  cat > shimbin/systemd-run <<'SHIMEOF'
                 #!${pkgs.bash}/bin/sh
                 printf '%s\n' "$@" > "$ARGV_DUMP"
                 exit 0
@@ -814,11 +814,11 @@
                   export HOME="$PWD/fakehome"
 
                   assert_whole_tokens() {
-                    grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' "$1" ||
+                    grep -Eqx -- '-p RuntimeDirectory=[^ ]+ [^ ]+' "$1" ||
                       { echo "FAIL: RuntimeDirectory did not arrive as one argv token"; exit 1; }
-                    grep -Eqx 'ReadWritePaths=([^ ]+ ){2}[^ ]+' "$1" ||
+                    grep -Eqx -- '-p ReadWritePaths=([^ ]+ ){2}[^ ]+' "$1" ||
                       { echo "FAIL: ReadWritePaths did not arrive as one argv token"; exit 1; }
-                    grep -Eqx 'RestrictAddressFamilies=([^ ]+ ){3}[^ ]+' "$1" ||
+                    grep -Eqx -- '-p RestrictAddressFamilies=([^ ]+ ){3}[^ ]+' "$1" ||
                       { echo "FAIL: RestrictAddressFamilies did not arrive as one argv token"; exit 1; }
                     awk -v qs="$quickshellBin" '/^--$/{f=1;next} f && $0==qs{ok=1} END{exit !ok}' "$1" ||
                       { echo "FAIL: the token after -- is not the quickshell command"; exit 1; }
@@ -838,7 +838,7 @@
                   # split and fail the same gate.
                   sed 's/"''${args\[@\]}"/''${args[@]}/' "$script" > unquoted-smoke
                   ARGV_DUMP="$PWD/argv-broken" PATH="$PWD/shimbin:$PATH" bash unquoted-smoke > /dev/null || true
-                  if grep -Eqx 'RuntimeDirectory=[^ ]+ [^ ]+' argv-broken; then
+                  if grep -Eqx -- '-p RuntimeDirectory=[^ ]+ [^ ]+' argv-broken; then
                     echo "FAIL: negative fixture failed — unquoted form still produced whole tokens"
                     exit 1
                   fi
