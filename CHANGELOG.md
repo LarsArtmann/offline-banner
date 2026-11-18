@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
+## [0.2.1] — 2026-11-18
 
 ### Added
 
@@ -104,6 +104,7 @@ The banner learns to speak (synthesized cues) and to remember (a persistent outa
 
 ---
 
-[Unreleased]: https://github.com/LarsArtmann/offline-banner/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LarsArtmann/offline-banner/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/LarsArtmann/offline-banner/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/LarsArtmann/offline-banner/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LarsArtmann/offline-banner/compare/fff0b61...v0.1.0
