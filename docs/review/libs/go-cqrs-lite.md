@@ -1,0 +1,109 @@
+# go-cqrs-lite × offline-banner — Library Utilization Review
+
+| Field | Value |
+|---|---|
+| **Library repo** | `/home/lars/projects/go-cqrs-lite` (github.com/LarsArtmann/go-cqrs-lite) |
+| **Reviewed version** | `cmd/cqrs-lint/v4.22.2-18-gb7fa7a182` — latest local tag (HEAD `b7fa7a182`, 2026-11-18; remotes NOT fetched) |
+| **Review date** | 2026-11-18 |
+| **Reviewed by** | Fleet-run Group E (library-deep-dive runbook) |
+| **Verdict** | NOT-APPLICABLE — the banner domain is a 2-writer single-process state machine whose append-only ledger already delivers the event-log benefit at ~1% of CQRS complexity; and there is no Go runtime anyway |
+| **Score** | 0/0 applicable capabilities leveraged (n/a — no applicable surface; structural) |
+| **Flip trigger** | Multi-consumer state with replay/audit requirements beyond what the JSONL ledger already provides |
+
+## 1. What the library is
+
+From its README: "CQRS and Event Sourcing for Go — without the framework tax." A composable library of 90+ independently-versioned modules (104 go.mod files in the working tree): you declare commands, events, state fold (`Apply`), decide logic, and one fold per read model; `system.New(ctx, DomainConfig, DeploymentConfig)` wires the dispatcher, decider, event journal, projection host (replay, crash-restart, checkpoints, dead-letter), snapshots, timers, health, and lifecycle — and the `metaengine` cost-based planner routes every query to the cheapest of 11 interchangeable storage engines. Library, not framework: no transport, broker, or driver is forced (the `event` module's only third-party production dependency is CBOR). Its own "When NOT to use" section says skip it for plain CRUD without domain events.
+
+Module families (104 go.mod files, grouped by top-level directory):
+
+| Family | Contents (go.mod count) | Purpose/role |
+|---|---|---|
+| `event` | 2 (`event`, `eventtest`) | Immutable, versioned events; optimistic concurrency; upcasters; branded IDs via `id` |
+| `command` + `commandlifecycle` | 1 + 2 | Typed commands; command lifecycle/middleware |
+| `decider` / `dispatcher` / `deriver` | 1 / 1 / 1 | Pure-function decide logic; typed dispatch; derived read models |
+| storage engines | `storage` 6 (`v4`, memory, bbolt, pebble, turso, backuptest), `kv` 1 | Event-journal and state backing stores |
+| `metaengine` | 18 | Cost-based query planner over 11 engines (sqlite, pg, mysql, pebble, bbolt, badger, duckdb, turso, bigtable, dgraph, iroh) + graph/projection adapters, otel observer, bench |
+| `stack` | 11 | Per-engine prebuilt stacks (memory, sqlite, postgres, mysql, pebble, bbolt, duckdb, turso + metaengine/bench/v4) |
+| `system` | 2 (`v4`, `integration`) | Composition root: `system.New` wires journal, projections, snapshots, timers, health, lifecycle |
+| `query` / `listing` | 1 / 1 | Query side and read-model listings |
+| `snapshot` | 1 | Aggregate snapshots |
+| `scheduling` | 3 | Timers/delayed messaging |
+| `projection` + `projectionhost` | 1 + 1 | Read-model projections; managed host (replay, checkpoints, DLQ) |
+| cross-cutting | `idempotency` 1, `dedup` 1, `claiming` 1, `encryption` 1, `signing` 1, `middleware` 1, `schema` 1, `metadata` 1, `record` 1, `graph` 1, `core` 1, `result` 1 | Idempotency keys, dedup, work claiming, XChaCha20/AES-GCM payload encryption, HMAC/Ed25519 event signing, 6-family error taxonomy |
+| observability | `otel` 2, `prometheus` 1 | Tracing, metrics, Prometheus bridge |
+| transports/adapters | `queue` 4, `watermill` 1 | Queue adapters; Watermill bridge |
+| governance/catalog | `catalog` 1, `systemcatalog` 1, `systemscenario` 1, `systemtest` 1, `scenario` 1, `benchkit` 1 | Rendered/governed catalog trees, scenario tests, benchmark kit |
+| tooling | `cmd` 9 (`cqrs-lint`, `cqrs-gen`, `cqrs-bench`, `cqrs-upgrade`, `api-stability`, `doc-check`, …) | Static lint of consumer code, codegen, benchmarks, upgrade codemod, API-stability gates |
+| support | `testutil` 3, `example` 9, `integration` 1 | Test kit, runnable examples, integration harness |
+
+(Note: health and lifecycle are *wired by* `system.New` per the README pipeline — they surface through the `system`/`commandlifecycle` families rather than as standalone `health` go.mods.)
+
+## 2. Capability inventory
+
+| Capability | What the library offers | Status in offline-banner | Reason |
+|---|---|---|---|
+| Append-only event journal | Immutable, versioned, concurrency-safe event log | Fully Leveraged (as doctrine) | The outage ledger (`%h/.local/state/offline-banner/history.jsonl`, module.nix ~:230) is exactly an append-only event log — written atomically via spawned sh tmp+mv, one line per outage with reasons — achieving the same principle at 1% the machinery |
+| Event sourcing (decide/fold, time-travel, upcasters) | Load → fold → decide aggregate pattern; schema evolution | Not Applicable | The banner state is a tiny derive-from-probes state machine with one writer semantics; there is no aggregate to replay and no schema history to evolve (the state file grows only additive keys) |
+| CQRS command/query separation | Separate write and read paths | Not Applicable | Two writers total (the QML engine and the transient smoke runner), one process boundary; a command bus would be pure ceremony |
+| Projection host (replay, checkpoints, DLQ, crash-restart) | Managed read-model rebuilding | Not Applicable | The only "read model" is the state file itself, rewritten in place; consumers poll it; no projection to rebuild |
+| Deployment-time engine choice (metaengine, 11 engines) | Swap SQLite→Postgres→Pebble by config line | Not Applicable | Persistence is a JSON file + JSONL file; there is no storage tier to choose |
+| Branded, mix-up-proof IDs | Compiler-enforced typed IDs | Not Applicable (near-miss) | The QML/JS side uses plain string keys (`phase`, `legs.{icmp,tcp,dns}`); the fleet pattern is respected in spirit — probe-leg names are an explicit enum-ish contract asserted by the `leg-contract` check — but no type system exists to enforce it |
+| Event signing / payload encryption | HMAC-SHA256/Ed25519, XChaCha20-Poly1305 | Not Applicable | The ledger contains host-local reachability facts; the unit's sandbox (ProtectSystem etc.) is the threat model |
+| Idempotency/dedup/claiming | Safe retries, exactly-once effects | Not Applicable (near-miss) | The debounce/dwell state machine *is* a hand-rolled idempotency layer: repeated probe failures do not double-append ledger entries; the 2026-11-18 orphan-`mv` drain incident (TODO_LIST.md:56) shows the one real write-race, fixed pid-uniquely in sh — a 1-line fix, vs. an idempotency framework |
+| Timers/scheduling | Delayed messages, timeouts | Not Applicable | Dwell/fade timers are QML `Timer` objects inside the render loop |
+| Observability (OTel, Prometheus) | Trace/metric instrumentation | Not Applicable | Structured journal lines are the observability surface, consumed via `journalctl` |
+| Tooling (`cqrs-lint`, `cqrs-gen`, `cqrs-upgrade`) | Consumer lint, codegen, upgrade sweeps | Not Applicable | Nothing to lint or generate: no Go domain code exists |
+
+## 3. Usage evidence in offline-banner
+
+Exact commands run (all include the reports-exclusion glob):
+
+- `rg -n "go-cqrs-lite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'` → **1 match**, a prose mention of the library's *name* in the owner's LICENSE-convention note (TODO_LIST.md:60: "SystemNix/go-cqrs-lite/project-meta PROPRIETARY are personal-infra, not public libs"). Zero references in code, config, flake inputs, or scripts.
+- `rg --files /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' --iglob 'go.mod'` → **0 files**.
+- `rg --files /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' --iglob '*.go'` → **0 files**.
+
+Conclusion: zero usage; no Go runtime exists in the consumer. The nearest *conceptual* surface is the QML engine's event-shaped flow — probe results → transitions → atomic state write → journal line → ledger append — and even that is covered by the doctrine rows above, not by any library import.
+
+## 4. Should offline-banner adopt it?
+
+SHOULD-NOT — this is the clearest wrong-sized case in the fleet, on two stacked grounds.
+
+**The domain doesn't want CQRS even hypothetically.** go-cqrs-lite's own README says skip it for "plain CRUD without domain events — event sourcing adds ceremony that CRUD does not need." offline-banner is one notch below even that: a 2-writer, single-process, derive-from-probes state machine. Event sourcing pays off when there are concurrent writers, replay consumers, temporal queries, or audit requirements — the banner has none. Its audit need ("which legs went down, when, and why") is fully met by the JSONL ledger: one append per outage with `reasons`, readable by `jq`, consumed by the waybar widget and evo-x2's DMS plugin. The ledger genuinely IS an append-only event log — the conceptual kinship is real and acknowledged in §2 — but the distance from "a JSONL file appended atomically by one writer" to "dispatcher + decider + journal + projection host + metaengine + engine choice" is about 99% complexity for 0% additional capability in this domain. The one real write-integrity bug the domain ever produced (the 2026-11-18 orphan-`mv` stage collision) was diagnosed and fixed with a one-token pid-unique temp name in sh — the go-cqrs-lite machinery has no answer to that class that the sh fix doesn't already provide.
+
+**The runtime doesn't exist.** The banner engine is QML inside Quickshell; its persistence is sh + jq. Adopting go-cqrs-lite would require writing a Go daemon that re-implements the QML probe ladder, a new systemd unit, a new IPC channel to get state into the QML UI — a full architectural inversion to import a library whose own docs recommend against using it for this shape of problem. Under the owner's fleet constraint this is maximally net-negative: enormous bug-fix surface (104 modules), zero payoff.
+
+## 5. Fleet perspective
+
+go-cqrs-lite is the fleet's heavyweight, and this audit draws its lower boundary with unusual precision: a library can be superb for concurrent, audited, replay-hungry domains and still be the *wrong answer* for a domain that already implements the right principle (append-only log) at minimal cost. The transferable knowledge is the decision rule, now on record: adopt CQRS when state gains a second writer, a replay consumer, or an audit requirement the ledger can't answer — not when the word "event" appears in your architecture. Symmetrically, offline-banner's tiny sh-level fixes (atomic tmp+mv with pid-unique names, debounce-as-idempotency) are worth the heavyweight library's authors knowing about as minimal-reproduction examples of the problems their modules solve at scale — the fleet improves in both directions without a single import.
+
+## 6. If the flip trigger fires
+
+1. **Introduce `event` + `decider` + one embedded engine first.** Where: the state-writer daemon (which must already exist for the trigger to fire — multi-consumer state implies a Go writer). Adopt the `event` module alone (10 first-party deps, CBOR only) to get immutable events + optimistic concurrency, with SQLite as the single engine. Skip `system.New` until a second read model appears.
+2. **Add the projection host only when a replay consumer exists.** The first legitimate consumer would be a banner-history web UI or a metrics exporter that needs "all outages in window X" with checkpoints rather than re-scanning JSONL.
+3. **Adopt `signing` if the ledger becomes security-relevant.** If outages feed SLA reporting or billing, HMAC-SHA256 event signing gives tamper-evidence the plain JSONL lacks.
+4. **Never adopt metaengine here.** Even in the flipped world, one embedded engine is enough; the cost-based planner targets fleets of read models, not one file.
+
+## 7. Verify block
+
+A fresh reviewer re-derives the verdict with:
+
+```sh
+# 1. Library identity (expect: cmd/cqrs-lint/v4.22.2-18-gb7fa7a182)
+git -C /home/lars/projects/go-cqrs-lite describe --tags
+
+# 2. Module-family count (expect: 104)
+find /home/lars/projects/go-cqrs-lite -name go.mod -not -path '*/.git/*' | wc -l
+
+# 3. Consumer references (expect: exactly 1, a prose LICENSE-convention mention in
+#    TODO_LIST.md; no code/config hits)
+rg -n "go-cqrs-lite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'
+
+# 4. No Go runtime in the consumer (expect: 0 and 0)
+rg --files /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' --iglob 'go.mod' | wc -l
+rg --files /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' --iglob '*.go' | wc -l
+
+# 5. The ledger is the consumer's real "event log" (expect: history.jsonl default path)
+rg -n 'history.jsonl' /home/lars/projects/offline-banner/module.nix
+```
+
+All five commands were executed by the reviewer on 2026-11-18 and produced exactly the stated results.
