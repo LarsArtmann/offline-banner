@@ -7,6 +7,36 @@ All notable changes are documented in the repository's
 [CHANGELOG.md](https://github.com/LarsArtmann/offline-banner/blob/master/CHANGELOG.md)
 following [Keep a Changelog](https://keepachangelog.com).
 
+## 0.2.2 — 2026-11-18
+
+The DNS leg learns to distrust synthesized answers, and the smoke test
+becomes safe to run beside a live banner.
+
+- **DNS leg answer validation (behavior change)** — the leg used to accept
+  any `getent` answer, so a resolver answering from a DNS blocker's zero-IP
+  block page (or a split-horizon zone) kept it up forever with no packet
+  leaving the host — live-verified: the default probe name sits on a DoH
+  blocklist and resolved to a block page from local config alone, making the
+  offline phase unreachable on that host. Private, loopback, link-local,
+  unspecified and empty answers now count as DOWN, and a new `leg-contract`
+  flake check EXECUTES the probe against a stub `getent` (block page,
+  RFC1918 bounds, loopback, link-local, NXDOMAIN → fail; public → ok).
+  **Upgrade note:** hosts whose `dnsProbeName` sits on a DNS blocker will
+  now see real outages — that is the fix working.
+- **`nix run .#smoke` crash fixes + namespace isolation** — the 0.2.1
+  transient died on first use (three latent argv bugs, all invisible to
+  structural greps), shared the live unit's runtime dirs (state overwrite +
+  stop-time deletion orphaning the live unit), and silently ran on QML
+  defaults because its props read a nonexistent attrset. It now runs on its
+  own `offline-banner-smoke` dirs (safe beside a live unit), carries the
+  unit's real environment (hardened PATH, cache home, ledger env), stays
+  sound-silent unless `OFFLINE_BANNER_SMOKE_SOUND=1`, and every shape is
+  pinned by execution-level gates.
+- **State-file writer stages through a pid-unique temp** — concurrent
+  writers can no longer tear a state write.
+- Dependency currency: demo video re-rendered under hyperframes 0.9.52
+  (20/20 WCAG AA contrast re-verified), starlight 0.43.1.
+
 ## 0.2.1 — 2026-11-18
 
 The banner learns which limb is numb: reachability stops being one boolean.
