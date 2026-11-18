@@ -64,7 +64,7 @@ Conclusion: zero references; no Go runtime exists in the consumer. The three web
 
 SHOULD-NOT, with one design decision worth honoring explicitly.
 
-**No surface matches.** cqrs-htmx sits between an HTTP router and go-cqrs-lite's dispatcher — offline-banner has neither. The website is static files on Firebase Hosting; the banner UI is QML; the only integration channel consumers use is polling the atomically-written state file. There is no handler to compose `HandlerOption`s into, no command to authorize, no session to carry actor metadata.
+**No surface matches.** cqrs-htmx sits between an HTTP router and go-cqrs-lite's dispatcher — offline-banner has neither. The website is static files on Firebase Hosting; the banner UI is QML; the only integration channel consumers use is polling the atomically-written state file. There is no handler to compose `HandlerOption` values into, no command to authorize, no session to carry actor metadata.
 
 **The nearest overlap — SSE — was already decided, and correctly.** cqrs-htmx's SSE hub (broadcaster, journal store, heartbeats) is the fleet's best push channel, and a live-updating banner state feed is exactly the shape it serves. But offline-banner faced this exact consumer-channel question and settled it in favor of the polled state file: the writer is one QML process doing atomic tmp+mv writes, consumers are a jq script and a DMS plugin, and polling a JSON file survives banner restarts, needs no server, and has no reconnect logic to get wrong. Introducing SSE would require standing up a Go process whose only job is to re-broadcast a file that two lightweight consumers already read — net-negative under the fleet constraint.
 
