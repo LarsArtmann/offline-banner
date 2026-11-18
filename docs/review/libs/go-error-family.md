@@ -56,7 +56,7 @@ The honest observation is that offline-banner already arrived at error-family's 
 
 - **Classification before string-matching.** The QML journals machine-parseable structured lines (`probe failed reason=net failures=1/2`, `banner state=shown reason=...`) and the flake checks assert on `reason=` values via regex — never on prose. That is error-family's "share the protocol, not the implementation" doctrine applied to a journal instead of an error value. The AGENTS.md doctrine "exact counts only at deterministic positions; assert the TRANSITION" is the same idea: consumers depend on stable *classes* (reason, state), not on wording.
 - **Audience-aware presentation.** The banner renders differently per failure class (net/tcp/dns/link legs, degraded ladder, demo marker) — presentation follows classification exactly as `Classify(err).Audience()` prescribes for messages.
-- **Exit-code behavior.** The systemd unit's `Restart=on-failure` consumes exit codes the way `ExitCode(err)` derives them, with the sandbox's known constraints (NoNewPrivileges withheld to keep ping's `cap_net_raw`) documented as deliberate behavior, not accidents.
+- **Exit-code behavior.** The systemd unit's restart policy (`Restart = "always"`, `RestartSec = "5s"` — module.nix:1162-1163) absorbs any exit code and re-runs the service, which is why exit-code *derivation* never became load-bearing here; where it does matter (a Go companion tool), `ExitCode(err)` is the pattern to copy, with the sandbox's known constraints (NoNewPrivileges withheld to keep ping's `cap_net_raw`) documented as deliberate behavior, not accidents.
 
 These are independent rediscoveries of the same design principles, not incomplete adoptions. Nothing is missing; the medium is just not Go.
 
