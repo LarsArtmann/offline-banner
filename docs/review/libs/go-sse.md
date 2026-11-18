@@ -37,10 +37,12 @@ Submodules (from local go.mod files):
 ## 3. Usage evidence in offline-banner
 
 ```
-rg -n "larsartmann/go-sse|go-sse" /home/lars/projects/offline-banner --glob '!.git'  → 0 matches
-rg -in "sseparse|ssetest"        /home/lars/projects/offline-banner --glob '!.git'  → 0 matches
+rg -n "larsartmann/go-sse|go-sse" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'  → 0 matches
+rg -in "sseparse|ssetest"        /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'  → 0 matches
 find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \) -not -path '*/.git/*' → 0 files
 ```
+
+(The `!docs/review/**` exclusion skips this audit's own reports, which necessarily name the libraries.)
 
 Conclusion: zero references; no Go runtime exists in the consumer (verified 2026-11-18 — the repo is Nix + QML/JS + POSIX sh + one Astro/TS website). The real-time/UI update channel is QML property bindings plus the JSON state file at `$XDG_RUNTIME_DIR/offline-banner/state` (module.nix `emitState()`), polled by `contrib/offline-banner-waybar` at `interval: 5` — a pull channel, the architectural opposite of go-sse's push transport.
 
@@ -62,7 +64,7 @@ go-sse keeps improving for Go consumers at zero maintenance cost to offline-bann
 
 ```bash
 git -C /home/lars/projects/go-sse describe --tags                                   # v0.7.0-5-ga1b4674 (or newer)
-rg -n "larsartmann/go-sse|go-sse" /home/lars/projects/offline-banner --glob '!.git' # 0 matches
+rg -n "larsartmann/go-sse|go-sse" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' # 0 matches
 find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' \) -not -path '*/.git/*'  # 0 files
 rg -n "emitState|updatedAt" /home/lars/projects/offline-banner/module.nix | head -5 # the pull channel exists (state file + heartbeat)
 rg -n "OFFLINE_BANNER_MAX_AGE|interval" /home/lars/projects/offline-banner/contrib/offline-banner-waybar | head -3 # the poller and its staleness threshold

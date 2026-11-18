@@ -38,10 +38,12 @@ Submodules (from local go.mod files):
 ## 3. Usage evidence in offline-banner
 
 ```
-rg -in "datastar|datastartest" /home/lars/projects/offline-banner --glob '!.git'  → 0 matches
-rg -n "larsartmann/go-datastar" /home/lars/projects/offline-banner --glob '!.git' → 0 matches
+rg -in "datastar|datastartest" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'  → 0 matches
+rg -n "larsartmann/go-datastar" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' → 0 matches
 find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \) -not -path '*/.git/*' → 0 files
 ```
+
+(The `!docs/review/**` exclusion skips this audit's own reports, which necessarily name the libraries.)
 
 Conclusion: zero references; no Go runtime exists in the consumer (verified 2026-11-18). The nearest architectural analogue to a DataStar "patch" in offline-banner is the whole-state JSON document written to `$XDG_RUNTIME_DIR/offline-banner/state` (module.nix `emitState()`, keys `active/since/reason/phase/legs/degradedVisible/updatedAt`) — a value produced independently of any reader, exactly the decoupling go-datastar prizes, but delivered by atomic file replacement + polling rather than SSE + DOM patching.
 
@@ -63,7 +65,7 @@ The verdict keeps offline-banner lean while go-datastar matures for genuine brow
 
 ```bash
 git -C /home/lars/projects/go-datastar describe --tags                              # static/v0.8.0 (or newer)
-rg -in "datastar" /home/lars/projects/offline-banner --glob '!.git'                 # 0 matches
+rg -in "datastar" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'                 # 0 matches
 find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' \) -not -path '*/.git/*'  # 0 files
 rg -n "emitState|degradedVisible|updatedAt" /home/lars/projects/offline-banner/module.nix | head -5  # the value-object channel exists (state JSON)
 rg -n "assert_state_jq" /home/lars/projects/offline-banner/flake.nix | head -3      # CI pins the channel, not a browser

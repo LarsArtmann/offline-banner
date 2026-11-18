@@ -1,0 +1,91 @@
+# go-atomic-write × offline-banner — Library Utilization Review
+
+| Field | Value |
+|---|---|
+| **Library repo** | `/home/lars/projects/go-atomic-write` (github.com/LarsArtmann/go-atomic-write) |
+| **Reviewed version** | `v0.6.2-42-g4f10347` — latest local tag (HEAD `4f10347`, 2026-11-15; remotes NOT fetched) |
+| **Review date** | 2026-11-18 |
+| **Reviewed by** | Fleet-run Group C (library-deep-dive runbook) |
+| **Verdict** | NOT-APPLICABLE — a Go library with no Go runtime to live in, but the strongest conceptual neighbor in the fleet run: offline-banner hand-rolled this library's core contract in POSIX sh and CI-proved the exact failure mode the library exists to prevent |
+| **Score** | 0/0 (n/a — no applicable surface; structural) |
+| **Flip trigger** | Go code appears in offline-banner that writes a shared/read file — or a second writer joins the state file, at which point the sh recipe should adopt the library's unique-temp-name doctrine (not the library itself) |
+
+## 1. What the library is
+
+Crash-safe, race-free file writes for Go. Its README identifies the three failure modes of `os.WriteFile` — concurrent overwrite (TOCTOU), half-written files on crash, interleaved bytes from concurrent writers — and eliminates all three with one pipeline: fingerprint read (xxhash64) → unique temp file → fsync → flock + re-verify → single `rename(2)` → fsync directory. Two deliberate dependencies (xxhash, gofrs/flock), cross-platform down to Windows `MoveFileEx` retry semantics.
+
+Submodules (from local go.mod files):
+
+| Module | Purpose/role |
+|---|---|
+| `github.com/larsartmann/go-atomic-write` (root, single module) | The whole API: `Write`, `WriteWithPerm`, `WriteVerified`, `WriteIfChanged`, `WriteFunc*` streaming variants, `Fingerprint` (xxhash64) + `FingerprintFromBytes`/`FingerprintFile`, sentinel `ErrConcurrentModification` (deps: `cespare/xxhash/v2`, `gofrs/flock`; Go 1.27) |
+
+## 2. Capability inventory
+
+| Capability | What the library offers | Status in offline-banner | Reason |
+|---|---|---|---|
+| Staged atomic rename (tmp + single `rename(2)`) | Content lands via one syscall; readers see old or new, never torn | Not Applicable (structurally) — *conceptually validated* | The library is Go; the equivalent is hand-rolled in sh (module.nix:594) and adopted for the identical reason: the CI-proven empty-file tear |
+| Unique temp names (`crypto/rand` suffix) | `path + "." + 8-hex + ".tmp"` so concurrent writers can't corrupt a shared staging file (`stage_collision_test.go` pins this) | Not Applicable | The sh recipe uses a fixed `$1.tmp` name; safe only under the single-writer discipline (see §4) |
+| fsync before rename (data durability) | Temp file synced to disk before the rename makes it visible | Not Applicable | Pure POSIX sh has no per-file fsync primitive; accepted as harmless for ephemeral runtime state (see §4) |
+| fsync directory after rename (metadata durability) | `syncDir` on POSIX makes the rename itself durable | Not Applicable | Same structural gap in sh; same harmless-for-this-data verdict |
+| TOCTOU protection (fingerprint + flock + re-read) | `WriteVerified` turns a lost update into `ErrConcurrentModification`; zero fingerprint = concurrent-creation detection | Not Applicable | Exactly one writer exists (the QML `emitState()` child) and readers never write, so the read-modify-write race class is absent by construction |
+| Permission contract | Preserves existing mode or 0644; `WriteWithPerm` creates the temp with the final mode — no chmod-after-rename window | Not Applicable | `systemd` `RuntimeDirectory=` provisions the dir; the sh `>` redirect applies umask defaults at creation, which is equivalent for a 0700 runtime dir |
+| Parent-dir auto-creation (`MkdirAll` 0755) | First write into a fresh dir succeeds instead of bare ENOENT (added after the mr-sync incident where consumers' caches stayed silently dead for weeks) | Not Applicable | The declarative equivalent already exists: `RuntimeDirectory=offline-banner` provisions the directory at unit start — the same failure class pre-empted at a different layer |
+| `WriteIfChanged` (no-mtime-bump dedup) | Skips mutation when content is unchanged — explicitly marketed as "no file-watcher trigger" | Not Applicable — *would be an anti-feature here* | The state file IS a liveness heartbeat: flake.nix asserts it is rewritten on every probe (`state file was not rewritten between probes (heartbeat broken)`). Content-diff suppression would break the signal |
+| Streaming writes (`WriteFunc`) | Callback-based staging for large payloads | Not Applicable | The state document is a few hundred bytes of `JSON.stringify` |
+| Windows path (`MoveFileEx` + sharing-violation retry) | Atomic replace on Windows with AV-contention retries | Not Applicable | NixOS only |
+
+## 3. Usage evidence in offline-banner
+
+```
+rg -n "go-atomic-write|atomicwrite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**' → 2 matches, both doc-only:
+  TODO_LIST.md:58                — go-atomic-write named as an MIT fleet published-library convention peer (LICENSE decision)
+  docs/status/archived/2026-10-17_01-59_full-execution-and-live-smoke-status.md:16 — same LICENSE-convention context
+find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \) -not -path '*/.git/*' → 0 files
+```
+
+Zero code references — the two name hits are the owner's fleet-wide license convention, not usage (the `!docs/review/**` glob excludes this audit's own reports; without it, the grep self-matches). No Go runtime exists in the consumer (verified 2026-11-18). But the *conceptual* usage trace is exact and load-bearing:
+
+- **The recipe** — `/home/lars/projects/offline-banner/module.nix:594`, inside `emitState()`:
+  `"printf '%s' \"$2\" > \"$1.tmp\" && mv -f \"$1.tmp\" \"$1\""` run via `sh -c` as a spawned Quickshell `Process`.
+- **The documented why** — module.nix comment: *"Atomic rename (tmp + mv): a plain truncate-write has a window where readers (waybar polls, the probe-transitions asserts) see an EMPTY state file — CI-proven x86_64 2026-11-10. mv within the same directory is rename(2), so consumers only ever see a complete old or new state."*
+- **The CI proof** — `flake.nix` `assert_state_jq`: *"a read right after a journal match sees the pre-transition state and, pre-atomic-rename, could even catch the file empty mid-truncate (CI-proven x86_64 2026-11-10). Single reads of this file are therefore never evidence — poll."*
+- **The second race the library's contract does NOT cover** — `flake.nix` `drain_state_writes`: the spawned `sh -c printf..mv` survives a quickshell kill, and a late orphan `mv` can land the *previous scenario's complete* state after the next instance's writes (CI-proven 2026-11-18). Atomicity was never the problem there — ordering was.
+
+## 4. Should offline-banner adopt it?
+
+**SHOULD NOT adopt the library — but this is the one report in the fleet run where the library's contract deserves line-by-line comparison, because offline-banner independently implemented its core.**
+
+**Does the contract validate the sh recipe? Yes, at its core.** The library's "How it works" is a 6-step contract: unique temp → fsync → lock+verify → single `rename(2)` → dir fsync. The sh recipe implements steps 1 (weakened: fixed name) and 4 (single `rename(2)` via same-directory `mv -f`) and skips 2, 3, and the dir fsync. The empty-file tear was a *plain truncate-write* (`> state`) — precisely the row the library's comparison table labels "DIY write + rename: crash-durable **Partial**", one row above the fully-safe column. The library's doctrine is the *reference specification* of the fix offline-banner rediscovered empirically through CI; its README could be cited today as the spec for why line 594 looks the way it does.
+
+**Could its doctrine have prevented the tear? Yes — and did, retroactively.** The tear mechanism (reader opens the file during truncate-write) is exactly failure mode #2 in the README ("a crash mid-write leaves a half-written file" — with readers substituted for crash). Staging to a temp and renaming closes it. The recipe already does this, so the doctrine's value now is preventive: any future writer added to this repo must follow the same stage+rename rule, and the library's docs are the citable standard.
+
+**Where the recipe falls short of the contract, and whether it matters:**
+
+1. **Fixed temp name vs unique suffix.** `"$1.tmp"` is safe only while `emitState()` is the sole writer. The 2026-11-18 orphan-`mv` incident proved spawned writers can overlap across instance lifetimes in practice (caught by test draining, not by the recipe). The library's `crypto/rand` suffix (`"$1.$$.tmp"` in sh — pid is enough here) is a one-token change that removes the assumption. This is the single most valuable doctrine import, and it costs nothing.
+2. **No fsync before rename.** POSIX sh cannot fsync a single file. On a power loss between `>` and the writeback, the renamed target can be short or zero-length on filesystems without rename-flush heuristics; ext4's `auto_da_alloc` specifically detects rename-over-existing and flushes, so on NixOS's default ext4 the practical window is small. Decisive for the verdict: the data is *ephemeral runtime state* whose consumers fail closed — a zero-length or stale `updatedAt` reads as "unit dead", which is the correct presentation anyway. The gap is real on paper and trivial by design.
+3. **No TOCTOU machinery.** One writer, read-only consumers: the fingerprint/flock half of the library has no race to catch here. Note the library itself documents why its zero-fingerprint first-write path checks existence *before* flock (flock's `O_CREATE` would false-positive) — nice contract subtlety, irrelevant to a single-writer sh recipe.
+4. **`WriteIfChanged` is an anti-feature for a heartbeat.** The library markets no-mtime-bump as a benefit for file-watcher users; the state file's whole job is to *change* on every probe so staleness proves death. A doctrine collision worth remembering in reverse: dedup-on-write and liveness-heartbeat are opposing requirements on the same file-writing primitive.
+
+**Honest bottom line:** structurally NOT-APPLICABLE (Go library, zero Go runtime, and the recipe's needs are 12 lines of sh systemd already scaffolds). Conceptually, this library is the consumer's closest relative in the fleet: same failure taxonomy, same fix, two independent discoveries — one via CI evidence, one via design.
+
+## 5. Fleet perspective
+
+This is the fleet run's proof that a justified NOT-APPLICABLE can still transfer value: the transferable artifact is not code but the *contract* — stage to a uniquely-named temp, one rename, say what you do and do not guarantee. Three concrete non-Go carries: (1) the recipe should adopt the unique-temp-name rule (`"$1.$$.tmp"`), because the orphan-mv incident shows single-writer assumptions rot; (2) the module.nix comment citing the CI-proven tear should ideally also cite the guarantee boundary the 2026-11-18 drain incident exposed — atomic-per-write, not ordered-across-writes — since that distinction is exactly what a future contributor will assume wrongly; (3) go-atomic-write's README comparison table ("naive write+rename: crash-durable Partial") is a ready-made citation for any fleet repo documenting why it renames instead of truncating. None of this adds a dependency to offline-banner; all of it makes its hand-rolled recipe contract-conscious.
+
+## 6. If the flip trigger fires
+
+1. **A second sh writer joins the state file** (debug tool, migration script): do NOT reach for Go — first harden the recipe to `printf '%s' "$3" > "$1.$$".tmp && mv -f "$1.$$".tmp "$1"` and serialize writers, citing go-atomic-write's stage_collision doctrine. The library becomes attractive only if the writers get read-modify-write semantics.
+2. **Real Go code appears that writes shared/read files** (companion CLI, exporter): adopt `atomicwrite.WriteVerified` with `FingerprintFile` for read-modify-write paths and plain `Write` for first-writes; keep `ErrConcurrentModification` handling at the call site (re-read + retry) rather than wrapping it.
+3. **The state file gains durability requirements** (survives reboot, feeds a ledger): that is the moment the sh recipe's missing fsync stops being harmless — port the writer into Go (`WriteFunc` streaming if the document grows) or add a tiny fsync helper, because "fail closed" stops covering data you promised to keep.
+4. **Never** swap the heartbeat file to a `WriteIfChanged`-style dedup — content-diff suppression silently kills the liveness signal the whole observability story rests on.
+
+## 7. Verify block
+
+```bash
+git -C /home/lars/projects/go-atomic-write describe --tags                          # v0.6.2-42-g4f10347 (or newer)
+rg -n "go-atomic-write|atomicwrite" /home/lars/projects/offline-banner --glob '!.git' --glob '!docs/review/**'  # 2 doc-only matches (LICENSE convention), 0 code
+find /home/lars/projects/offline-banner \( -name '*.go' -o -name 'go.mod' \) -not -path '*/.git/*'  # 0 files
+rg -n 'printf .*tmp.*mv' /home/lars/projects/offline-banner/module.nix              # the sh recipe (line ~594)
+rg -n "empty.*mid-truncate|CI-proven" /home/lars/projects/offline-banner/flake.nix | head -5  # the CI-proven tear + drain doctrine
+```
