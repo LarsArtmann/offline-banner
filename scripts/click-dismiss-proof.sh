@@ -62,12 +62,25 @@ fi
 # Hue-aware strip detector (render-smoke calibration doctrine: the raw
 # #f2f9e2 never survives the compositor transform; require r>=200,
 # g>=170, r-b>=40 over the strip band). Prints the qualifying pixel
-# count; the caller owns the threshold.
+# count; FAIL-CLOSED — any capture or parse failure aborts the proof
+# BEFORE the click (the 2026-11-18 first run clicked on empty evidence
+# because grim's STDOUT mode silently produced zero bytes; an explicit
+# output path is required).
 band_pixels() {
 	tmp="$(mktemp "${TMPDIR:-/tmp}/ob-click-proof.XXXXXX.ppm")"
-	grim -t ppm >"$tmp" 2>/dev/null
-	band_count "$tmp" "$strip_rows_lo" "$strip_rows_hi"
+	grim -t ppm "$tmp" || {
+		rm -f "$tmp"
+		die "grim failed — cannot verify the strip; refusing to click blind"
+	}
+	out="$(band_count "$tmp" "$strip_rows_lo" "$strip_rows_hi")" || {
+		rm -f "$tmp"
+		die "band-count failed — refusing to continue without pixel evidence"
+	}
 	rm -f "$tmp"
+	case "$out" in
+	'' | *[!0-9]*) die "band-count produced non-numeric output: '$out'" ;;
+	esac
+	printf '%s\n' "$out"
 }
 
 transient_started=0
@@ -94,13 +107,13 @@ poll() { # poll TRIES DELAY CMD... — succeeds on first CMD success
 
 # --- preconditions ----------------------------------------------------------
 
-systemctl_line="$(busctl --user call org.freedesktop.systemd1 /org/freedesktop/systemd1 \
-	org.freedesktop.systemd1.Manager GetUnit ss "offline-banner-smoke.service" 2>/dev/null || true)"
-if [ -n "$systemctl_line" ]; then
+systemd_unit_path="$(busctl --user call org.freedesktop.systemd1 /org/freedesktop/systemd1 \
+	org.freedesktop.systemd1.Manager GetUnit s "offline-banner-smoke.service" 2>/dev/null || true)"
+if [ -n "$systemd_unit_path" ]; then
 	die "offline-banner-smoke transient already exists — stop it first (busctl StopUnit), then rerun"
 fi
 
-baseline="$(band_pixels)"
+baseline="$(band_pixels)" || die "baseline capture failed"
 if [ "$baseline" -gt 38400 ]; then
 	die "strip band already present BEFORE the demo (pixels=$baseline) — baseline not clean, aborting without clicking"
 fi
@@ -122,7 +135,7 @@ poll 80 250 jq -e '.active == true' "$smoke_state" ||
 	die "smoke state never reached active:true at $smoke_state — transient did not show; nothing clicked"
 log "demo shown (state active:true)"
 
-shown="$(band_pixels)"
+shown="$(band_pixels)" || die "show capture failed"
 if [ "$shown" -lt 38400 ]; then
 	die "yellow strip not detected after show (pixels=$shown) — nothing clicked; check output geometry"
 fi
@@ -140,7 +153,7 @@ poll 50 100 jq -e '.active == false' "$smoke_state" ||
 	die "click did not dismiss: state still active:true after 5 s"
 log "DISMISSED: state active flipped false within the poll window"
 
-after="$(band_pixels)"
+after="$(band_pixels)" || die "post-dismiss capture failed"
 if [ "$after" -gt 38400 ]; then
 	die "strip still on screen after dismissal (pixels=$after)"
 fi

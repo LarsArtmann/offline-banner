@@ -19,7 +19,9 @@ def main() -> None:
     fields: list[bytes] = []
     pos = 0
     while len(fields) < 4:
-        nl = data.index(b"\n", pos)
+        nl = data.find(b"\n", pos)
+        if nl == -1:
+            raise SystemExit("empty or truncated ppm header — capture failed")
         chunk = data[pos:nl]
         pos = nl + 1
         if chunk.startswith(b"#"):
