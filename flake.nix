@@ -497,6 +497,15 @@
         in
         {
           formatting = treefmtEval.${system}.config.build.check self;
+          # D1, decided 2026-11-18 (owner directive): the boot-level gate
+          # rides checks BLOCKING on x86_64-linux only. The known cost is
+          # a tcg VM boot (~2.5-5 min) added to every Checks run — accepted
+          # against the 226-class catch the eval-time invariant cannot
+          # cover (namespace/exec setup happens at runtime). aarch64 stays
+          # out: a VM boot inside binfmt emulation is quadratic and proves
+          # nothing the x86_64 boot doesn't (the boot path is
+          # architecture-independent).
+          vm-smoke = nixpkgs.lib.optionalAttrs (system == "x86_64-linux") (vmSmoke system);
           module-contract =
             pkgs.runCommand "offline-banner-module-contract"
               {
