@@ -743,10 +743,11 @@
                 contrib = ./contrib/offline-banner-waybar;
                 playSounds = ./scripts/play-sounds.sh;
                 captureDemo = ./scripts/capture-demo.sh;
+                clickDismissProof = ./scripts/click-dismiss-proof.sh;
                 legScript = ./lib/net-probe.sh;
               }
               ''
-                for f in "$contrib" "$playSounds" "$captureDemo" "$legScript"; do
+                for f in "$contrib" "$playSounds" "$captureDemo" "$clickDismissProof" "$legScript"; do
                   echo "gating $f"
                   shellcheck -S warning "$f" || { echo "FAIL: shellcheck on $f"; exit 1; }
                   shfmt -d "$f" || { echo "FAIL: shfmt on $f (run: shfmt -w $f)"; exit 1; }
