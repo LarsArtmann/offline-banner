@@ -9,7 +9,7 @@ Third session on the 2026-11-18 "do the whole TODO list" directive (after the 21
 
 ## b. D1 decided and executed (row 80)
 
-- **PROMOTED, BLOCKING**: `checks.x86_64-linux.vm-smoke` (flake.nix, commit `3c74d56`, re-split from a daemon sweep). x86_64-only via `optionalAttrs` — a VM inside binfmt aarch64 emulation is quadratic and proves nothing the x86_64 boot doesn't. The ~2.5-5 min tcg tax per Checks run is accepted against the runtime-only 226-class catch. Local verify: `nix eval` shows all 12 x86_64 checks (vm-smoke present, aarch64 has 11), VM builds green (cached ~7 s post-first-run), full `nix flake check` green.
+- **PROMOTED, BLOCKING**: `checks.x86_64-linux.vm-smoke` (flake.nix, commit `3c74d56`, re-split from a daemon sweep). x86_64-only via `optionalAttrs` — a VM inside binfmt aarch64 emulation is quadratic and proves nothing the x86_64 boot doesn't. The then-quoted ~2.5-5 min tcg tax estimate was FALSIFIED hours later by the first CI runs: **~33 s** measured (see §g); earlier texts (CHANGELOG/AGENTS/flake comment) carried the estimate as fact and were corrected in the 23-40 self-review pass. Local verify: `nix eval` shows all 12 x86_64 checks (vm-smoke present, aarch64 has 11), VM builds green (cached ~7 s post-first-run), full `nix flake check` green.
 - First CI run carrying the gate: run 44406334307 (on `25e4839`, which carried the flake change via a daemon sweep inside pareto's pushed range — junk message, pushed, not rewritable).
 
 ## c. D3 decided (row 81)

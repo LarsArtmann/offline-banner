@@ -10,7 +10,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
-- **The boot-level VM smoke test now runs BLOCKING in CI (D1 decided)** — `checks.x86_64-linux.vm-smoke` joins `nix flake check`: every Checks run boots a NixOS VM with a clean home and starts the unit under the real sandbox, the class that would have caught the 2026-11-05 226/NAMESPACE incident at runtime (eval-time assertions cover the wiring, not the namespace setup). The accepted cost is a tcg boot (~2.5-5 min) on every Checks run; aarch64 is deliberately excluded (a VM inside binfmt emulation is quadratic and proves nothing the x86_64 boot doesn't). `packages.vm-smoke` stays for direct local runs.
+- **The boot-level VM smoke test now runs BLOCKING in CI (D1 decided)** — `checks.x86_64-linux.vm-smoke` joins `nix flake check`: every Checks run boots a NixOS VM with a clean home and starts the unit under the real sandbox, the class that would have caught the 2026-11-05 226/NAMESPACE incident at runtime (eval-time assertions cover the wiring, not the namespace setup). Measured cost: ~33 s of tcg per Checks run (check derivations build in parallel, wall-clock impact ≈ +4 s); aarch64 is deliberately excluded (a VM inside binfmt emulation is quadratic and proves nothing the x86_64 boot doesn't). `packages.vm-smoke` stays for direct local runs.
 
 ## [0.2.2] — 2026-11-18
 
