@@ -1,0 +1,47 @@
+name: ci-watch
+
+on:
+  schedule:
+    # Every 30 minutes: catch a red master within the hour instead of
+    # days later (the 2026-10-29 Website red and the 2026-11-05 deploy
+    # credentials outage both sat unnoticed).
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+concurrency:
+  group: ci-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    # Advisory sentinel: fails (and therefore emails/notifies per repo
+    # settings) when the latest run of a watched workflow on master is
+    # not a success. Does not build anything itself.
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check latest master runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fail=0
+          for workflow in Checks Website; do
+            latest=$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --branch master \
+              --workflow "$workflow" \
+              --limit 1 \
+              --json conclusion,databaseId \
+              --jq '.[0] | "\(.databaseId) \(.conclusion)"')
+            run_id="${latest%% *}"
+            conclusion="${latest##* }"
+            echo "$workflow: run $run_id conclusion=$conclusion"
+            if [ "$conclusion" != "success" ]; then
+              echo "::error::$workflow latest run $run_id on master is '$conclusion'"
+              fail=1
+            fi
+          done
+          exit "$fail"

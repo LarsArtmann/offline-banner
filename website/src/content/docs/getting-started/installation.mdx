@@ -31,8 +31,9 @@ connected monitor**.
 
 ## Requirements
 
-- A Wayland compositor with layer-shell support. **Proven on niri**; sway and
-  Hyprland are expected but untested here. X11 is out of scope, full stop.
+- A Wayland compositor with layer-shell support. **Proven on niri** (live);
+  sway is CI-proven in the headless check suite; Hyprland expected. X11 is
+  out of scope, full stop.
 - [Quickshell](https://quickshell.outfoxxed.me/) (pulled in automatically as
   `pkgs.quickshell`; override with `services.offline-banner.package`).
 - Any shell or bar — or none. The banner runs as its **own Quickshell
