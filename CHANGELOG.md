@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Added
+
+- **Click-dismiss machine proof (`scripts/click-dismiss-proof.sh`)** — boots the smoke demo transient on the real output, verifies the yellow strip by hue detection (band-count over a grim capture), clicks it through niri's virtual-pointer protocol, and asserts dismissal through the isolated state file AND the pixels (band settles after the slide-up animation). Fail-closed by design: it aborts — never clicks — unless the strip hue is confirmed at the click coordinates first, so it is safe beside the live unit. Gated by `shell-scripts` (shellcheck + shfmt). Closes the last machine-provable live-verification debt; the QML journals `banner state=dismissed rearm=next_clean_probe`.
+
+### Changed
+
+- **The boot-level VM smoke test now runs BLOCKING in CI (D1 decided)** — `checks.x86_64-linux.vm-smoke` joins `nix flake check`: every Checks run boots a NixOS VM with a clean home and starts the unit under the real sandbox, the class that would have caught the 2026-11-05 226/NAMESPACE incident at runtime (eval-time assertions cover the wiring, not the namespace setup). The accepted cost is a tcg boot (~2.5-5 min) on every Checks run; aarch64 is deliberately excluded (a VM inside binfmt emulation is quadratic and proves nothing the x86_64 boot doesn't). `packages.vm-smoke` stays for direct local runs.
+
 ## [0.2.2] — 2026-11-18
 
 ### Fixed
