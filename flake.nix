@@ -118,7 +118,13 @@
             qmlDir = builtins.elemAt enabled.config.systemd.user.services.offline-banner.restartTriggers 0;
           }
           ''
-            mkdir -p "$out/bin"
+            mkdir -p "$out/bin" "$out/share"
+            # The props file MUST live in the store output: passAsFile
+            # writes to a /build sandbox path that is gone by the time
+            # anyone runs the app — the baked path made the args loop die
+            # on line 1 of real use (latent since birth; the --print
+            # dry-run exposed it 2026-11-18).
+            cp "$propsTextPath" "$out/share/props.txt"
             cat > "$out/bin/offline-banner-smoke" <<'EOF'
             #!/usr/bin/env bash
             # Hardened smoke test: transient user unit under the rendered
@@ -157,7 +163,7 @@
             echo "offline-banner-smoke: transient '$name' under the rendered sandbox (specifiers substituted: %h -> $HOME, %t -> $runtime)"
             exec systemd-run --user --unit="$name" ''${args[@]} -- quickshell -p "$qml_dir"
             EOF
-            sed -e "s|@propsFile@|$propsTextPath|" -e "s|@qmlDir@|$qmlDir|" -i "$out/bin/offline-banner-smoke"
+            sed -e "s|@propsFile@|$out/share/props.txt|" -e "s|@qmlDir@|$qmlDir|" -i "$out/bin/offline-banner-smoke"
             chmod +x "$out/bin/offline-banner-smoke"
           '';
 
