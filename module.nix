@@ -593,7 +593,13 @@
                     // so consumers only ever see a complete old or new state.
                     "printf '%s' \"$2\" > \"$1.tmp\" && mv -f \"$1.tmp\" \"$1\"",
                     "offline-banner-state",
-                    (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/offline-banner/state",
+                    // OFFLINE_BANNER_STATE_DIR renames the state DIR under
+                    // XDG_RUNTIME_DIR (name only, never a path). Unset →
+                    // "offline-banner", byte-identical to the pre-seam
+                    // behavior. Exists for the smoke transient, which
+                    // provisions offline-banner-smoke so a demo run can
+                    // never overwrite the live unit's state file.
+                    (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/" + (Quickshell.env("OFFLINE_BANNER_STATE_DIR") || "offline-banner") + "/state",
                     JSON.stringify({
                     active: root.offline && !root.dismissed,
                     demo: root.demo,
