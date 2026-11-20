@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       hyperframes:
-        specifier: ^0.9.52
-        version: 0.9.52
+        specifier: ^0.9.59
+        version: 0.9.59
 
 packages:
 
@@ -469,12 +469,12 @@ packages:
     resolution: {integrity: sha512-r+mvuDjrjMpsdw46Kmeydb8bdHm7wOKw8wNBtTndkjbPjgAp5oUJUxRE76wZFknxIPokfWvep2qSXK37aXE6zg==}
     hasBin: true
 
-  hono@4.13.18:
-    resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
+  hono@4.13.19:
+    resolution: {integrity: sha512-KmXvQAXwcAHV+muzbIwoJ23niEB5nMoDVr9WcRkU8mvjUECm/1+7v4Jgp7P7a+H6MLFrh+vXrGonGrGS+RQfkA==}
     engines: {node: '>=16.9.0'}
 
-  hyperframes@0.9.52:
-    resolution: {integrity: sha512-TGfCsrgUhsKQj7kVXBBi1t4mO2pK9niU6Cu3UHO5HLhuUCQzTWElSSUmu38Z2FXaMt7tllOw/lBX12w/1OdOuw==}
+  hyperframes@0.9.59:
+    resolution: {integrity: sha512-13l1NnF6ll4b2QBiLy8tA6ipnNw7qcQKTJoKyNev5ISpoRGBDe6L3vzitz7K+c/pB7lY944yuSR5Aeim/l4uHw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -578,8 +578,8 @@ packages:
   tslib@2.9.1:
     resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
 
-  typed-query-selector@2.12.3:
-    resolution: {integrity: sha512-/dtuMZyutHLlrxWhhC1uib00ELUr2dZ8C9B8YzZYsJmeE3V56OxRblrSM2UaF142pcMtak7ehZ6+poWGeehNIg==}
+  typed-query-selector@2.12.4:
+    resolution: {integrity: sha512-lF6/OY655DSWZeuNovde8TZhju6QyC0Xtav57b07oZQ1EQvfSowA3+WfLEhvFJOc9sVfAtW5hie1lGIppOqbpQ==}
 
   undici@7.30.1:
     resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
@@ -718,9 +718,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@hono/node-server@2.1.8(hono@4.13.18)':
+  '@hono/node-server@2.1.8(hono@4.13.19)':
     dependencies:
-      hono: 4.13.18
+      hono: 4.13.19
 
   '@img/colour@1.1.0':
     optional: true
@@ -952,11 +952,11 @@ snapshots:
 
   giget@3.3.1: {}
 
-  hono@4.13.18: {}
+  hono@4.13.19: {}
 
-  hyperframes@0.9.52:
+  hyperframes@0.9.59:
     dependencies:
-      '@hono/node-server': 2.1.8(hono@4.13.18)
+      '@hono/node-server': 2.1.8(hono@4.13.19)
       '@puppeteer/browsers': 3.2.7(yauzl@3.4.0)
       acorn: 8.19.0
       adm-zip: 0.6.1
@@ -967,7 +967,7 @@ snapshots:
       esbuild: 0.28.2
       fontkit: 2.0.4
       giget: 3.3.1
-      hono: 4.13.18
+      hono: 4.13.19
       ignore: 5.3.2
       open: 10.2.0
       postcss: 8.5.33
@@ -1029,7 +1029,7 @@ snapshots:
       '@puppeteer/browsers': 3.2.7(yauzl@3.4.0)
       chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1717327)
       devtools-protocol: 0.0.1717327
-      typed-query-selector: 2.12.3
+      typed-query-selector: 2.12.4
       webdriver-bidi-protocol: 1.0.2
       ws: 8.23.0
     transitivePeerDependencies:
@@ -1100,7 +1100,7 @@ snapshots:
   tslib@2.9.1:
     optional: true
 
-  typed-query-selector@2.12.3: {}
+  typed-query-selector@2.12.4: {}
 
   undici@7.30.1: {}
 
