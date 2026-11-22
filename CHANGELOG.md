@@ -12,6 +12,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **The boot-level VM smoke test now runs BLOCKING in CI (D1 decided)** — `checks.x86_64-linux.vm-smoke` joins `nix flake check`: every Checks run boots a NixOS VM with a clean home and starts the unit under the real sandbox, the class that would have caught the 2026-11-05 226/NAMESPACE incident at runtime (eval-time assertions cover the wiring, not the namespace setup). Measured cost: ~33 s of tcg per Checks run (check derivations build in parallel, wall-clock impact ≈ +4 s); aarch64 is deliberately excluded (a VM inside binfmt emulation is quadratic and proves nothing the x86_64 boot doesn't). `packages.vm-smoke` stays for direct local runs.
 
+### Fixed
+
+- **A full WAN outage could sit in `degraded` forever while the DNS leg's answer was cache-warm** — `offline` required `tcp && dns` (or all three legs), but a local resolver's record cache serves warm answers for up to their TTL with no packet leaving the host. Live on the origin host (evo-x2, 2026-11-22 23:10): a 15-minute WAN outage kept icmp+tcp dead while the cached `dnsProbeName` record held the dns leg green, so the ladder never left `degraded` and the yellow banner never showed — the failure the module exists to report went invisible. `offline` now also fires on **icmp+tcp both down**: two dead transport legs decide, whatever a cache claims about names. Machine-pinned by a new `probe-transitions` scenario (icmp+tcp down with dns up → offline, one cue, ledger entry `reasons` covering net+tcp, clean close).
+- **The degraded strip's dwell fired 1000× too fast in every deployed unit** — the `OFFLINE_BANNER_DEGRADED_DWELL` env contract is milliseconds (README, every test and demo site) but the module emitted `toString cfg.degradedDwellSeconds`, so units carried `=15` and the QML parsed it as **15 ms**: the info strip's flash expired before it could paint (live 2026-11-22: `phase=degraded` and `degraded dwell expired` logged in the same journal second, across the whole outage). The module now converts at the emission boundary (`toString (cfg.degradedDwellSeconds * 1000)`); the option stays seconds, the env stays milliseconds, no consumer-facing contract changes.
+
 ## [0.2.2] — 2026-11-18
 
 ### Fixed

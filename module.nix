@@ -36,7 +36,10 @@
 #
 # SMART DISPLAY — the phase ladder (2026-11-09):
 #   offline  = link down, or tcp+dns BOTH down (internet unusable for
-#              practical purposes), or all three net legs down — the
+#              practical purposes), or icmp+tcp BOTH down (dead transport
+#              even when a resolver cache still answers — the 2026-11-22
+#              evo-x2 outage sat 15 min in degraded because the dns leg
+#              read green through the record cache) — the
 #              yellow alarm: sound cue, outage ledger, "last online";
 #   degraded = a leg down while at least one other leg is up (the
 #              policed-ICMP case: browsing is fine) — a slim info-blue
@@ -75,7 +78,10 @@
 #
 # SMART DISPLAY — the phase ladder (2026-11-09):
 #   offline  = link down, or tcp+dns BOTH down (internet unusable for
-#              practical purposes), or all three net legs down — the
+#              practical purposes), or icmp+tcp BOTH down (dead transport
+#              even when a resolver cache still answers — the 2026-11-22
+#              evo-x2 outage sat 15 min in degraded because the dns leg
+#              read green through the record cache) — the
 #              yellow alarm: sound cue, outage ledger, "last online";
 #   degraded = a leg down while at least one other leg is up (the
 #              policed-ICMP case: browsing is fine) — a slim info-blue
@@ -353,10 +359,15 @@
             // Phase ladder (see the header). offline deliberately fires on
             // tcp+dns alone even with icmp green: no sockets and no names
             // IS offline for practical purposes, however chatty the icmp
-            // leg still is.
+            // leg still is. It also fires on icmp+tcp alone (2026-11-22
+            // evo-x2 live: a 15-min WAN outage sat in degraded forever
+            // because the dns leg read GREEN through the local resolver's
+            // record cache — TTL 3600 — while both transport legs were
+            // dead; a cache's claim about names must never outrank two
+            // dead transport legs).
             readonly property bool offline: root.demo || root.linkDown
                 || (root.tcpLegDown && root.dnsLegDown)
-                || (root.icmpLegDown && root.tcpLegDown && root.dnsLegDown)
+                || (root.icmpLegDown && root.tcpLegDown)
             readonly property string phase: root.offline
                 ? "offline"
                 : ((root.icmpLegDown || root.tcpLegDown || root.dnsLegDown) ? "degraded" : "online")
@@ -1114,7 +1125,12 @@
           OFFLINE_BANNER_TCP_HOST = cfg.tcpProbeHost;
           OFFLINE_BANNER_TCP_PORT = toString cfg.tcpProbePort;
           OFFLINE_BANNER_DNS_NAME = cfg.dnsProbeName;
-          OFFLINE_BANNER_DEGRADED_DWELL = toString cfg.degradedDwellSeconds;
+          # The env contract is MILLISECONDS (README legs section, every
+          # test and demo site passes ms) while the option is seconds —
+          # convert at the emission boundary. Live bug 2026-11-22 (evo-x2):
+          # the unit emitted "15", the QML parsed it as 15 ms, and the
+          # degraded strip's info flash expired before it could paint.
+          OFFLINE_BANNER_DEGRADED_DWELL = toString (cfg.degradedDwellSeconds * 1000);
           # fontconfig/Qt cache under the sandbox: ProtectSystem=strict +
           # ProtectHome=read-only make $HOME/.cache unwritable (live smoke
           # showed fontconfig cache-write warnings). %t expands in unit-file

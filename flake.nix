@@ -1302,11 +1302,17 @@
                   done
                   [ "$vis" = "true" ] \
                     || { echo "FAIL: degraded strip must be visible on an icmp-only outage: $(cat "$state")"; exit 1; }
-                  # TCP+DNS go down too — all net legs down means OFFLINE.
+                  # TCP+DNS go down too — OFFLINE. With the 2026-11-22
+                  # ladder (icmp+tcp also fires), the flip lands the moment
+                  # tcp crosses its debounce — mid-tick, BEFORE dns crosses
+                  # its own (the net-probe tick applies tcp, then dns, and
+                  # the binding re-evaluates between them) — so the legs
+                  # list may read icmp,tcp OR icmp,tcp,dns; the prefix is
+                  # the deterministic part.
                   printf 'tcp fail\ndns fail\n' > control-net
                   assert_state true net            # failure 2 of 2: shows
                   assert_journal_re "banner state=shown reason=net failures=[0-9]+/2"
-                  assert_journal "banner phase=offline legs=icmp,tcp,dns"
+                  assert_journal "banner phase=offline legs=icmp,tcp"
                   # Heartbeat = the state file is REWRITTEN on every probe.
                   # updatedAt itself has second granularity (fine for the
                   # ~2-interval staleness contract) but two probes 600 ms
@@ -1469,11 +1475,14 @@
 
                   # DNS fails too: tcp+dns down with icmp green = OFFLINE —
                   # no sockets and no names IS an outage for practical
-                  # purposes, however healthy the icmp leg still is.
+                  # purposes, however healthy the icmp leg still is. The
+                  # flip lands mid-tick at tcp's debounce (dns applies
+                  # after tcp in the same net-probe line), so the legs
+                  # list may read tcp OR tcp,dns.
                   printf 'tcp fail\ndns fail\n' > control-net
                   assert_state true
                   assert_journal "banner state=shown reason= failures=0/2" qs-legs.log
-                  assert_journal "banner phase=offline legs=tcp,dns" qs-legs.log
+                  assert_journal "banner phase=offline legs=tcp" qs-legs.log
                   n=0
                   for i in $(seq 1 40); do
                       n=$(grep -c "offline-net" sounds-legs.log 2>/dev/null || true)
@@ -1527,6 +1536,36 @@
                   [ "$since" = "null" ] \
                       || { echo "FAIL: state.since must clear after a leg-outage recovery: $(cat "$state")"; exit 1; }
 
+                  # ICMP+TCP down with DNS green = OFFLINE (2026-11-22 evo-x2
+                  # live: a local resolver's record cache kept the dns leg
+                  # green through a 15-min WAN outage while both transport
+                  # legs were dead — a cached name must never outrank dead
+                  # transport). Closes one more ledger entry: downstream
+                  # entry-count asserts move 2 -> 3.
+                  echo fail > control
+                  printf 'tcp fail\ndns ok\n' > control-net
+                  assert_state true
+                  assert_journal_re "banner state=shown reason=net failures=[0-9]+/2" qs-legs.log
+                  assert_journal "banner phase=offline legs=icmp,tcp" qs-legs.log
+                  n=0
+                  for i in $(seq 1 40); do
+                    n=$(grep -c "offline-net" sounds-legs.log 2>/dev/null || true)
+                    [ -z "$n" ] && n=0
+                    [ "$n" -ge 2 ] && break
+                    sleep 0.25
+                  done
+                  [ "$n" -ge 2 ] || { echo "FAIL: icmp+tcp outage must cue offline-net again (got $n): $(cat sounds-legs.log 2>/dev/null)"; exit 1; }
+                  echo ok > control
+                  printf 'tcp ok\ndns ok\n' > control-net
+                  # reasons order is NOT pinned: icmp ("net") and tcp ride
+                  # independent probe timers, either can record first.
+                  assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=(net,tcp|tcp,net)" qs-legs.log
+                  entries=$(wc -l < history.jsonl)
+                  [ "$entries" = "3" ] || { echo "FAIL: icmp+tcp outage must close exactly one new entry (expected 3, got $entries): $(cat history.jsonl)"; exit 1; }
+                  tail -1 history.jsonl | jq -e '(.reasons | sort) == ["net","tcp"] and (.probeFailures >= 4) and (.durationSec >= 1)' > /dev/null \
+                      || { echo "FAIL: icmp+tcp ledger entry wrong: $(tail -1 history.jsonl)"; exit 1; }
+                  assert_state false
+
                   # Sticky dwell (2026-11-10): DEGRADED_DWELL=0 means the
                   # strip NEVER auto-fades while the down-leg set is
                   # unchanged — it stays until the set CHANGES or the phase
@@ -1554,7 +1593,7 @@
                   vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
                   [ "$vis" = "true" ] || { echo "FAIL: dwell=0 strip auto-faded (sticky contract broken): $(cat "$state")"; exit 1; }
                   entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "2" ] || { echo "FAIL: sticky-dwell degraded phase must not write a ledger entry (expected 2, got $entries)"; exit 1; }
+                  [ "$entries" = "3" ] || { echo "FAIL: sticky-dwell degraded phase must not write a ledger entry (expected 3, got $entries)"; exit 1; }
                   export OFFLINE_BANNER_DEGRADED_DWELL=3000
 
                   # --- %t historyPath scenario (2026-11-18): the ledger has
@@ -1577,7 +1616,7 @@
                   assert_state false
                   printf 'tcp fail\ndns fail\n' > control-net
                   assert_state true
-                  assert_journal "banner phase=offline legs=tcp,dns" qs-t.log
+                  assert_journal "banner phase=offline legs=tcp" qs-t.log
                   printf 'tcp ok\ndns ok\n' > control-net
                   assert_state false
                   tentries=0
@@ -1644,7 +1683,7 @@
 
                   # Demo mode is a FAKE outage: no ledger entry, ever.
                   entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "2" ] || { echo "FAIL: demo mode must not write history (expected 2 entries — main + leg scenario —, got $entries)"; exit 1; }
+                  [ "$entries" = "3" ] || { echo "FAIL: demo mode must not write history (expected 3 entries — main + leg + icmp+tcp scenarios —, got $entries)"; exit 1; }
 
                   kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                   echo "probe-transitions: all assertions passed" > "$out"

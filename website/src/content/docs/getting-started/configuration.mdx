@@ -42,8 +42,10 @@ pings while TCP and DNS were instant, and a single-leg banner cried *offline*
 over a perfectly usable network. The ladder keeps the alarm honest:
 
 - **offline** (the yellow alarm, sound + ledger) — the link died, or the two
-  non-ICMP legs (tcp + dns) are BOTH down, or all three net legs are down. A
-  network you genuinely cannot use.
+  non-ICMP legs (tcp + dns) are BOTH down, or both transport legs (icmp + tcp)
+  are down. A network you genuinely cannot use — even when a resolver cache
+  still answers, as the 2026-11-22 origin-host outage showed (a 15-minute WAN
+  drop sat in degraded because a cached DNS record kept the dns leg green).
 - **degraded** (a slim info strip, silent, no ledger entry) — some legs down
   while at least one net leg is up: usable-but-impaired. The strip names the
   down legs, fades after `degradedDwellSeconds`, and re-appears only when the

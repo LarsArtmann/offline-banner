@@ -47,8 +47,9 @@ silent.
 Each leg debounces independently against `failuresToShow`; the phase is the
 ladder over the down-leg set:
 
-- **offline** — link down, or tcp+dns both down, or all three net legs down.
-  The yellow alarm, exactly as before: sound, ledger, push-down strip.
+- **offline** — link down, or tcp+dns both down, or icmp+tcp both down (dead
+  transport, even when a resolver cache still answers). The yellow alarm,
+  exactly as before: sound, ledger, push-down strip.
 - **degraded** — a leg down while another net leg is up: the
   policed-ICMP class, a usable network with one limb numb. A slim info strip
   names the down legs — **no sound, no ledger entry** — and fades after
