@@ -60,14 +60,14 @@ process start). Raw directions:
 ### 3. Verification depth
 
 The module is contract-checked; behavior is machine-proven (probe-transitions
-leg/ladder scenarios, render-smoke yellow+blue pixel gates) and live-proven on
-evo-x2 (gen 995, first real ledger append 2026-11-10). The boot-level VM test
-is BUILT (`packages.vm-smoke`, negative-proven) and awaits the D1 decision on
-blocking-vs-advisory. Beyond that:
+leg/ladder scenarios, render-smoke yellow+blue pixel gates), boot-proven
+(`checks.x86_64-linux.vm-smoke`: a NixOS VM boots, autologins, and starts the
+real unit under the real sandbox — a blocking check since the D1 decision)
+and live-proven on evo-x2. Beyond that:
 
 - **Second-compositor proof** — README targets any layer-shell compositor;
-  only niri is proven. A Hyprland pass would turn that claim from expected
-  into tested.
+  niri is live-proven, sway is CI-proven headless, Hyprland is untested. A
+  Hyprland pass would turn that claim from expected into tested.
 
 ### 4. Sound & ledger expressiveness (raw ideas, 2026-10-29)
 
@@ -117,12 +117,31 @@ Demand-gated or audience-gated; none of these have a pull signal yet:
   omarchy-shell process, "never start a second Quickshell process for a
   plugin"; this repo: no bar-plugin mode, non-negotiable below).
 
+## Open questions
+
+Questions are not tasks: each entry needs an owner answer before any work can
+be bounded. When answered, the answer moves to TODO_LIST (work), FEATURES
+(status) or the relevant decision record, and the entry is removed here.
+
+- **The one-off `--no-verify` commit in the domains repo (repo: domains).**
+  The IAM grant that makes the website deploy work was landed past the
+  repo's own pre-commit gate because that gate blocked on pre-existing
+  docs-gates findings (recorded in the 2026-11-05 hardening report, §d5).
+  Acknowledge it as an accepted exception, or ask for the findings to be
+  drained so the gate holds next time?
+- **Ledger retention.** How long `history.jsonl` should be kept, and whether
+  the unit should ever prune it (theme 4 keeps the idea demand-gated; the
+  policy is owner taste).
+
 ## Non-goals
 
-- **Not a network monitor.** One boolean, honestly derived, honestly
-  displayed. No graphs, no statistics, no history.
-- **Never gated on NetworkManager or DNS.** NM lies on NM-unmanaged uplinks
-  (the founding reason this module exists); DNS is the resolver's job.
+- **Not a network monitor.** It answers one question — am I offline — and
+  displays that honestly. No graphs, no dashboards, no statistics UI; the
+  only history it keeps is the outage ledger (one JSON line per completed
+  outage), which exists to answer "what happened" after the fact.
+- **Never gated on NetworkManager.** NM lies on NM-unmanaged uplinks (the
+  founding reason this module exists); reachability is probed directly
+  (icmp, tcp, dns legs), never read from NM's state.
 - **No bar-plugin mode.** The second-Quickshell-instance pattern is the
   design; the banner must not depend on any shell/bar plugin. Re-evaluated
   2026-11-18 for Omarchy's plugin marketplace and declined: Omarchy plugins

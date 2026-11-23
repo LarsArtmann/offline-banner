@@ -128,11 +128,11 @@
 ~~33. Sound theme tuning pass (owner question open since 2026-10-29).~~ **→ TODO_LIST row "Owner ears: audition all 12 cues and hear one through the unit"**
 34. ~~Website observability guide: jq cookbook for the ledger (per-month totals, longest outages, reason histograms).~~ done — the jq ledger cookbook shipped in observability.mdx (recipes verified against synthetic data)
 35. ~~probeHost v6 worked example in docs (README documents the tradeoff; add a config snippet for v6-primary hosts).~~ done — the v6 probeHost worked example shipped in configuration.mdx
-36. Consider a `postSwitchCheck` flake app aggregating smoke + demo capture into one command.
+~~36. Consider a `postSwitchCheck` flake app aggregating smoke + demo capture into one command.~~ **Won't implement — the post-switch ritual is three versioned commands already (nix run .#smoke, scripts/click-dismiss-proof.sh, the journal checks in the TODO deploy row); with a single consumer host an aggregate app adds coupling, not proof.**
 ~~37. Emulated aarch64 runtime for the VM test — decide whether the VM check is x86_64-only.~~ done at `3c74d56`, `7146eb8` — D1 decided; aarch64 deliberately excluded (VM-in-binfmt quadratic, AGENTS D1 paragraph)
 ~~38. Module option for probe host list (primary + fallback host) — only if a real multi-host need appears (YAGNI guard).~~ **→ ROADMAP row "Multi-host probeHost semantics"**
 39. CI: explore native arm runners vs qemu emulation cost (checks take the longest on aarch64).
-40. Consider a flake-level `.#verify` aggregate (fmt + check + smoke + website build) as the one-command pre-push gate.
+~~40. Consider a flake-level `.#verify` aggregate (fmt + check + smoke + website build) as the one-command pre-push gate.~~ **Won't implement — nix fmt && nix flake check --all-systems is already the one-command gate for everything in the flake; the website build cannot join it while OG-image generation needs network fonts.**
 
 ## g) Questions I cannot figure out myself
 

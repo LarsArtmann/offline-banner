@@ -16,8 +16,8 @@
 ## §b Negative proofs (the teeth)
 
 1. **VM smoke, negative-proven** (F38): scratch edit removing the StateDirectory provisioner → `test -d /home/smoke/.local/state/offline-banner` fails AND the journal shows the exact incident line — `Failed at step NAMESPACE spawning …/quickshell: No such file or directory`. Reverted; positive run green again.
-2. **Provisioning invariant, negative-proven** (F49): a synthetic `mkForce ["%t/unprovisioned-hole"]` eval flips the computed invariant false; the check asserts both the default-config pass AND the hole detection.
-3. **Negative fixtures**: opt-out config asserted inert + assertion-free; `/opt/...` ledger parent fires exactly the provisioning assertion; relative path additionally fails the absolute-path assertion.
+~~2. **Provisioning invariant, negative-proven** (F49): a synthetic `mkForce ["%t/unprovisioned-hole"]` eval flips the computed invariant false; the check asserts both the default-config pass AND the hole detection.~~ done at `2cc6a16`, `3c74d56` — vm-smoke negative proof (provisioner removal reproduces the NAMESPACE failure line); later promoted into checks 3c74d56
+~~3. **Negative fixtures**: opt-out config asserted inert + assertion-free; `/opt/...` ledger parent fires exactly the provisioning assertion; relative path additionally fails the absolute-path assertion.~~ done at `2cc6a16` — computed provisioning invariant with synthetic-hole teeth shipped and negative-proven
 
 ## §c Findings worth keeping
 
@@ -29,9 +29,9 @@
 ## §d Still open — every item owner-gated (the one-evening path)
 
 1. ~~**Push** (owner): everything sits unpushed on master; both workflows were green on `97b8056`, and every gate was re-run locally after each change — but push only after re-checking `gh run list` (standing rule 1).~~ done — pushed (97b8056 and the 2026-11-10 legs waves); CI green throughout
-2. **v0.2.1 cut** (D2): CHANGELOG [Unreleased] is pre-folded; website changelog.mdx section still wanted before the tag.
+~~2. **v0.2.1 cut** (D2): CHANGELOG [Unreleased] is pre-folded; website changelog.mdx section still wanted before the tag.~~ done at `ad3bdc2`, `a5c19ee` — v0.2.1 tagged 2026-11-18 (ad3bdc2); v0.2.2 followed the same day (a5c19ee)
 3. ~~**SystemNix lock → v0.2.1 + switch** — evo-x2 remains protected only by the manual mkdir (lock = pre-fix `2ccdf6e`).~~ done — superseded — the lock moved through the cutover waves to 320be2a; gen 995 runs live; the manual mkdir is no longer load-bearing
-4. **D1**: promote `packages.vm-smoke` into checks (blocking) or wire advisory.
+~~4. **D1**: promote `packages.vm-smoke` into checks (blocking) or wire advisory.~~ done at `3c74d56` — D1 decided: packages.vm-smoke promoted into checks as blocking
 5. ~~**Live-proof evening** (M04/M05) + **waybar deployment on the bar** (M08) — post-switch.~~ done — half-done — the gen-995 genuine outage proved the ledger write + fired the show cue; audibility, real-monitor pixels, and the DMS plugin deploy remain (TODO rows)
 6. M27 remainder: social-preview upload (manual, no API). **→ TODO FIREBASE/social row (manual console upload)**
 
