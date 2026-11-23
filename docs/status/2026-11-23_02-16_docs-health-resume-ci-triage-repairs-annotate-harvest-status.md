@@ -33,7 +33,8 @@ Scope of this report: only what this session did and noticed between 01:00 and 0
 5. **TODO_LIST.md** is consistent with today's findings but not final: the native-arm-runner row waits for a verification search that had not reported back at 02:16 (so `18-52` §f39 stays open-untracked); the v0.2.3 row needs refreshing once this session's fixes are in the CHANGELOG.
 6. **ROADMAP.md**: the three known drifts are fixed; the file was not re-verified line by line against FEATURES and README.
 7. **Harvest**: five of sixteen live reports dispositioned. Open, each with a verdict known: `10-29` §f34 (declined in the item — YAGNI), `21-46` §f5 and `13-26` §f13 (D3 decided at `7a4df29`), archived `10-17` §f50 (decided: markdown stays hand-formatted).
-8. **Local website build cannot be proven from this machine**: `astro build` dies fetching Noto Sans from `api.fontsource.org` (connect timeout from the shell; the host itself answers). Rowed (vendored font); CI is unaffected.
+8. **The four freshly annotated reports are not formatter-stable.** `dprint check` (the repo's own `dprint.json`) rewrites them: a line that starts with `~~N. …~~` is no longer a list item to dprint, so it re-indents the struck line and **renumbers every unstruck item after it** (measured on `18-52`: §b items 3-5 become 2-4, §f items 7-10 become 6-9). The daemon's next BuildFlow reflow would do exactly that — the same class as the D4 zombie, and it breaks the "never renumber" rule of the annotation canon. The reports annotated by earlier sessions carry the same shape. Not fixed: the stop order arrived first. This new report and the TODO/ROADMAP edits are dprint-stable (verified).
+9. **Local website build cannot be proven from this machine**: `astro build` dies fetching Noto Sans from `api.fontsource.org` (connect timeout from the shell; the host itself answers). Rowed (vendored font); CI is unaffected.
 
 ## c) NOT STARTED
 
@@ -55,7 +56,8 @@ Scope of this report: only what this session did and noticed between 01:00 and 0
 5. **Context waste**: one fetch returned a ~20 KB font-catalogue JSON; two review listings were printed twice at full length.
 6. **I re-ran the failed CI job (run 45082086628) and never read the result.**
 7. **Claim heartbeat** not refreshed since 01:31 (protocol: hourly).
-8. One subagent died on a provider rate limit (`verify-archive-a`) when two ran beside this session; one lane is the workable concurrency here.
+8. **I applied 99 annotations in a shape I had not tested against the formatter.** The builder struck the whole line (`~~N. item~~`), the corpus house style; a marker-outside-the-strike shape (`N. ~~item~~ verdict`) would have kept the lists intact. I only ran the stability check afterwards, on the stop-order report (§b8).
+9. One subagent died on a provider rate limit (`verify-archive-a`) when two ran beside this session; one lane is the workable concurrency here.
 
 ## e) WHAT WE SHOULD IMPROVE
 
@@ -64,33 +66,34 @@ Scope of this report: only what this session did and noticed between 01:00 and 0
 3. **Own the commit.** This repo's daemon sweeps within minutes; a session that makes real changes commits them with real messages in batches, manifests first.
 4. **Start every docs pass with CI triage.** Master was red for three unrelated reasons; a "superb" documentation tree on a red pipeline is not a green tree.
 5. **Verifier contracts carry anchors from day one** (now in the protocol); the builder rejects any row whose anchor does not match its line.
-6. **Fetch small**: never pull a payload that is not needed in full.
+6. **Check formatter stability BEFORE mass-annotating, not after.** A stable shape exists (list marker outside the strike); alternatively `docs/status/**` and `docs/planning/**` belong in the formatter's excludes, since the repo's own decision says point-in-time snapshots are never machine-reflowed.
+7. **Feed this back into the skill**: `annotate.go status-items` emits `~~N. item~~ verdict`, which renumbers lists under dprint — worth an upstream note in docs-health (verify-before-filing first).
 
 ## f) NEXT (in order — up to 50)
 
 Harvest ledger so far (disposition of every item that was not plainly landed in this repo):
 
-| Source (report §item)                                       | Disposition        | Destination / reason                                                                                     |
-| ----------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------- |
-| 10-29 §b13, §f4, §f9 website drift gate                     | new row            | TODO "docs-site-drift flake check"                                                                      |
-| 10-29 §f21 ledger fixture; §f22 empty-ledger jq             | new row / done     | TODO "Ledger recipes need a fixture gate"; §f22 verified by hand 2026-11-23                              |
-| 10-29 §f12 Website runner pin; §f41, §f42, §f43 AGENTS rules | pending edits      | website.yml pin + three AGENTS rules — verdicts written, artifacts not yet                               |
-| 10-29 §f10, §f16, §f24, §f38, §f39, §f40, §f46, §f48, §f50 | done               | decided (no tag trigger, 373690e); badges present; cross-repo lesson present in crush-config lessons.md   |
-| 10-29 §f20, §f27, §f34, §f49, §b10, §f13, §f14, §f7         | declined           | Won't implement — each with a reason a later session can re-evaluate                                     |
-| 10-29 §f45 chime default; §f6, §f32 unheard cues            | existing row       | TODO "Owner ears"                                                                                       |
-| 10-29 §f44 astro bump                                        | new row            | TODO "Next astro bump … emnapi runtime mismatch"                                                        |
-| 11-05 18-52 §f4, §f19 stale consumer                         | existing row       | TODO "Bar-side consumer live wiring + stale-tell proof"                                                 |
-| 11-05 18-52 §f28, §f29 journal retention / backfill         | done / superseded  | D3 accept-the-gap at 7a4df29                                                                             |
-| 11-05 18-52 §f30, §f32, §f33, §f38                          | existing rows      | TODO "Owner console one-offs", "Owner ears"; ROADMAP "Ledger analytics", "Multi-host probeHost semantics" |
-| 11-05 18-52 §f36 postSwitchCheck, §f40 `.#verify`            | declined           | Won't implement — three versioned commands already; the flake gate is one command                        |
-| 11-05 18-52 §f39 native arm runners                          | open-untracked     | row pending the runner-availability verification                                                        |
-| 11-05 19-25 §f3 daemon manifests, §f16 S3 hook               | existing row       | TODO "Daemon policy for junk commits and dependency manifests"                                          |
-| 11-05 19-25 §f13 cross-project lesson                        | new row            | TODO "(repo: crush-config) lessons.md …"                                                                |
-| 11-05 19-25 §f22 launch posts, §f27 social preview           | existing row       | TODO "Owner console one-offs"                                                                           |
-| 11-05 20-10 §f7, §f38 pnpm audit                             | done               | verified 2026-11-23: no known vulnerabilities in both directories                                        |
-| 11-05 20-10 §f42 runner-image watch                           | done               | a standing AGENTS rule, not a row                                                                       |
-| 11-05 20-10 §d5 `--no-verify` ack                            | question           | ROADMAP "Open questions"                                                                                |
-| 11-05 20-10 §f49 `.crush` backups                             | existing row       | TODO "Owner console one-offs" (item 5)                                                                  |
+| Source (report §item)                                        | Disposition       | Destination / reason                                                                                      |
+| ------------------------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------- |
+| 10-29 §b13, §f4, §f9 website drift gate                      | new row           | TODO "docs-site-drift flake check"                                                                        |
+| 10-29 §f21 ledger fixture; §f22 empty-ledger jq              | new row / done    | TODO "Ledger recipes need a fixture gate"; §f22 verified by hand 2026-11-23                               |
+| 10-29 §f12 Website runner pin; §f41, §f42, §f43 AGENTS rules | pending edits     | website.yml pin + three AGENTS rules — verdicts written, artifacts not yet                                |
+| 10-29 §f10, §f16, §f24, §f38, §f39, §f40, §f46, §f48, §f50   | done              | decided (no tag trigger, 373690e); badges present; cross-repo lesson present in crush-config lessons.md   |
+| 10-29 §f20, §f27, §f34, §f49, §b10, §f13, §f14, §f7          | declined          | Won't implement — each with a reason a later session can re-evaluate                                      |
+| 10-29 §f45 chime default; §f6, §f32 unheard cues             | existing row      | TODO "Owner ears"                                                                                         |
+| 10-29 §f44 astro bump                                        | new row           | TODO "Next astro bump … emnapi runtime mismatch"                                                          |
+| 11-05 18-52 §f4, §f19 stale consumer                         | existing row      | TODO "Bar-side consumer live wiring + stale-tell proof"                                                   |
+| 11-05 18-52 §f28, §f29 journal retention / backfill          | done / superseded | D3 accept-the-gap at 7a4df29                                                                              |
+| 11-05 18-52 §f30, §f32, §f33, §f38                           | existing rows     | TODO "Owner console one-offs", "Owner ears"; ROADMAP "Ledger analytics", "Multi-host probeHost semantics" |
+| 11-05 18-52 §f36 postSwitchCheck, §f40 `.#verify`            | declined          | Won't implement — three versioned commands already; the flake gate is one command                         |
+| 11-05 18-52 §f39 native arm runners                          | open-untracked    | row pending the runner-availability verification                                                          |
+| 11-05 19-25 §f3 daemon manifests, §f16 S3 hook               | existing row      | TODO "Daemon policy for junk commits and dependency manifests"                                            |
+| 11-05 19-25 §f13 cross-project lesson                        | new row           | TODO "(repo: crush-config) lessons.md …"                                                                  |
+| 11-05 19-25 §f22 launch posts, §f27 social preview           | existing row      | TODO "Owner console one-offs"                                                                             |
+| 11-05 20-10 §f7, §f38 pnpm audit                             | done              | verified 2026-11-23: no known vulnerabilities in both directories                                         |
+| 11-05 20-10 §f42 runner-image watch                          | done              | a standing AGENTS rule, not a row                                                                         |
+| 11-05 20-10 §d5 `--no-verify` ack                            | question          | ROADMAP "Open questions"                                                                                  |
+| 11-05 20-10 §f49 `.crush` backups                            | existing row      | TODO "Owner console one-offs" (item 5)                                                                    |
 
 Steps:
 
@@ -110,7 +113,7 @@ Steps:
 14. AGENTS.md: factual drift first, then the three rules and the runbook additions, then the prune decision (§g2).
 15. BUILD `docs/DOMAIN_LANGUAGE.md`.
 16. Ledger double-entry bug: fix plus a probe-transitions scenario (icmp down, tcp flapping, dns up → one entry) — scope per §g1.
-17. `dprint check` over every touched `.md`; link check over the living docs.
+17. Make the annotated corpus formatter-stable before the daemon's next reflow: re-shape this session's 99 strikes to `N. ~~item~~ verdict` (the builder gets a flag), decide the dprint excludes for `docs/status/**` and `docs/planning/**` together with D4, then `dprint check` over every touched `.md` and a link check over the living docs.
 18. Final battery green, `nix flake check --all-systems`, both workflows green on HEAD.
 19. Real commits with real messages for this session's batches; push only on the owner's word (§g3).
 20. Inline health report (Accuracy + Fitness); index row for this report in `docs/status/README.md`; refresh and then release the session claim.
@@ -121,4 +124,4 @@ Steps:
 2. **AGENTS.md.** The skill rates the 41.5 KB file as bloated (> 30 KB) and says prune. My plan: distil it to ≤ 25 KB of current truth and move the dated incident narratives **verbatim** into `docs/agent-notes.md` (the docs-gates precedent), so nothing is lost. That rewrites the dense style earlier sessions built. Prune, or keep the dense file and fix facts only?
 3. **Pushing.** Master was pushed to `b6c5add` at about 02:00 while mid-edit (not by this session). When the tree is green and committed with real messages — do you push, or may I?
 
-— Verification at write time: `date` = 2026-11-23 02:16 CET (report written 02:20–02:30); tree = clean, HEAD `b8a8fc6`, origin `b6c5add`; battery before this file = freshness PASS, annotate CLEAN (694 struck, 0 findings), routing PASS (0 unrouted), audit-all FAIL (4), cadence FAIL (16 unarchived, oldest 25 days). One verifier-search subagent (GitHub arm64 runner availability) had not reported back. No commit and no push by this session.
+— Verification at write time: `date` = 2026-11-23 02:16 CET (written 02:20–02:40); tree = clean before this report, HEAD `b8a8fc6`, origin `b6c5add`; battery WITH this report as the newest = freshness FAIL (2 items: this report's §f5 and §f15, pass-internal steps to strike as they complete), annotate CLEAN (694 struck, 0 findings), routing PASS (0 unrouted), audit-all FAIL (6 = the 4 known regressions + this report's 2), cadence FAIL (17 unarchived, oldest 25 days). This report is dprint-stable and rule-F clean. One verifier-search subagent (GitHub arm64 runner availability) had not reported back. No commit and no push by this session.
