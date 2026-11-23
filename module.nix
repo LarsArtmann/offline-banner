@@ -371,7 +371,18 @@
             readonly property string phase: root.offline
                 ? "offline"
                 : ((root.icmpLegDown || root.tcpLegDown || root.dnsLegDown) ? "degraded" : "online")
-            property string previousPhase: "online"
+            // One cue + one ledger entry per COMPLETED outage. The latch
+            // opens on the entry into offline (never in demo: probes keep
+            // succeeding there, so firstFailedAt stays 0) and closes ONLY
+            // on the entry into online. A flapping leg (icmp down
+            // throughout, tcp crossing its debounce back and forth) makes
+            // the phase hop offline→degraded→offline inside ONE episode —
+            // closing on every departure wrote six overlapping ledger
+            // entries for one real outage (2026-11-23 00:06 live: durations
+            // 22-277 s all sharing one `from`, 792 s logged against a 277 s
+            // span) and re-sounded at every hop. The offline→degraded hop
+            // is the episode continuing, not ending.
+            property bool outageOpen: false
             readonly property var downLegs: {
                 const legs = [];
                 if (root.icmpLegDown) legs.push("icmp");
@@ -548,16 +559,22 @@
                 // state lines (probe-transitions greps stay exact).
                 const legsNow = root.rawDownLegs();
                 console.log("[offline-banner] banner phase=" + root.phase + " legs=" + legsNow.join(","));
-                // The ledger close lives HERE, on the departure from
-                // offline: it is the only point every outage path (icmp,
-                // tcp/dns, or both) funnels through. root.offline was
-                // still true an instant ago, so this fires exactly once
-                // per outage that actually showed.
-                if (root.previousPhase === "offline" && root.phase !== "offline" && root.firstFailedAt > 0) {
+                // The ledger close and the cues live on the outageOpen
+                // latch, not on every offline flip (see the latch comment).
+                // root.offline was still true an instant ago at the open;
+                // the close fires exactly once per completed outage, on
+                // the flip into online.
+                if (root.phase === "offline") {
+                    if (!root.outageOpen && root.firstFailedAt > 0) {
+                        root.outageOpen = true;
+                        root.playSound("offline-" + (root.reason === "link" ? "link" : "net"));
+                    }
+                } else if (root.phase === "online" && root.outageOpen) {
+                    root.outageOpen = false;
                     root.rememberOutage(Date.now() / 1000);
                     root.outageProbeFailures = 0;
+                    root.playSound("recover");
                 }
-                root.previousPhase = root.phase;
                 root.emitState();
             }
             onDownLegsChanged: {
@@ -701,9 +718,10 @@
                 // on top of the prose. At hide time the binding fires on the
                 // failures reset, so reason still names the outage being
                 // recovered from and failures is already 0.
-                root.playSound(root.offline
-                    ? "offline-" + (root.reason === "link" ? "link" : "net")
-                    : "recover");
+                // The CUE moved to the outageOpen latch in onPhaseChanged:
+                // one cue per completed outage, never one per offline flip
+                // (a flapping leg re-sounded at every hop — see the latch
+                // comment there).
                 console.log("[offline-banner] banner state=" + (root.offline ? "shown" : "hidden") + " reason=" + root.reason + " failures=" + root.failures + "/" + root.failuresToShow);
                 root.emitState();
             }
