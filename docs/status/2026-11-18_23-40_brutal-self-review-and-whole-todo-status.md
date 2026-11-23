@@ -52,10 +52,10 @@ Self-review of THIS session (23:05 report's session + this review pass), per the
 4. **Reconcile every derived text when a fact changes** (estimate → measured): grep the exact number across the repo; tonight the falsified figure survived in four places until the review pass.
 5. **Re-verify inherited claims (skill Q12)**: the 2.5-5 min estimate was inherited from row 80's own data and repeated — the review verdict was treated as fact. The measured number now lives in row 80, AGENTS, CHANGELOG, flake comment, and both reports.
 6. **The docs battery is a first-class gate, run it BEFORE writing verdicts, not after** — tonight it caught two stale harvests AND daemon markdown corruption; running it pre-push would have shortened the red-CI cycle by one round trip.
-7. **Daemon markdown reflow is NOT content-identical** (contra the 07:20 note in AGENTS): the 23:21 sweep stripped spaces around inline code. The corpus needs the battery (or a markdown-lint gate) on every CI run, not just when a session remembers — the battery IS on every CI run (workflow-lint job), which is exactly why the corruption got caught. Keep it; consider a `grep -rnE "[a-zA-Z]\`[a-zA-Z]" docs/` tripwire for the adjacency class the battery's file set might miss.
+7. **Daemon markdown reflow is NOT content-identical** (contra the 07:20 note in AGENTS): the 23:21 sweep stripped spaces around inline code. The corpus needs the battery (or a markdown-lint gate) on every CI run, not just when a session remembers — the battery IS on every CI run (workflow-lint job), which is exactly why the corruption got caught. Keep it; consider a ``grep -rnE "[a-zA-Z]`[a-zA-Z]" docs/`` tripwire for the adjacency class the battery's file set might miss.
 8. **The claim-file protocol worked but is still PROPOSED in AGENTS** — tonight is a third consecutive clean-coordination data point; the owner adopting it (and the daemon-side half) would make it contract instead of habit.
 
-## f. NEXT (prioritized, ~30 — grounded in tonight's observations)
+## f) NEXT (prioritized, ~30 — grounded in tonight's observations)
 
 1. SystemNix relock to v0.2.2 (`nix flake lock --update-input offline-banner` in ../SystemNix, eval green, commit) — unblocks the switch that rows 16/82 ride.
 2. Owner switch on evo-x2 → then row 16's enable + row 82's stale-tell test (one sitting, recipes in-row).
@@ -72,7 +72,7 @@ Self-review of THIS session (23:05 report's session + this review pass), per the
 13. probe-transitions: check whether the DISMISS→re-arm cycle (`rearm=next_clean_probe` — a clean probe re-shows) is machine-pinned; if not, add the scenario (the proof covers demo-dismiss, which never re-arms since probes are skipped).
 14. waybar-consumer: pin the dismissed-state shape (active:false mid-outage → consumer prints nothing) as a fixture if not already covered.
 15. Audit the daemon's 23:21 39-file sweep (`3c2aca9`) diff for OTHER classes of damage beyond the two spacing fixes (the battery only reaches files it knows).
-16. Add the corpus tripwire: `grep -rnE "[a-zA-Z]\`[a-zA-Z]" docs/` as a hygiene step (catches stripped-space adjacency the annotate gate reaches only in its own file set).
+16. Add the corpus tripwire: ``grep -rnE "[a-zA-Z]`[a-zA-Z]" docs/`` as a hygiene step (catches stripped-space adjacency the annotate gate reaches only in its own file set).
 17. Record measured per-check CI times (nix-check 2m27s baseline) in AGENTS CI notes — estimates should start from measurements.
 18. v0.2.3 decision: `[Unreleased]` has the blocking VM gate + the harness; cut after the SystemNix relock if the owner wants consumers to get the gate promptly, or accumulate.
 19. Row 75 owner legs: social-preview console upload; deploy-SA dead-key cleanup (GCP console).
