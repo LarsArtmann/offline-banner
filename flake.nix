@@ -1260,12 +1260,40 @@
                   }
                   assert_no_journal() {
                     local pattern="$1" f="''${2:-qs.log}"
-                    if grep -qF -- "$pattern" "$f"; then
+                    if grep -qF -- "$pattern" "$f" 2>/dev/null; then
                       echo "FAIL: unexpected journal line '$pattern' in $f" >&2
                       exit 1
                     fi
                   }
 
+                  # Ledger asserts (2026-11-23): the ledger append is a spawned sh
+                  # process like the state writer, so it LAGS the `outage ended`
+                  # journal line (console.log is immediate). A single `wc -l` right
+                  # after a journal match reads the pre-transition count (CI-proven
+                  # aarch64 2026-11-23: the icmp+tcp entry asserted 3 and read 2 on an
+                  # otherwise green run). Poll for a count a transition must reach;
+                  # settle before asserting a count must NOT have moved.
+                  assert_ledger_entries() {
+                    local want="$1" msg="$2" i got=""
+                    for i in $(seq 1 40); do
+                      got=$(wc -l < history.jsonl 2>/dev/null || echo "")
+                      [ "$got" = "$want" ] && return 0
+                      sleep 0.25
+                    done
+                    echo "FAIL: $msg (expected $want ledger entries, last read $got): $(cat history.jsonl 2>/dev/null)" >&2
+                    exit 1
+                  }
+                  assert_ledger_unchanged() {
+                    local want="$1" msg="$2" got=""
+                    # a wrong entry is spawned at the transition: settle past two probe
+                    # cycles before judging the count
+                    sleep 1.5
+                    got=$(wc -l < history.jsonl 2>/dev/null || echo "")
+                    [ "$got" = "$want" ] && return 0
+                    echo "FAIL: $msg (expected $want ledger entries, got $got): $(cat history.jsonl 2>/dev/null)" >&2
+                    exit 1
+                  }
+                  
                   assert_state false               # clean ok probes: stays hidden
                   # Additive-keys shape contract (the 2026-11-09 legs): the
                   # legacy keys keep their names AND the ladder keys exist
@@ -1354,9 +1382,7 @@
                   # reasons seen (net first, then the legs, then link), at
                   # least the four logged failures. state.since clears with it.
                   assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=net,tcp,dns,link"
-                  [ -s history.jsonl ] || { echo "FAIL: outage history file missing/empty"; exit 1; }
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "1" ] || { echo "FAIL: expected exactly 1 history entry, got $entries"; exit 1; }
+                  assert_ledger_entries 1 "the main outage must close exactly one ledger entry"
                   jq -e '(.to > .from) and (.durationSec >= 1) and (.reasons == ["net","tcp","dns","link"]) and (.probeFailures >= 4)' history.jsonl > /dev/null \
                     || { echo "FAIL: history entry wrong: $(cat history.jsonl)"; exit 1; }
                   assert_state_jq '.since | if . == null then "null" else "set" end' "null" "state.since must clear on recovery"
@@ -1389,8 +1415,7 @@
                   done
                   [ "$n" -ge 2 ] || { echo "FAIL: fresh outage must re-sound (offline-net x2), got $n: $(cat sounds.log 2>/dev/null)"; exit 1; }
                   assert_state_jq '.since | if . == null then "null" else "set" end' "set" "state.since must be set while shown"
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "1" ] || { echo "FAIL: an open outage must not close an entry (expected 1, got $entries)"; exit 1; }
+                  assert_ledger_unchanged 1 "an open outage must not close an entry"
 
                   # Link-cue POSITIVE assert: trip a clean-start outage on
                   # reason=link — its own instance and a fresh sound log, so
@@ -1427,8 +1452,7 @@
                   assert_no_journal "recover" sounds-link.log
                   assert_no_journal "offline-net" sounds-link.log
                   assert_state_jq '.since | if . == null then "null" else "set" end' "set" "link outage must arm since"
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "1" ] || { echo "FAIL: open link outage must not close a second entry (expected 1, got $entries)"; exit 1; }
+                  assert_ledger_unchanged 1 "an open link outage must not close a second entry"
 
                   # --- Leg scenario (2026-11-09): ICMP vs TCP/DNS tracked
                   # independently. Own instance + fresh sound log so the
@@ -1458,8 +1482,7 @@
                   assert_journal "leg down leg=tcp failures=2/2" qs-legs.log
                   assert_no_journal "offline-net" sounds-legs.log
                   assert_no_journal "recover" sounds-legs.log
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "1" ] || { echo "FAIL: a degraded phase must not write a ledger entry (expected 1, got $entries)"; exit 1; }
+                  assert_ledger_unchanged 1 "a degraded phase must not write a ledger entry"
 
                   # Dwell: the strip auto-fades while the down-leg set is
                   # UNCHANGED, then STAYS faded (no re-show on unchanged set).
@@ -1511,8 +1534,7 @@
                   assert_journal "banner phase=online legs=" qs-legs.log
                   assert_journal "recover" sounds-legs.log
                   assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=tcp,dns" qs-legs.log
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "2" ] || { echo "FAIL: leg outage must close exactly one new entry (expected 2, got $entries): $(cat history.jsonl)"; exit 1; }
+                  assert_ledger_entries 2 "leg outage must close exactly one new entry"
                   tail -1 history.jsonl | jq -e '(.reasons == ["tcp","dns"]) and (.probeFailures >= 2) and (.durationSec >= 1)' > /dev/null \
                       || { echo "FAIL: leg ledger entry wrong: $(tail -1 history.jsonl)"; exit 1; }
                   # State polls, not single reads: the journal line is
@@ -1560,8 +1582,7 @@
                   # reasons order is NOT pinned: icmp ("net") and tcp ride
                   # independent probe timers, either can record first.
                   assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=(net,tcp|tcp,net)" qs-legs.log
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "3" ] || { echo "FAIL: icmp+tcp outage must close exactly one new entry (expected 3, got $entries): $(cat history.jsonl)"; exit 1; }
+                  assert_ledger_entries 3 "icmp+tcp outage must close exactly one new entry"
                   tail -1 history.jsonl | jq -e '(.reasons | sort) == ["net","tcp"] and (.probeFailures >= 4) and (.durationSec >= 1)' > /dev/null \
                       || { echo "FAIL: icmp+tcp ledger entry wrong: $(tail -1 history.jsonl)"; exit 1; }
                   assert_state false
@@ -1592,8 +1613,7 @@
                   sleep 5
                   vis=$(jq -r '.degradedVisible | tostring' "$state" 2>/dev/null || echo "")
                   [ "$vis" = "true" ] || { echo "FAIL: dwell=0 strip auto-faded (sticky contract broken): $(cat "$state")"; exit 1; }
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "3" ] || { echo "FAIL: sticky-dwell degraded phase must not write a ledger entry (expected 3, got $entries)"; exit 1; }
+                  assert_ledger_unchanged 3 "sticky-dwell degraded phase must not write a ledger entry"
                   export OFFLINE_BANNER_DEGRADED_DWELL=3000
 
                   # --- %t historyPath scenario (2026-11-18): the ledger has
@@ -1682,8 +1702,7 @@
                   assert_journal "banner state=shown reason=" qs-demo.log
 
                   # Demo mode is a FAKE outage: no ledger entry, ever.
-                  entries=$(wc -l < history.jsonl)
-                  [ "$entries" = "3" ] || { echo "FAIL: demo mode must not write history (expected 3 entries — main + leg + icmp+tcp scenarios —, got $entries)"; exit 1; }
+                  assert_ledger_unchanged 3 "demo mode must not write history (main + leg + icmp+tcp entries only)"
 
                   kill "$qs_pid" "$sway_pid" 2>/dev/null || true
                   echo "probe-transitions: all assertions passed" > "$out"

@@ -11,11 +11,11 @@
 **What did I forget (this session + the lineage that produced the bug)?**
 
 1. The 2026-10-28 session shipped the ledger hole with a warning literally printed in FEATURES.md — "NOT yet live-proven: the %h ReadWritePaths home-write hole under the real sandbox" — and then nobody executed that proof when the SystemNix switch made it live. The gap was documented and still escaped.
-2. No check class anywhere asserted "the unit STARTS on a machine with a normal home". unit-verify is syntax-only, module-contract greps unit text, probe/render checks run the QML directly with the sandbox and systemd absent. Green across the board; dead in reality.
+~~2. No check class anywhere asserted "the unit STARTS on a machine with a normal home". unit-verify is syntax-only, module-contract greps unit text, probe/render checks run the QML directly with the sandbox and systemd absent. Green across the board; dead in reality.~~ done at `2cc6a16`, `3c74d56` — vm-smoke boots the real unit under the real sandbox; now a blocking check (3c74d56)
 3. This session: I edited `website/src/content/docs/getting-started/configuration.mdx` and did NOT run `astro check`/build locally — the exact "let CI find it" pattern the v0.2.0 postmortem already flagged once.
 4. This session: I updated the FEATURES ledger row's live-proof note but left the sound-cues row's now-stale "rides the SystemNix switch" claim untouched (the switch happened; the unit was dead; the claim neither happened nor is pending in the old sense).
 5. My first fix design (tmpfiles `%h` rule) was written before it was verified and is invalid on systemd 261 (`invalid format char: h`). Caught only because I live-tested before implementing. If I had trusted the pattern from memory, this session would have shipped a SECOND dead-on-arrival fix.
-6. The `docs/status` series (v0.2.0 postmortem, sounds+ledger report) carries "rides the SystemNix switch" claims that this incident invalidates — not yet annotated (docs-health ANNOTATE).
+~~6. The `docs/status` series (v0.2.0 postmortem, sounds+ledger report) carries "rides the SystemNix switch" claims that this incident invalidates — not yet annotated (docs-health ANNOTATE).~~ done at `825d43b`, `67f9ac9` — M12 annotations landed 2026-11-05; 2026-11-17 sweep (67f9ac9) completed the corpus
 
 **What could I have done better?**
 
@@ -26,23 +26,23 @@
 
 **What could we still improve?**
 
-1. Verification must include one runtime-start proof of the REAL unit: the NixOS VM test is the only mechanism that observes systemd's exec-time namespace setup (detailed in §f).
-2. Structural prevention beats detection: derive ReadWritePaths from the provisioned dirs so an unprovisioned writable hole is unwritable, not just forbidden.
-3. Post-switch checklists are worthless as prose. Codify: `nix run .#smoke` (the runbook as a flake app) with literal-path substitution so it can exercise `%h` holes — today's runbook structurally cannot.
-4. Detection at runtime: the waybar `stale` heartbeat consumer exists in contrib/ and is deployed nowhere. A dead banner unit was invisible for days on the only host that runs it.
-5. module-contract is grep-the-text class. My StateDirectory pin added there is a per-line pin, not the rule ("every ReadWritePaths target must map to a provisioned dir" as a computed invariant).
+~~1. Verification must include one runtime-start proof of the REAL unit: the NixOS VM test is the only mechanism that observes systemd's exec-time namespace setup (detailed in §f).~~ done at `2cc6a16` — packages.vm-smoke: real user manager, real unit start, asserts no 226/NAMESPACE
+~~2. Structural prevention beats detection: derive ReadWritePaths from the provisioned dirs so an unprovisioned writable hole is unwritable, not just forbidden.~~ done at `2cc6a16` — ReadWritePaths derived from RuntimeDirectory/StateDirectory in module.nix
+~~3. Post-switch checklists are worthless as prose. Codify: `nix run .#smoke` (the runbook as a flake app) with literal-path substitution so it can exercise `%h` holes — today's runbook structurally cannot.~~ done at `2cc6a16`, `41b3f49` — nix run .#smoke shipped with %h/%t substitution; first live execution 2026-11-18 (41b3f49)
+~~4. Detection at runtime: the waybar `stale` heartbeat consumer exists in contrib/ and is deployed nowhere. A dead banner unit was invisible for days on the only host that runs it.~~ **→ TODO_LIST row "Bar-side consumer live wiring (systemnix-banner DMS plugin) + stale-tell proof"**
+~~5. module-contract is grep-the-text class. My StateDirectory pin added there is a per-line pin, not the rule ("every ReadWritePaths target must map to a provisioned dir" as a computed invariant).~~ done at `2cc6a16` — Computed provisioning invariant in module-contract (every hole maps to a provisioned dir)
 
 ---
 
 ## a) FULLY DONE
 
-1. **Root cause found and proven**: ReadWritePaths binds but never creates; the ledger hole pointed at a non-existent `~/.local/state/offline-banner`; systemd failed mount namespacing (status 226/NAMESPACE); restart loop hit StartLimitBurst within ~30 s of every session start; banner silently absent through every outage. Chain evidenced from the journal of three boots.
-2. **Fix implemented in module.nix**: `StateDirectory=offline-banner` + `StateDirectoryMode=0700` provision the dir before the namespace is applied (mechanism live-verified on this host's systemd 261 under the real sandbox directives); `ledgerStateDirLeaf` derivation; new eval assertion rejecting historyPath parents the unit cannot provision (`%h/.local/state/<name>` via StateDirectory, `%t/offline-banner` via RuntimeDirectory; anything else = eval error with a message naming the incident).
-3. **Contract extended**: module-contract now pins StateDirectory + StateDirectoryMode + the ReadWritePaths hole together; green.
-4. **Full gate green post-fix**: `nix fmt` + `nix flake check --all-systems` — formatting, module-contract, unit-verify (systemd-analyze accepts the new lines), docs-drift, shell-content, probe-transitions, render-smoke, both systems.
-5. **Docs brought to truth**: README option table, website configuration.mdx (option row, assertion bullet, ledger section), CHANGELOG [Unreleased] Fixed entry (with the no-rebuild unblock command), FEATURES ledger row updated with the live-broken history, AGENTS.md (module-contract bullet, smoke-runbook blind-spot note, Consumers bullet: lock 2ccdf6e deployed, incident recorded, unblock commands).
-6. **Host unblocked**: `mkdir -p ~/.local/state/offline-banner` done by me; user ran reset-failed+start; unit active since 18:47:25, quickshell loaded the store QML, state file heartbeating every probe, `active:false` (currently online), fontconfig cache dir materializing under the runtime dir.
-7. **Commit of record**: `ad6cac3` with a full why-message (squashed out of the daemon's auto-commit; ahead 1, unpushed).
+~~1. **Root cause found and proven**: ReadWritePaths binds but never creates; the ledger hole pointed at a non-existent `~/.local/state/offline-banner`; systemd failed mount namespacing (status 226/NAMESPACE); restart loop hit StartLimitBurst within ~30 s of every session start; banner silently absent through every outage. Chain evidenced from the journal of three boots.~~ done at `ad6cac3` — Root-cause chain evidenced from three-boot journal; reported as done in this session
+~~2. **Fix implemented in module.nix**: `StateDirectory=offline-banner` + `StateDirectoryMode=0700` provision the dir before the namespace is applied (mechanism live-verified on this host's systemd 261 under the real sandbox directives); `ledgerStateDirLeaf` derivation; new eval assertion rejecting historyPath parents the unit cannot provision (`%h/.local/state/<name>` via StateDirectory, `%t/offline-banner` via RuntimeDirectory; anything else = eval error with a message naming the incident).~~ done at `ad6cac3` — StateDirectory+Mode and ledgerStateDirLeaf + eval assertions in module.nix
+~~3. **Contract extended**: module-contract now pins StateDirectory + StateDirectoryMode + the ReadWritePaths hole together; green.~~ done at `ad6cac3` — module-contract pins StateDirectory/Mode/ReadWritePaths together
+~~4. **Full gate green post-fix**: `nix fmt` + `nix flake check --all-systems` — formatting, module-contract, unit-verify (systemd-analyze accepts the new lines), docs-drift, shell-content, probe-transitions, render-smoke, both systems.~~ done — nix fmt + flake check --all-systems green post-fix
+~~5. **Docs brought to truth**: README option table, website configuration.mdx (option row, assertion bullet, ledger section), CHANGELOG [Unreleased] Fixed entry (with the no-rebuild unblock command), FEATURES ledger row updated with the live-broken history, AGENTS.md (module-contract bullet, smoke-runbook blind-spot note, Consumers bullet: lock 2ccdf6e deployed, incident recorded, unblock commands).~~ done at `ad6cac3` — README/website/CHANGELOG/FEATURES/AGENTS updated in the fix commit (7 files)
+~~6. **Host unblocked**: `mkdir -p ~/.local/state/offline-banner` done by me; user ran reset-failed+start; unit active since 18:47:25, quickshell loaded the store QML, state file heartbeating every probe, `active:false` (currently online), fontconfig cache dir materializing under the runtime dir.~~ done — Host unblocked 2026-11-05 18:47:25; superseded later by gen 995 running StateDirectory
+~~7. **Commit of record**: `ad6cac3` with a full why-message (squashed out of the daemon's auto-commit; ahead 1, unpushed).~~ done at `ad6cac3` — Commit of record; later pushed in the legs wave
 
 ## b) PARTIALLY DONE
 
@@ -74,10 +74,10 @@
 
 ## e) WHAT WE SHOULD IMPROVE
 
-1. **Add a runtime-start check class** (VM test). Text gates cannot catch exec-time semantics; stop pretending they can.
-2. **Make invalid configurations unwritable**: derive ReadWritePaths from provisioned dirs; assert the general invariant, not per-hole pins.
-3. **Codify live proofs as flake apps** (`nix run .#smoke`) so runbooks are versioned with the module and actually runnable pre-switch.
-4. **Deploy the detection you already built**: waybar `stale` on every consumer host; a dead unit should be visible in the bar within one heartbeat interval.
+~~1. **Add a runtime-start check class** (VM test). Text gates cannot catch exec-time semantics; stop pretending they can.~~ done at `2cc6a16`, `3c74d56` — Runtime-start check class exists as packages.vm-smoke; blocking in checks since 3c74d56
+~~2. **Make invalid configurations unwritable**: derive ReadWritePaths from provisioned dirs; assert the general invariant, not per-hole pins.~~ done at `2cc6a16` — Derived ReadWritePaths; invalid configs unwritable at eval
+~~3. **Codify live proofs as flake apps** (`nix run .#smoke`) so runbooks are versioned with the module and actually runnable pre-switch.~~ done at `2cc6a16`, `41b3f49` — nix run .#smoke flake app; live-exercised 2026-11-18 (41b3f49)
+~~4. **Deploy the detection you already built**: waybar `stale` on every consumer host; a dead unit should be visible in the bar within one heartbeat interval.~~ **→ TODO_LIST row "Bar-side consumer live wiring (systemnix-banner DMS plugin) + stale-tell proof"**
 5. **Verify-before-implement as an ordering rule** (tmpfiles-%h was caught by luck of discipline, not by process).
 6. **Post-switch checklist discipline**: "unit active under the full sandbox" is step 1 of the existing runbook; the switch happened; nobody ran it. Assign the checklist to the switch, not to memory.
 7. **Run website toolchain locally for website edits** (astro check + build) — same lesson as the v0.2.0 postmortem, recurred.
@@ -92,7 +92,7 @@
 3. ~~Bump SystemNix's offline-banner lock to v0.2.1 and switch — the true fix proof (StateDirectory provisioning on a real host).~~ done — superseded — the lock moved through the cutover waves to 320be2a; gen 995 runs the fix live
 4. ~~Post-switch: verify unit active WITHOUT the manual mkdir having pre-created the dir is impossible here (dir now exists) — instead verify the rendered unit contains StateDirectory and `systemd-analyze cat-config`/unit text matches v0.2.1.~~ done — 2026-11-10 — gen-995 verification: unit active, StateDirectory rendered, heartbeat fresh
 5. ~~Live sound proof: force a transition (OFFLINE_BANNER_PROBE_HOST drop-in to 192.0.2.123, restart, listen + journal check) — FEATURES sound row's ride-item, executable now.~~ done — half-done — the genuine outage fired the show cue; audibility open (diagnosable since ab56830)
-6. Real-monitor pixel proof: OFFLINE_BANNER_DEMO=1 transient (or next real outage) + grim capture on evo-x2's actual outputs; close the AGENTS/FEATURES render-claim.
+~~6. Real-monitor pixel proof: OFFLINE_BANNER_DEMO=1 transient (or next real outage) + grim capture on evo-x2's actual outputs; close the AGENTS/FEATURES render-claim.~~ done at `7a4df29` — Real-monitor pixel proof done 2026-11-18 (AGENTS Live evidence); multi-monitor remainder in TODO_LIST
 7. ~~First real completed outage → `jq` the ledger entry; FEATURES ledger row's live-write proof closed.~~ done — 2026-11-10 — first real entry jq-verified (durationSec 8, reasons [dns,net,tcp], probeFailures 150)
 8. ~~docs-health ANNOTATE: mark the "rides the SystemNix switch" claims in the 2026-10-29 sounds/ledger report + v0.2.0 postmortem as resolved-by-incident (with links).~~ done — M12 (2026-11-05) + the 2026-11-17 sweep
 9. ~~docs-health HARVEST: pull this report's §f into TODO_LIST.md (+ ROADMAP for P3 items).~~ done — (74e1145 + the 2026-11-17 sweep)
@@ -101,44 +101,44 @@
 **P1 — never again (verification class upgrade)**
 11. ~~NixOS VM smoke test as the 8th flake check: `runTest` node with `services.offline-banner.enable`, normal user with a clean home, `probeHost = "192.0.2.123"`, autologin + user manager, assert unit active, zero `226/NAMESPACE` in journal, state file `active:true` inside the VM.~~ done — as packages.vm-smoke (2cc6a16, negative-proven; CI policy = D1)
 12. ~~Reuse the probe-transitions headless-sway recipe inside the VM for the compositor leg (quickshell needs a Wayland display even in a VM).~~ **Won't implement — reworked — the VM has no compositor, so the unit can never reach a live state write there; the assert class moved to static QML greps (ab56830).**
-13. Decide VM-test CI policy: blocking (slow, tcg on GitHub runners) vs advisory (see §g Q2).
+~~13. Decide VM-test CI policy: blocking (slow, tcg on GitHub runners) vs advisory (see §g Q2).~~ done at `3c74d56` — D1 decided 2026-11-18: vm-smoke promoted into checks (blocking), cost measured
 14. ~~Derive ReadWritePaths from RuntimeDirectory ∪ StateDirectory in module.nix; delete the hand-written hole list; module-contract's line pins then verify the derivation renders identically.~~ done at `2cc6a16`
 15. ~~Generalize the provisioning invariant: computed assertion "every ReadWritePaths entry maps to a RuntimeDirectory/StateDirectory/CacheDirectory entry" (specifier-aware), replacing per-hole grep pins over time.~~ done at `2cc6a16`
 16. ~~`nix run .#smoke`: flake app wrapping the hardened transient, substituting `%h`→`$HOME`, `%t`→`$XDG_RUNTIME_DIR` so it exercises the ledger hole; document as the mandatory pre-switch gate.~~ done — shipped (2cc6a16); first live execution pending (forced-outage evening row)
 17. ~~Add a static unit lint idea to the roadmap: ReadWritePaths targets without provisioning = failure (generic, reusable in the invariant of 15).~~ done — covered — the computed provisioning invariant IS this lint, enforced at eval
 18. ~~Wire actionlint + zizmor into CI (currently on-demand only, per AGENTS).~~ done at `9ace19a`
-19. Deploy the waybar `stale` consumer on evo-x2's bar (SystemNix-side) so dead-banner units are visible within one heartbeat.
+~~19. Deploy the waybar `stale` consumer on evo-x2's bar (SystemNix-side) so dead-banner units are visible within one heartbeat.~~ **→ TODO_LIST row "Bar-side consumer live wiring (systemnix-banner DMS plugin) + stale-tell proof"**
 20. ~~Contract-check the waybar consumer (AGENTS: currently "not contract-checked") at least by shellcheck gate.~~ done — shell-scripts gate (569a4fe) + the waybar-consumer fixture check (b47022d)
 21. ~~Run `astro check` + `pnpm run build` locally for the configuration.mdx edit before the next website push.~~ done — astro check + build green (19-25 session)
 22. ~~Add a standing AGENTS rule: website/** edits require local astro check+build (recurrence of the v0.2.0 lesson).~~ done — codified — the AGENTS pnpm rules require local verify for website manifests
 
 **P2 — docs & release hygiene**
-23. Release-notes for v0.2.1: lead with the unblock command for any other affected host.
-24. Update website docs changelog page for v0.2.1 (changelog.mdx mirrors CHANGELOG).
+~~23. Release-notes for v0.2.1: lead with the unblock command for any other affected host.~~ done at `ad3bdc2` — v0.2.1 cut 2026-11-18 (tag ad3bdc2); curated release notes policy recorded in AGENTS
+~~24. Update website docs changelog page for v0.2.1 (changelog.mdx mirrors CHANGELOG).~~ done at `15eac36` — website/src/content/docs/changelog.mdx has a 0.2.1 section (folded with CHANGELOG)
 25. ~~Cross-project lesson into crush-config `references/lessons.md` (by commit, not in-session): "ReadWritePaths never creates its target; RuntimeDirectory/StateDirectory provision; systemd-analyze verify cannot see namespace failures."~~ done — landed in the crush-config repo (commit 3b72558 there)
 26. ~~Record the tmpfiles `%h` rejection (systemd 261: `invalid format char: h`) in the same lesson — prevents the next session from shipping that variant.~~ done — landed in the crush-config repo (commit 3b72558 there)
 27. ~~Annotate FEATURES sound row: switch happened, unit was dead, live sound proof status now = pending demo run (task 5), not "rides the switch".~~ done — FEATURES sound row carries the gen-995 evidence + the audibility caveat
-28. Journal-retention note: how far back the user journal reaches on evo-x2 (the incident window may extend before Nov 4 19:06) — set a retention if forensics matter.
-29. Consider reconstructing the lost outage window into the ledger manually (see §g Q3).
-30. Verify the social preview upload is still set in repo Settings (manual, no API — drifts silently).
+~~28. Journal-retention note: how far back the user journal reaches on evo-x2 (the incident window may extend before Nov 4 19:06) — set a retention if forensics matter.~~ done — superseded (7a4df29) — D3 accepted the gap 2026-11-18; journal bounds re-checked — retention note moot
+~~29. Consider reconstructing the lost outage window into the ledger manually (see §g Q3).~~ done at `7a4df29` — D3 verdict recorded: accept the gap, no backfill
+~~30. Verify the social preview upload is still set in repo Settings (manual, no API — drifts silently).~~ **→ TODO_LIST row "Owner console one-offs"**
 31. ~~Terraform: add the `serviceusage.serviceUsageViewer` grant for `github-website-deploy@lars-software` (open since 2026-10-29).~~ done — encoded d161aee (apply owner-side)
 
 **P3 — roadmap fuel (not commitments)**
-32. Ledger retention/pruning policy (owner question left open from the 2026-10-29 report).
-33. Sound theme tuning pass (owner question open since 2026-10-29).
+~~32. Ledger retention/pruning policy (owner question left open from the 2026-10-29 report).~~ **→ ROADMAP row "Ledger analytics"**
+~~33. Sound theme tuning pass (owner question open since 2026-10-29).~~ **→ TODO_LIST row "Owner ears: audition all 12 cues and hear one through the unit"**
 34. ~~Website observability guide: jq cookbook for the ledger (per-month totals, longest outages, reason histograms).~~ done — the jq ledger cookbook shipped in observability.mdx (recipes verified against synthetic data)
 35. ~~probeHost v6 worked example in docs (README documents the tradeoff; add a config snippet for v6-primary hosts).~~ done — the v6 probeHost worked example shipped in configuration.mdx
 36. Consider a `postSwitchCheck` flake app aggregating smoke + demo capture into one command.
-37. Emulated aarch64 runtime for the VM test — decide whether the VM check is x86_64-only.
-38. Module option for probe host list (primary + fallback host) — only if a real multi-host need appears (YAGNI guard).
+~~37. Emulated aarch64 runtime for the VM test — decide whether the VM check is x86_64-only.~~ done at `3c74d56`, `7146eb8` — D1 decided; aarch64 deliberately excluded (VM-in-binfmt quadratic, AGENTS D1 paragraph)
+~~38. Module option for probe host list (primary + fallback host) — only if a real multi-host need appears (YAGNI guard).~~ **→ ROADMAP row "Multi-host probeHost semantics"**
 39. CI: explore native arm runners vs qemu emulation cost (checks take the longest on aarch64).
 40. Consider a flake-level `.#verify` aggregate (fmt + check + smoke + website build) as the one-command pre-push gate.
 
 ## g) Questions I cannot figure out myself
 
 1. **Push `ad6cac3` and cut v0.2.1 now**, so SystemNix can bump the lock and the host stops depending on my manual mkdir — or do you want to review/test the fix yourself first? (Push and release are explicitly owner-gated; I will not proceed without your word.) **→ answered — the fix pushed in the legs wave; the v0.2.1 tag remains the owner decision (TODO row)**
-2. **VM smoke test: blocking 8th CI check or advisory?** Blocking buys the dead-unit-class guarantee at the cost of minutes of tcg-slow CI per run (GitHub runners have no KVM); advisory keeps CI fast but weakens the gate to best-effort. Your CI-philosophy call.
-3. **The lost outage window** (every outage from the SystemNix switch until today's fix left no ledger entry, unit never ran): accept the gap, or do you want a manual reconstruction from router/NM logs appended to history.jsonl (clearly marked as backfilled)?
+~~2. **VM smoke test: blocking 8th CI check or advisory?** Blocking buys the dead-unit-class guarantee at the cost of minutes of tcg-slow CI per run (GitHub runners have no KVM); advisory keeps CI fast but weakens the gate to best-effort. Your CI-philosophy call.~~ done at `3c74d56` — D1 decided 2026-11-18: vm-smoke is a blocking check (checks.x86_64-linux.vm-smoke)
+~~3. **The lost outage window** (every outage from the SystemNix switch until today's fix left no ledger entry, unit never ran): accept the gap, or do you want a manual reconstruction from router/NM logs appended to history.jsonl (clearly marked as backfilled)?~~ done at `7a4df29` — D3 decided 2026-11-18: accept the gap (no manual reconstruction)
 
 ---
 
