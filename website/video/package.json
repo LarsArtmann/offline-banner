@@ -10,6 +10,6 @@
     "render": "hyperframes render --quality high --output ../public/demo.mp4"
   },
   "dependencies": {
-    "hyperframes": "^0.9.82"
+    "hyperframes": "^0.9.52"
   }
 }
