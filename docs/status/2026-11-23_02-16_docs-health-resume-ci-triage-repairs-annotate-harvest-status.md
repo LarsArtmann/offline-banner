@@ -101,7 +101,7 @@ Steps:
 2. Re-run Checks on HEAD; confirm aarch64 `probe-transitions` is green with the polling ledger asserts.
 3. Land the four missing artifacts (three AGENTS rules, `website.yml` pin), then apply the `10-29` spec; or drop those five verdicts.
 4. Review and apply `21-46`.
-5. Annotate the four remaining audit-all regressions; battery to audit-all 0.
+~~5. Annotate the four remaining audit-all regressions; battery to audit-all 0.~~ done — 10-29 §f34 struck via the applied spec (Won't implement, YAGNI); 21-46 §f5 and 13-26 §f13 `done at 7a4df29` (D3 accept-the-gap); archived 10-17 §f50 decided (D4 executed, `8a2d0c3`); audit-all now counts only this report's own two pass-internal steps
 6. Verifiers, one lane, anchored: `23-08` (105 lines), `21-54` (88), `19-22` (66), `23-40` (66), `11-16` (52), `11-09` (46), `13-26` (33), `21-10` (5), both plans (19).
 7. Harvest every OPEN-UNTRACKED / QUESTION item from those: new row, existing row, or declined with a reason; ledger in the pass report.
 8. Decide the native-arm-runner row once the verification reports back; route `18-52` §f39.
