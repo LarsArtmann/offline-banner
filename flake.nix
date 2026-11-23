@@ -1293,7 +1293,7 @@
                     echo "FAIL: $msg (expected $want ledger entries, got $got): $(cat history.jsonl 2>/dev/null)" >&2
                     exit 1
                   }
-                  
+
                   assert_state false               # clean ok probes: stays hidden
                   # Additive-keys shape contract (the 2026-11-09 legs): the
                   # legacy keys keep their names AND the ladder keys exist

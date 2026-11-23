@@ -23,7 +23,7 @@ concurrency:
 jobs:
   build-website:
     name: Build Website
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: website
@@ -89,7 +89,7 @@ jobs:
     needs: build-website
     if: >-
       ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       HAS_DEPLOY_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
     steps:
