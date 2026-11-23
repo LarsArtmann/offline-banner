@@ -249,7 +249,7 @@ render-smoke or keep live).
 **Standing non-goals (re-listed so they stay visible):**
 46. DNS-leg probe. 47. Multi-host probeHost. 48. ExecReload live-retune.
 49. Banner flashing/sound by default (doctrine: static non-flashing yellow).
-50. Machine-reflowing point-in-time reports (markdown is hand-formatted).
+~~50. Machine-reflowing point-in-time reports (markdown is hand-formatted).~~ decided — markdown stays hand-formatted (repo decision 2026-10-17, re-affirmed 2026-11-23); D4 executed 2026-11-23 (8a2d0c3): the BuildFlow formatter steps are config-skipped, so the reflow source is dead
 
 ## g) Three questions I cannot answer myself
 

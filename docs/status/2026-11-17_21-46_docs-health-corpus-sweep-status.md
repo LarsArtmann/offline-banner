@@ -103,7 +103,7 @@
 2. Push the 12 unpushed commits; watch both workflows on the new HEAD.
 3. Cut v0.2.1 per the runbook (fold CHANGELOG, website changelog.mdx section, tag, `gh release create`, tag-source flake check).
 4. D1: vm-smoke blocking vs advisory (measure tcg runtime first).
-5. D3: lost-ledger-window backfill vs accept.
+~~5. D3: lost-ledger-window backfill vs accept.~~ done at `7a4df29` — D3 decided 2026-11-18: accept the gap; journal bounds re-checked instead of building backfill machinery
 6. Forced-outage live-proof evening: drop-in outage with ears on the cue + grim capture on the real monitor; restore → recover cue; annotate FEATURES rows.
 7. Evening-window flap observation (row 15): the ladder's real verdict — journal sweep after an evening session.
 8. Audition all 12 cues (row 22); tune frequencies on ears.
