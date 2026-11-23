@@ -1,0 +1,19 @@
+# D4 EXECUTED 2026-11-23 (drafted 2026-11-18): this repo's style arbiter is
+# `nix fmt` (treefmt: nixfmt + statix, nix files only, gated by the flake's
+# `formatting` check); Markdown is hand-formatted by deliberate decision
+# (2026-10-17) — status/planning docs are point-in-time snapshots that must
+# never be machine-reflowed. BuildFlow's auto-generated dprint.json corrupted
+# that corpus twice (the 21-46:16 inline-code space-stripping, and the
+# 2026-11-23 finding that a dprint pass renumbers every unstruck list item
+# after a struck one), so the conflicting FORMAT steps are skipped by policy.
+# Non-formatter quality steps still run (shellcheck, shfmt, detectors);
+# the nix format gate stays in the flake, not here.
+skip_steps:
+  # dprint is the damage source: its markdown plugin re-wraps prose and
+  # renumbers struck lists (the annotation-corpus killer).
+  - dprint-format
+  # prettier would reflow the same hand-formatted Markdown corpus.
+  - prettier-format
+  # The flake's `formatting` check already gates nix formatting via
+  # `nix fmt` (treefmt); BuildFlow's round-trip step is a duplicate arbiter.
+  - nix-fmt
