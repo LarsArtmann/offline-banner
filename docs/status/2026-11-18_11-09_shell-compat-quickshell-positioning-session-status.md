@@ -101,7 +101,7 @@ Session window: ~07:30–08:00 CET work, CI verified through 07:06, re-checked
    ~~demand-gated by design; zero code written (correct per ROADMAP).~~
 ~~2. **Hyprland compositor proof** (pre-existing ROADMAP item) — would upgrade~~ **→ ROADMAP row "Second-compositor proof"**
    ~~both the README register and the Omarchy story ("one pass closes both").~~
-~~3. **Visual QA** of the landing changes at desktop/tablet/mobile widths.~~ **→ TODO_LIST row "Browser eyeballs: the dns aside and the release page"**
+~~3. **Visual QA** of the landing changes at desktop/tablet/mobile widths.~~ **→ TODO_LIST row "Browser eyeballs: the dns aside, the release page, the landing widths"**
 ~~4. **FEATURES.md evidence row** for the DMS-proven / Omarchy-expected claims.~~ done at `d7f5158` — the FEATURES shell-compat row carries the DMS-proven / Omarchy-expected register
 ~~5. **Launch-post draft extension** with the Quickshell paragraph.~~ done at `304f19c` — the drafts carry the Quickshell positioning paragraph
 ~~6. **Real-monitor pixel proof** — long-standing live-evidence gap, still open.~~ done at `9ed4849` — the real-monitor grim proof closed 2026-11-18
@@ -148,7 +148,7 @@ green on everything I pushed._
 ~~4. **External-quote sourcing** — doctrine quotes in shipped docs must link~~ done at `6add16b` — the quote now links its verified source
    ~~the exact source URL and carry a "verified <date>" marker; Omarchy's~~
    ~~plugin rules can change under us with nothing in-repo noticing.~~
-~~5. **Visual QA for landing changes** — string-verification is not layout-~~ **→ TODO_LIST row "Browser eyeballs: the dns aside and the release page"**
+~~5. **Visual QA for landing changes** — string-verification is not layout-~~ **→ TODO_LIST row "Browser eyeballs: the dns aside, the release page, the landing widths"**
    ~~verification; a 3-width screenshot checklist (or reusing the headless-sway~~
    ~~capture tooling) closes the gap cheaply.~~
 ~~6. **Claims need evidence rows** — new public claims (DMS-proven) live in~~ done at `d7f5158` — the FEATURES evidence row
@@ -173,7 +173,7 @@ from this session; 13+ are pre-existing open items noticed this session
    ~~Quickshell-powered/any-shell positioning. M / S / Marketing.~~
 ~~5. Owner decision, then extend launch-post drafts with the shell-agnostic~~ **→ TODO_LIST row "Owner console one-offs"**
    ~~paragraph (respecting the one-narrative rule). H / S / Marketing.~~
-~~6. Screenshot QA of the landing page at 3 widths; fix the 9th feature card's~~ **→ TODO_LIST row "Browser eyeballs: the dns aside and the release page"**
+~~6. Screenshot QA of the landing page at 3 widths; fix the 9th feature card's~~ **→ TODO_LIST row "Browser eyeballs: the dns aside, the release page, the landing widths"**
    ~~orphan row on 2-column widths if it reads badly. M / S / Quality.~~
 ~~7. Tighten the hero: muted paragraph is 3 sentences now — consider moving the~~ **Won't implement — taste micro-edit, never demanded; the landing copy stands.**
    ~~shell-agnostic claim entirely into the badge. L / S / Marketing.~~

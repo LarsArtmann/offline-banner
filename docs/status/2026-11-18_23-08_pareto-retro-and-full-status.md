@@ -35,7 +35,7 @@
 ~~3. **Upstream BuildFlow skip-feature** — drafted as D4's follow-up in AGENTS but NOT filed as an issue in the BuildFlow repo (no verify-before-filing pass either).~~ **→ TODO_LIST row "File the BuildFlow upstream issue: skip non-covered repos by default"**
 ~~4. **CI duration record after D1** — I estimated the tcg cost (~2.5–5 min) but did not record the ACTUAL Checks duration delta from the post-D1 runs (the data exists in the run list; nobody wrote it down).~~ done at `3e74b9d` — actual cost recorded: ~33 s tcg in a 2m27s job (runs 44406334307/44407389408/44408370706)
 ~~5. **v0.2.2 content freeze vs master** — master is now several commits past the tag (ci-watch fix, D1 promotion + fix, parallel-session verdict docs, their harvest commits). Correct per the freeze discipline, but it means v0.2.3 carries real content already — unreleased-changes drift is accumulating again.~~ **→ TODO_LIST row "Cut v0.2.3"**
-~~6. **Website changelog aside verification** — html-validate green, section fetched live, but the Starlight aside (`:::note[v0.2.2 behavior change]`) rendering was verified only structurally, not visually in a browser.~~ **→ TODO_LIST row "Browser eyeballs: the dns aside and the release page"**
+~~6. **Website changelog aside verification** — html-validate green, section fetched live, but the Starlight aside (`:::note[v0.2.2 behavior change]`) rendering was verified only structurally, not visually in a browser.~~ **→ TODO_LIST row "Browser eyeballs: the dns aside, the release page, the landing widths"**
 ~~7. **P13 data quality** — the 61.6 s aarch64 number mixes cold and cached check builds; per-check cold timings were not isolated.~~ **→ TODO_LIST row "aarch64 CI on native hosted arm runners"**
 
 ## c) NOT STARTED (owner-gated or deliberately out of this session)
@@ -92,7 +92,7 @@
 ~~10. Add `scripts/*` glob coverage to the shell-scripts gate (new scripts join mechanically).~~ **→ TODO_LIST row "shell-scripts gate: glob scripts/*"**
 ~~11. File the BuildFlow upstream issue: skip non-managed repos by default (verify-before-filing first).~~ **→ TODO_LIST row "File the BuildFlow upstream issue: skip non-covered repos by default"**
 ~~12. Adopt the skip-only `.buildflow.yml` in this repo (D4 execution, kills the zombie permanently).~~ done at `8a2d0c3` — skip-only .buildflow.yml landed 2026-11-23; the dprint zombie is killed at the source
-~~13. Starlight aside visual check in a real browser (the dns behavior-change note).~~ **→ TODO_LIST row "Browser eyeballs: the dns aside and the release page"**
+~~13. Starlight aside visual check in a real browser (the dns behavior-change note).~~ **→ TODO_LIST row "Browser eyeballs: the dns aside, the release page, the landing widths"**
 ~~14. Re-verify theme-5 ROADMAP items machine-honestly (fetch the Omarchy pointer, re-check demand signals).~~ **→ TODO_LIST row "Machine-honest re-verify of ROADMAP theme-5 items"**
 ~~15. v0.2.3 scoping decision: ci-watch fix + D1 + verdict docs are on master unreleased — cut now or set a trigger.~~ **→ TODO_LIST row "Cut v0.2.3"**
 ~~16. Wire the rc-guard one-liner into the fleet's session rc template (crush-config side) so future sessions get the warning automatically.~~ **→ TODO_LIST row "Session-claim protocol: daemon claim-awareness"**
@@ -127,7 +127,7 @@
 ~~45. Session-claim protocol: add "commit-batch label" convention (each real commit mentions the claim it executes) so history reconstructs tasks without the claim file.~~ **→ TODO_LIST row "Claim-protocol refinements in AGENTS section Git"**
 ~~46. Probe-transitions seam scenario: assert the ledger ALSO lands in the smoke dir when `OFFLINE_BANNER_HISTORY` is rewritten (currently only the state file is seam-proven).~~ done at `4e91642` — flap scenario drives the ledger via OFFLINE_BANNER_HISTORY at a seam path and asserts entries there (flake.nix:1638)
 ~~47. vm-smoke: assert the unit's RuntimeDirectory leaf is `offline-banner` on the live path AND note that smoke runs never share it (comment-level clarity for the next reader).~~ **→ TODO_LIST row "vm-smoke: assert the RuntimeDirectory leaf"**
-~~48. Check the release page renders the dns callout correctly (fetch + eyeball the markdown → HTML conversion of the aside-like section).~~ **→ TODO_LIST row "Browser eyeballs: the dns aside and the release page"**
+~~48. Check the release page renders the dns callout correctly (fetch + eyeball the markdown → HTML conversion of the aside-like section).~~ **→ TODO_LIST row "Browser eyeballs: the dns aside, the release page, the landing widths"**
 ~~49. Ship a one-page "release day runbook" distilled from the v0.2.2 run (the runbook is AGENTS-embedded; a checklist form may save the next session ten minutes).~~ **Won't implement — a distilled copy of the AGENTS release runbook is a second home for the same facts — drift by design; one fact, one place.**
 50. Close-the-loop sweep: confirm every problem encountered tonight ended fixed/fileled/documented — this report is that sweep for the agent-side; the two daemon races and the sentinel page are documented (§d), the rest are in §a/§b.
 
