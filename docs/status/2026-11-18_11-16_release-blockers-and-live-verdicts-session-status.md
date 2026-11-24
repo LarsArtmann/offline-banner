@@ -5,8 +5,8 @@
 
 ## Headline: the two reds on master are dead, and both were misdiagnosed for days
 
-1. **The 13-day Website deploy red was never a stale secret.** Row 73's inherited diagnosis was wrong. Root cause: the 2026-11-05 zizmor hardening (`9ace19a`) deleted the `printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"` line while swapping npm for the nix-pinned firebase-tools — the workflow never materialized the credentials file, so every deploy died `Failed to authenticate` behind a green lint. I created a fresh SA key (`5d2acd98…`, gcloud), updated the secret, fixed the materialization (`7f5a97c`), and got the first green deploy since 2026-11-05 (run `44249738046`: build ✓ 37 s, deploy ✓ 1 m42 s; live site + demo.mp4 re-verified 200 over HTTPS). A second dispatch (`44253835854`) also went fully green with the TS guard in place.
-2. **The Checks red was a broken zizmor packaging, not a lint finding.** The floating `nixpkgs#` channel resolved zizmor 1.32.0 whose nixpkgs build fails (aws-lc-sys panics) — on a docs-only push. The repo's own flake.lock rev carried the SAME broken packaging, so the planned "pin to the lock rev" would NOT have helped. Pinned both linters to the older proven rev (`31ecbaca`, actionlint 1.7.12 + zizmor 1.31.1, lockstep with the firebase pin, `ec0bc5f`).
+~~1. **The 13-day Website deploy red was never a stale secret.** Row 73's inherited diagnosis was wrong. Root cause: the 2026-11-05 zizmor hardening (`9ace19a`) deleted the `printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"` line while swapping npm for the nix-pinned firebase-tools — the workflow never materialized the credentials file, so every deploy died `Failed to authenticate` behind a green lint. I created a fresh SA key (`5d2acd98…`, gcloud), updated the secret, fixed the materialization (`7f5a97c`), and got the first green deploy since 2026-11-05 (run `44249738046`: build ✓ 37 s, deploy ✓ 1 m42 s; live site + demo.mp4 re-verified 200 over HTTPS). A second dispatch (`44253835854`) also went fully green with the TS guard in place.~~ done at `7f5a97c` — printf-to-ADC materialization restored; first green deploy run 44249738046
+~~2. **The Checks red was a broken zizmor packaging, not a lint finding.** The floating `nixpkgs#` channel resolved zizmor 1.32.0 whose nixpkgs build fails (aws-lc-sys panics) — on a docs-only push. The repo's own flake.lock rev carried the SAME broken packaging, so the planned "pin to the lock rev" would NOT have helped. Pinned both linters to the older proven rev (`31ecbaca`, actionlint 1.7.12 + zizmor 1.31.1, lockstep with the firebase pin, `ec0bc5f`).~~ done at `93fc621` — the zizmor-era pin + fetch-depth fixes; the lockstep doctrine recorded in AGENTS CI notes
 
 ## a) FULLY DONE
 
@@ -47,7 +47,7 @@
 
 ## d) TOTALLY FUCKED UP
 
-1. **Three daemon sweeps landed my work in junk-message commits that are now PUSHED** — `7e94788` (row-73 correction + AGENTS lessons), `017a958` (CHANGELOG bullets), `aa9e119`+`83de6b8` (T09 split mid-edit across two commits). No content lost, but origin history now carries real work under `chore: auto-commit` messages and a split message that doesn't describe its own diff. Post-push re-splitting would need a force-push — not allowed. My process fix (commit within seconds, `git log -1` precheck) came one race too late twice.
+~~1. **Three daemon sweeps landed my work in junk-message commits that are now PUSHED** — `7e94788` (row-73 correction + AGENTS lessons), `017a958` (CHANGELOG bullets), `aa9e119`+`83de6b8` (T09 split mid-edit across two commits). No content lost, but origin history now carries real work under `chore: auto-commit` messages and a split message that doesn't describe its own diff. Post-push re-splitting would need a force-push — not allowed. My process fix (commit within seconds, `git log -1` precheck) came one race too late twice.~~ **→ TODO_LIST row "Daemon policy for junk commits and dependency manifests"**
 2. **I wired the docs-gates battery into CI without testing it under CI's environment** — the shallow clone turned 66 legitimate hash markers into phantom failures and put a red on master for one push cycle. The standing "verify-before-implement" rule applies to CI wiring too; I verified the battery locally (full history) and missed the environment delta.
 3. **First commit attempt used pathspec `.` and swept website.yml into the flash-class fix commit** — caught and re-split BEFORE push, but it was exactly the daemon-race mistake I was guarding against, made by hand.
 4. **The inherited row-73 misdiagnosis cost 13 days of red deploys** — the previous session (and the plan I inherited) treated "stale secret" as fact; reading the actual deploy step found the dropped `printf` in minutes. Lesson recorded: re-derive root cause; never execute an inherited diagnosis.
@@ -65,58 +65,58 @@
 
 ## f) NEXT (ranked; ~46 items)
 
-1. **Tag v0.2.1** (T03 finish): confirm both workflows green on the release-prep commit → annotated tag → curated `gh release create` (highlights: legs/ladder, 226 fix live-proven, flash-class fix, PATH-phantom gate, first ledger week) → `nix flake check github:…/v0.2.1 --all-systems` + metadata resolve → close row 75.
-2. **Relock SystemNix to v0.2.1** (T04): `nix flake update offline-banner` in ../SystemNix → eval → owner switch → AGENTS Consumers + rows.
-3. **DMS plugin deploy + kill-unit `banner?` proof** (T07): enable `systemnix-banner`, eval/switch, kill the unit → error-red `banner?` within one heartbeat → restore; close rows 79 + 16's live half.
-4. **Owner ears + real-monitor grim** (T05 finish): one drop-in outage or the next natural one; annotate FEATURES rows finally; close row 77.
-5. **T13 hyperframes**: resolve the 4-number truth from disk (manifest `^0.8.216` vs lock `0.8.163` vs prose `0.8.214` vs PR `0.9.52`), fix the 2ccdf6e manifest/lock mismatch FIRST (a frozen `website/video` install dies today), then the intentional M23 update round under the age gate, then merge/close the PR with a render decision (lint/check ≠ render validation — postmortem rule).
-6. **Merge the starlight PR** (0.42.10→0.43.1, open, green) — but only after T13's lock round or it double-churns `website/pnpm-lock.yaml`.
-7. **picomatch HIGH alert**: merge Dependabot's update on sight (website dep, ReDoS).
-8. **hono cluster (6 medium + 1 low)**: ride T13's hyperframes round (naive hono-only merges fight the update).
-9. **T15 G4**: port ci-watch (red-master detection burned twice) or reject; judge a11y-guard/lighthouse on effort; record in AGENTS.
-10. **T12 docs closing ritual**: strike 20-10 §a (cadence ~due), unify §d/§e canon per G2 across the 12 archived files, ROADMAP theme-1 strike → plain prose, first supervised `docs-gates purge` (dry-run first).
-11. **D4 for real**: teach BuildFlow to skip this repo or adopt `.buildflow.yml` — it re-dropped `global.out.css` and reflowed the corpus DURING this session.
-12. **Delete the resurrected `global.out.css` again** + make the deletion stick (gitignore entry or BuildFlow skip).
-13. **Retry the TS7 upstream research** (rate-limited this session) — refresh row 80 facts (issue #17852 state, @astrojs/check peers, TS 7.1).
-14. **D1**: one timed CI run of vm-smoke, then the promote-or-keep-out decision.
-15. **D3**: record the accept verdict on lost-ledger backfill (18 live entries make accept stronger).
-16. **SA key hygiene (owner console)**: `github-website-deploy@lars-software` holds 11 enabled keys — disable/delete the dead ones; note the fresh `5d2acd98`.
-17. **Social preview upload** (owner console): `assets/branding/social-preview.png` → Settings → Social preview; finish row 73's last leg.
-18. **T19 launch posts** (owner): post Discourse + r/NixOS drafts (now v0.2.1-accurate), cross-link from README.
-19. **T17 audition** (owner ears): 12 cues via `scripts/play-sounds.sh`, tune verdicts.
-20. **T14 F62/F64**: live quickshell-under-`SystemCallFilter=@system-service` probe + adopt/withhold decisions + AGENTS update (owner-supervised window).
-21. **Audit the parallel session's uncommitted tree** (FEATURES/README/ROADMAP/flake.lock/flake.nix `M` + its 11-09 status report) — read it, judge it, then commit it deliberately (it may be mid-edit RIGHT NOW).
+~~1. **Tag v0.2.1** (T03 finish): confirm both workflows green on the release-prep commit → annotated tag → curated `gh release create` (highlights: legs/ladder, 226 fix live-proven, flash-class fix, PATH-phantom gate, first ledger week) → `nix flake check github:…/v0.2.1 --all-systems` + metadata resolve → close row 75.~~ done at `ad3bdc2f` — v0.2.1 tagged and released
+~~2. **Relock SystemNix to v0.2.1** (T04): `nix flake update offline-banner` in ../SystemNix → eval → owner switch → AGENTS Consumers + rows.~~ done — landed in SystemNix — the relock to v0.2.1 committed in ../SystemNix
+~~3. **DMS plugin deploy + kill-unit `banner?` proof** (T07): enable `systemnix-banner`, eval/switch, kill the unit → error-red `banner?` within one heartbeat → restore; close rows 79 + 16's live half.~~ **→ TODO_LIST row "Bar-side consumer live wiring (systemnix-banner DMS plugin) + stale-tell proof"**
+~~4. **Owner ears + real-monitor grim** (T05 finish): one drop-in outage or the next natural one; annotate FEATURES rows finally; close row 77.~~ done at `9ed4849` — the real-monitor grim proof closed 2026-11-18; ears remain the audition row
+~~5. **T13 hyperframes**: resolve the 4-number truth from disk (manifest `^0.8.216` vs lock `0.8.163` vs prose `0.8.214` vs PR `0.9.52`), fix the 2ccdf6e manifest/lock mismatch FIRST (a frozen `website/video` install dies today), then the intentional M23 update round under the age gate, then merge/close the PR with a render decision (lint/check ≠ render validation — postmortem rule).~~ done at `9ed4849` — manifest/lock back on the validated pair; the deliberate-upgrade remainder is its TODO row
+~~6. **Merge the starlight PR** (0.42.10→0.43.1, open, green) — but only after T13's lock round or it double-churns `website/pnpm-lock.yaml`.~~ done — superseded — astro is far past 0.43 now (7.4.x line); that PR era is gone
+~~7. **picomatch HIGH alert**: merge Dependabot's update on sight (website dep, ReDoS).~~ done — superseded — the alert window self-resolved via scheduled updates; picomatch rides transitively in the current lock
+~~8. **hono cluster (6 medium + 1 low)**: ride T13's hyperframes round (naive hono-only merges fight the update).~~ done — superseded (9ed4849) — hono rode the later hyperframes rounds
+~~9. **T15 G4**: port ci-watch (red-master detection burned twice) or reject; judge a11y-guard/lighthouse on effort; record in AGENTS.~~ done at `d999eb6`, `38c3bcb` — ci-watch landed as a repo sentinel; the in-flight race fixed and recorded (38c3bcb)
+~~10. **T12 docs closing ritual**: strike 20-10 §a (cadence ~due), unify §d/§e canon per G2 across the 12 archived files, ROADMAP theme-1 strike → plain prose, first supervised `docs-gates purge` (dry-run first).~~ done at `49fcab2` — the 11-24 archive ritual + the cadence gate keep this closed
+~~11. **D4 for real**: teach BuildFlow to skip this repo or adopt `.buildflow.yml` — it re-dropped `global.out.css` and reflowed the corpus DURING this session.~~ done at `8a2d0c3` — D4 executed
+~~12. **Delete the resurrected `global.out.css` again** + make the deletion stick (gitignore entry or BuildFlow skip).~~ done at `373690e`, `8a2d0c3` — css deleted AND the reflow source skipped
+~~13. **Retry the TS7 upstream research** (rate-limited this session) — refresh row 80 facts (issue #17852 state, @astrojs/check peers, TS 7.1).~~ **→ TODO_LIST row "Astro + TypeScript 7 (the 6.x pin exit)"**
+~~14. **D1**: one timed CI run of vm-smoke, then the promote-or-keep-out decision.~~ done at `3c74d56` — D1: promoted blocking, measured ~33 s
+~~15. **D3**: record the accept verdict on lost-ledger backfill (18 live entries make accept stronger).~~ done at `7a4df29` — D3 accept verdict recorded
+~~16. **SA key hygiene (owner console)**: `github-website-deploy@lars-software` holds 11 enabled keys — disable/delete the dead ones; note the fresh `5d2acd98`.~~ **→ TODO_LIST row "Owner console one-offs"**
+~~17. **Social preview upload** (owner console): `assets/branding/social-preview.png` → Settings → Social preview; finish row 73's last leg.~~ **→ TODO_LIST row "Owner console one-offs"**
+~~18. **T19 launch posts** (owner): post Discourse + r/NixOS drafts (now v0.2.1-accurate), cross-link from README.~~ **→ TODO_LIST row "Owner console one-offs"**
+~~19. **T17 audition** (owner ears): 12 cues via `scripts/play-sounds.sh`, tune verdicts.~~ **→ TODO_LIST row "Owner ears: audition all 12 cues and hear one through the unit"**
+~~20. **T14 F62/F64**: live quickshell-under-`SystemCallFilter=@system-service` probe + adopt/withhold decisions + AGENTS update (owner-supervised window).~~ done at `9ed4849` — F62 lethal-filter + F64 survivable-option verdicts recorded from the live probes
+~~21. **Audit the parallel session's uncommitted tree** (FEATURES/README/ROADMAP/flake.lock/flake.nix `M` + its 11-09 status report) — read it, judge it, then commit it deliberately (it may be mid-edit RIGHT NOW).~~ done — the parallel tree was audited and landed
 22. **flake.lock double-bump**: the parallel session/BuildFlow bumped nixpkgs twice today (`f4a03c0`→`1a08097`→?) — decide whether ad-hoc lock bumps belong on master un-reviewed or gated behind a deliberate update pass.
-23. **Row 80**: TS7 re-verify outcome + exit strategy (upgrade path when @astrojs/check supports 7).
-24. **Journal retention note** (T18.3): the user journal demonstrably reaches 8+ days back on evo-x2 — record whether that's enough for forensics or set retention.
-25. **Smoke app runtime proof**: run a REAL `nix run .#smoke` once on evo-x2 (the props fix means the app finally works end-to-end — first actual execution ever; the runbook claims it as the mandatory pre-switch gate).
-26. **Dependabot Updates cadence**: two updates ran 10 m each today and re-based the hyperframes PR — consider pinning `ignore` for `website/video` until T13 lands.
-27. **`README.md`/`FEATURES.md`/`ROADMAP.md` uncommitted parallel edits** — same as 21, folded into the deliberate-commit pass.
-28. **CHANGELOG compare-link sanity**: after tagging, verify the new footer links resolve.
-29. **Release notes body**: paste curated section (already written in CHANGELOG 0.2.1) + the unblock-command removal note (StateDirectory fix makes the manual mkdir obsolete).
-30. **Website deploy after release-prep**: the changelog.mdx changes will deploy via the next `website/**` push — verify the live changelog page renders 0.2.1.
-31. **docs/status index**: the parallel session added its own report row — confirm my row + theirs both indexed (battery routing gate enforces it).
-32. **Archive the parallel session's 11-09 report + mine when superseded** (cadence threshold 21 days; the 10-29 report is 20 days old — next in line).
-33. **AGENTS "CI runners" paragraph**: add the zizmor-pin + battery + fetch-depth facts to the runner-drift watchlist.
-34. **`nix run .#smoke -- --print`** in the runbook as the pre-flight (zero-side-effect preview of the transient argv).
-35. **vm-smoke D1 timing**: if promoted, scope it to x86_64-only in CI first.
-36. **G2 §d/§e canon**: pick strike-with-verdicts (recommended — matches corpus history) or bare-behind-banner; apply uniformly.
-37. **G5 release-notes policy**: already recorded curated — mirror it into the runbook's release step text.
-38. **G3 merge path**: after T13's round, the PR merge needs re-lint + re-check + a real RENDER of demo.mp4 with byte-change recorded.
-39. **G4**: if ci-watch ports, schedule it off-peak (cron in workflow) to avoid the congested morning window seen today.
-40. **CI congestion**: today's runs queued 4–10 min (10–16 m for Checks) — consider splitting the aarch64 PT check to a scheduled job if the queue stays this bad.
-41. **Ledger growth**: 18 entries/week on evo-x2 — the ROADMAP theme-4 growth guard has real numbers now.
-42. **omarchy-shell claim**: the parallel session's shell-compat page says "expected-untested, plugin route declined" — verify that claim against the repo's own doctrine before the launch posts repeat it.
-43. **Discourse/Reddit drafts**: add the flash-class + live-week findings (1502/13/18) to the incident-honesty section — it's the strongest evidence story the project has.
-44. **TODO row 16/79**: pre-write the DMS kill-unit proof steps so the switch window executes in one pass.
-45. **Session claim protocol** (from e): propose it to the owner before the next two-session day.
-46. **Retrospective on the inherited-diagnosis failure**: add a lesson to crush-config `references/lessons.md` (cross-project: re-derive, never inherit, root-cause diagnoses in inherited TODO rows).
+~~23. **Row 80**: TS7 re-verify outcome + exit strategy (upgrade path when @astrojs/check supports 7).~~ **→ TODO_LIST row "Astro + TypeScript 7 (the 6.x pin exit)"**
+~~24. **Journal retention note** (T18.3): the user journal demonstrably reaches 8+ days back on evo-x2 — record whether that's enough for forensics or set retention.~~ **→ TODO_LIST row "journald retention for the unit user journal"**
+~~25. **Smoke app runtime proof**: run a REAL `nix run .#smoke` once on evo-x2 (the props fix means the app finally works end-to-end — first actual execution ever; the runbook claims it as the mandatory pre-switch gate).~~ done at `41b3f49` — the real nix run .#smoke proof on evo-x2 the same day
+~~26. **Dependabot Updates cadence**: two updates ran 10 m each today and re-based the hyperframes PR — consider pinning `ignore` for `website/video` until T13 lands.~~ **Won't implement — two ~10-min updates/day is the accepted cost; the 24 h age gate is the stronger protection.**
+~~27. **`README.md`/`FEATURES.md`/`ROADMAP.md` uncommitted parallel edits** — same as 21, folded into the deliberate-commit pass.~~ done — the parallel edits were folded into deliberate commits
+~~28. **CHANGELOG compare-link sanity**: after tagging, verify the new footer links resolve.~~ done — the 0.2.1 footer verified at release; v0.2.2 repeated the pattern
+~~29. **Release notes body**: paste curated section (already written in CHANGELOG 0.2.1) + the unblock-command removal note (StateDirectory fix makes the manual mkdir obsolete).~~ done at `ad3bdc2f` — curated notes with the unblock recipe shipped
+~~30. **Website deploy after release-prep**: the changelog.mdx changes will deploy via the next `website/**` push — verify the live changelog page renders 0.2.1.~~ done at `7f5a97c` — the changelog deploy went green the same day
+~~31. **docs/status index**: the parallel session added its own report row — confirm my row + theirs both indexed (battery routing gate enforces it).~~ done — both rows indexed; the routing gate passes on today's 12 live reports
+~~32. **Archive the parallel session's 11-09 report + mine when superseded** (cadence threshold 21 days; the 10-29 report is 20 days old — next in line).~~ **Won't implement — governed by the cadence gate (ARCHIVE-HEALTHY, 12 live, oldest 6 d); they archive at the next ritual when due.**
+~~33. **AGENTS "CI runners" paragraph**: add the zizmor-pin + battery + fetch-depth facts to the runner-drift watchlist.~~ done at `9ed4849` — the zizmor/pin/battery/fetch-depth facts live in the AGENTS CI section
+~~34. **`nix run .#smoke -- --print`** in the runbook as the pre-flight (zero-side-effect preview of the transient argv).~~ done at `180869c` — the --print pre-flight sentence is now in runbook step 1b (this pass)
+~~35. **vm-smoke D1 timing**: if promoted, scope it to x86_64-only in CI first.~~ done at `3c74d56` — aarch64 deliberately excluded (VM under emulation is quadratic)
+~~36. **G2 §d/§e canon**: pick strike-with-verdicts (recommended — matches corpus history) or bare-behind-banner; apply uniformly.~~ done — strike-with-verdicts is the operating canon — this pass applies it throughout
+~~37. **G5 release-notes policy**: already recorded curated — mirror it into the runbook's release step text.~~ done at `8a2d0c3` — the NOT-verified step lives in runbook step 5
+~~38. **G3 merge path**: after T13's round, the PR merge needs re-lint + re-check + a real RENDER of demo.mp4 with byte-change recorded.~~ done at `9ed4849` — the 0.9.52 round rendered demo.mp4 and pixel-compared under 0.1 percent
+~~39. **G4**: if ci-watch ports, schedule it off-peak (cron in workflow) to avoid the congested morning window seen today.~~ **Won't implement — ci-watch landed as a repo sentinel, not a cron; the congestion concern does not apply to it.**
+~~40. **CI congestion**: today's runs queued 4–10 min (10–16 m for Checks) — consider splitting the aarch64 PT check to a scheduled job if the queue stays this bad.~~ **Won't implement — superseded by the native-arm-runner evaluation row — the real fix.**
+~~41. **Ledger growth**: 18 entries/week on evo-x2 — the ROADMAP theme-4 growth guard has real numbers now.~~ **→ ROADMAP row "Ledger growth/rotation doc"**
+~~42. **omarchy-shell claim**: the parallel session's shell-compat page says "expected-untested, plugin route declined" — verify that claim against the repo's own doctrine before the launch posts repeat it.~~ done — the shell-compat page carries the expected-untested wording; re-verified this pass
+~~43. **Discourse/Reddit drafts**: add the flash-class + live-week findings (1502/13/18) to the incident-honesty section — it's the strongest evidence story the project has.~~ **→ TODO_LIST row "Owner console one-offs"**
+~~44. **TODO row 16/79**: pre-write the DMS kill-unit proof steps so the switch window executes in one pass.~~ done at `180869c` — the bar-side row carries the pre-written busctl kill/restart proof steps
+~~45. **Session claim protocol** (from e): propose it to the owner before the next two-session day.~~ done — superseded (9a4e969) — the protocol was proposed, adopted, and is ACTIVE
+~~46. **Retrospective on the inherited-diagnosis failure**: add a lesson to crush-config `references/lessons.md` (cross-project: re-derive, never inherit, root-cause diagnoses in inherited TODO rows).~~ **→ TODO_LIST row "Fleet-run lessons + library-deep-dive amendments"**
 
 ## g) Questions I cannot answer myself
 
-1. **Is the second glm-5.3 session supposed to be working this same plan in parallel?** It landed shell-compat positioning (`304f19c`), its own status report, and is editing FEATURES/README/ROADMAP/flake.* right now. Should I treat docs/website as ITS territory and take SystemNix/release/T13, or is it a stray session I should ask you to close?
-2. **D2 release go**: with prep complete and verified, do I tag v0.2.1 the moment both workflows are green on one commit — even though the tree is moving under parallel writes (i.e., may I pause/coordinate the other session for the tag window)?
-3. **BuildFlow (D4)**: is the 07:20/10:1x passes you running it manually on this repo, or a scheduled job I can't see from here? Deciding "teach it to skip offline-banner" vs "adopt `.buildflow.yml`" needs to know whether it re-strikes on every pass — and whether you want the markdown corpus protected (the AGENTS hand-formatted decision says yes; BuildFlow's behavior says no).
+~~1. **Is the second glm-5.3 session supposed to be working this same plan in parallel?** It landed shell-compat positioning (`304f19c`), its own status report, and is editing FEATURES/README/ROADMAP/flake.* right now. Should I treat docs/website as ITS territory and take SystemNix/release/T13, or is it a stray session I should ask you to close?~~ done — superseded — answered by the claim protocol and that session's completed, released work
+~~2. **D2 release go**: with prep complete and verified, do I tag v0.2.1 the moment both workflows are green on one commit — even though the tree is moving under parallel writes (i.e., may I pause/coordinate the other session for the tag window)?~~ done — superseded (ad3bdc2f) — v0.2.1 was tagged the moment the gates were green
+~~3. **BuildFlow (D4)**: is the 07:20/10:1x passes you running it manually on this repo, or a scheduled job I can't see from here? Deciding "teach it to skip offline-banner" vs "adopt `.buildflow.yml`" needs to know whether it re-strikes on every pass — and whether you want the markdown corpus protected (the AGENTS hand-formatted decision says yes; BuildFlow's behavior says no).~~ done at `8a2d0c3` — moot: the skip-only config makes any pass harmless regardless of who runs it
 
 ---
 
