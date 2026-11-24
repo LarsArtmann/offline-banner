@@ -56,6 +56,9 @@ process start). Raw directions:
   interval/threshold changes apply to a running banner.
 - **`ExecReload` story** — or an explicit, documented restart-only contract
   for tuning.
+- **Observability endpoint** — optional Prometheus/socket stats off the state
+  file (phase, legs, outage count, last transition) so fleet dashboards can
+  watch connectivity without scraping journals.
 
 ### 3. Verification depth
 
@@ -68,6 +71,11 @@ and live-proven on evo-x2. Beyond that:
 - **Second-compositor proof** — README targets any layer-shell compositor;
   niri is live-proven, sway is CI-proven headless, Hyprland is untested. A
   Hyprland pass would turn that claim from expected into tested.
+- **Fleet-reusable posture-probe harness** — the 2026-11-18 withheld-option
+  probes were hand-rolled busctl transients (ob-probe-pdev / ob-probe-mdwe);
+  a parameterized `.#probe` flake app here (one command per option, gated,
+  isolated dirs) would make the next sandbox question a one-liner, and the
+  shape generalizes to sibling repos.
 
 ### 4. Sound & ledger expressiveness (raw ideas, 2026-10-29)
 
