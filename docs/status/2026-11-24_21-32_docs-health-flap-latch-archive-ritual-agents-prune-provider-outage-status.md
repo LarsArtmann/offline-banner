@@ -91,7 +91,7 @@ Scope: only this session's run (2026-11-23 02:36 → 2026-11-24 21:29, spanning 
 9. Harvest every OPEN-UNTRACKED/QUESTION verdict into TODO rows or inline declines with reasons; ledger the dispositions in the final pass report.
 10. Re-run the battery after each apply (annotate + audit-all are the ones that can regress).
 11. Repair any rule-F (backslash-backtick) shapes the new strikes surface — three corpus-wide already; the shape is a known daemon-reflow trigger.
-12. Watch for the annotate-gate chain false-positive class (struck `~~N. item~~` rows absorbed under an open item's block) — fix on sight, log for upstream.
+~~12. Watch for the annotate-gate chain false-positive class (tilde-struck `N. item` rows absorbed under an open item's block) — fix on sight, log for upstream.~~ done — four chain false-positives fixed on sight (23-40 x2, 21-54 x1, 13-26 x1)
 13. After the nine reports: annotate 21-46-era routed arrows if any TODO row titles changed again (the stale-arrow sweep).
 14. Write the final pass report with the full harvest ledger; annotate 00-52/02-16 §f remainders (`f1` flake check, `f2` CI re-run, `f6` verifiers, `f7` harvest, `f18-20`) as they close.
 15. Print the inline Documentation Health Report (Accuracy + Fitness scores, per-doc findings, visible math).
