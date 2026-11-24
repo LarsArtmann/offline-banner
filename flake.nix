@@ -1274,21 +1274,21 @@
                   # otherwise green run). Poll for a count a transition must reach;
                   # settle before asserting a count must NOT have moved.
                   assert_ledger_entries() {
-                    local want="$1" msg="$2" i got=""
+                    local want="$1" msg="$2" f="''${3:-history.jsonl}" i got=""
                     for i in $(seq 1 40); do
-                      got=$(wc -l < history.jsonl 2>/dev/null || echo "")
+                      got=$(wc -l < "$f" 2>/dev/null || echo "")
                       [ "$got" = "$want" ] && return 0
                       sleep 0.25
                     done
-                    echo "FAIL: $msg (expected $want ledger entries, last read $got): $(cat history.jsonl 2>/dev/null)" >&2
+                    echo "FAIL: $msg (expected $want ledger entries, last read $got): $(cat "$f" 2>/dev/null)" >&2
                     exit 1
                   }
                   assert_ledger_unchanged() {
-                    local want="$1" msg="$2" got=""
+                    local want="$1" msg="$2" f="''${3:-history.jsonl}" got=""
                     # a wrong entry is spawned at the transition: settle past two probe
                     # cycles before judging the count
                     sleep 1.5
-                    got=$(wc -l < history.jsonl 2>/dev/null || echo "")
+                    got=$(wc -l < "$f" 2>/dev/null || echo "")
                     [ "$got" = "$want" ] && return 0
                     echo "FAIL: $msg (expected $want ledger entries, got $got): $(cat history.jsonl 2>/dev/null)" >&2
                     exit 1
@@ -1615,6 +1615,79 @@
                   [ "$vis" = "true" ] || { echo "FAIL: dwell=0 strip auto-faded (sticky contract broken): $(cat "$state")"; exit 1; }
                   assert_ledger_unchanged 3 "sticky-dwell degraded phase must not write a ledger entry"
                   export OFFLINE_BANNER_DEGRADED_DWELL=3000
+
+                  # --- Flap scenario (2026-11-23): ONE entry per COMPLETED
+                  # outage. icmp down throughout, tcp flapping across its
+                  # debounce, dns up. Every offline→degraded hop (a tcp
+                  # recovery while icmp still fails) used to append an
+                  # `outage ended` entry carrying the SURVIVING firstFailedAt
+                  # — six overlapping entries for one real outage (live
+                  # 2026-11-23 00:06–00:11: durations 22/50/79/160/204/277 s,
+                  # one `from`, 792 s logged against a 277 s span) and a
+                  # recover/offline-net cue pair at every hop. The outageOpen
+                  # latch closes the episode only on the entry into online.
+                  # Own instance + fresh history file: the counts below are
+                  # absolute, not offsets into the main sequence's ledger.
+                  kill "$qs_pid" 2>/dev/null || true
+                  wait "$qs_pid" 2>/dev/null || true
+                  drain_state_writes
+                  rm -f "$state"
+                  export OFFLINE_BANNER_HISTORY="$PWD/flap-history.jsonl"
+                  rm -f flap-history.jsonl
+                  export OFFLINE_BANNER_SOUND_CMD="echo \"\$1 \$2\" >> $PWD/sounds-flap.log"
+                  echo ok > control
+                  printf 'tcp ok\ndns ok\n' > control-net
+                  quickshell -p "$qmlDir" >qs-flap.log 2>&1 &
+                  qs_pid=$!
+                  assert_state false
+                  # Episode start: icmp crosses (degraded), then tcp joins
+                  # it — OFFLINE, the latch opens, since arms.
+                  echo net > control
+                  assert_journal "banner phase=degraded legs=icmp" qs-flap.log
+                  printf 'tcp fail\ndns ok\n' > control-net
+                  assert_journal "banner phase=offline legs=icmp,tcp" qs-flap.log
+                  since1=""
+                  for i in $(seq 1 40); do
+                    since1=$(jq -r '.since | if . == null then "" else tostring end' "$state" 2>/dev/null || echo "")
+                    [ -n "$since1" ] && break
+                    sleep 0.25
+                  done
+                  [ -n "$since1" ] || { echo "FAIL: since never armed at the flap outage: $(cat "$state" 2>/dev/null)"; exit 1; }
+                  # FLAP 1: tcp heals while icmp still fails — offline→degraded.
+                  # The old bug appended an entry + a recover cue HERE; the
+                  # latch must keep the episode open, since untouched.
+                  printf 'tcp ok\ndns ok\n' > control-net
+                  assert_journal_re "banner phase=degraded legs=icmp" qs-flap.log
+                  assert_no_journal "outage ended" qs-flap.log
+                  assert_ledger_unchanged 0 "a flap hop must not close a ledger entry" flap-history.jsonl
+                  since2=$(jq -r '.since | if . == null then "" else tostring end' "$state" 2>/dev/null || echo "")
+                  [ "$since2" = "$since1" ] || { echo "FAIL: since must survive a flap hop unchanged (was $since1, now $since2)"; exit 1; }
+                  # FLAP 2: tcp fails and heals again — still one episode.
+                  printf 'tcp fail\ndns ok\n' > control-net
+                  assert_journal_re "banner phase=offline legs=icmp,tcp" qs-flap.log
+                  printf 'tcp ok\ndns ok\n' > control-net
+                  assert_journal_re "banner phase=degraded legs=icmp" qs-flap.log
+                  assert_no_journal "outage ended" qs-flap.log
+                  assert_ledger_unchanged 0 "a second flap hop must not close an entry" flap-history.jsonl
+                  # Episode end: icmp recovers — the degraded→online flip
+                  # closes exactly ONE entry spanning the whole episode
+                  # (both flaps inside it, all failures counted).
+                  echo ok > control
+                  assert_journal_re "outage ended from=[0-9]+ to=[0-9]+ duration=[0-9]+s reasons=net,tcp" qs-flap.log
+                  assert_ledger_entries 1 "the flapped outage must close exactly one ledger entry" flap-history.jsonl
+                  jq -e '(.to > .from) and (.durationSec >= 3) and (.reasons == ["net","tcp"]) and (.probeFailures >= 6)' flap-history.jsonl > /dev/null \
+                    || { echo "FAIL: flap ledger entry wrong: $(cat flap-history.jsonl)"; exit 1; }
+                  assert_state_jq '.since | if . == null then "null" else "set" end' "null" "since must clear after the flapped episode closes"
+                  # Cue doctrine at episode level: exactly one offline-net
+                  # at the open and one recover at the close — NO cue pair
+                  # on either flap hop.
+                  n=$(grep -c "offline-net" sounds-flap.log 2>/dev/null || true)
+                  [ -z "$n" ] && n=0
+                  [ "$n" = "1" ] || { echo "FAIL: flap episode must cue offline-net exactly once (got $n): $(cat sounds-flap.log 2>/dev/null)"; exit 1; }
+                  n=$(grep -c "recover" sounds-flap.log 2>/dev/null || true)
+                  [ -z "$n" ] && n=0
+                  [ "$n" = "1" ] || { echo "FAIL: flap episode must recover-cue exactly once (got $n): $(cat sounds-flap.log 2>/dev/null)"; exit 1; }
+                  export OFFLINE_BANNER_HISTORY="$PWD/history.jsonl"
 
                   # --- %t historyPath scenario (2026-11-18): the ledger has
                   # TWO provisioned shapes — the %h state-dir hole AND the %t
