@@ -103,6 +103,8 @@ inputs.offline-banner.inputs.nixpkgs.follows = "nixpkgs"; # one nixpkgs in your 
 
 Channel policy: this flake tracks `nixos-unstable` (the NixOS-test-gated channel); consumers should keep the `follows` line above so only one nixpkgs lands in their lock — the module only needs `quickshell` from it, no channel-specific behavior.
 
+Trying it without a switch: `nix run .#smoke` starts the exact rendered serviceConfig as a transient user unit on isolated `offline-banner-smoke` runtime/state dirs — safe beside a live unit, silent unless `OFFLINE_BANNER_SMOKE_SOUND=1`. `OFFLINE_BANNER_SMOKE_DEMO=1` force-shows the strip, `OFFLINE_BANNER_SMOKE_PROBE_HOST=<dead-ip>` forces a real outage; stop the transient when done (`systemctl --user stop offline-banner-smoke`).
+
 The unit is a `systemd.user` service bound to `graphical-session.target` — it starts with the graphical session, one banner surface per connected monitor.
 
 Startup race, by design: if the session starts with **no active monitor** (lid closed, headless boot), quickshell runs against Qt's placeholder screen — no banner surfaces exist, but the probe keeps running, so the journal and state file stay truthful (live-observed 2026-10-17 with zero outputs). Surfaces are created per monitor as outputs connect (Quickshell screen tracking).
