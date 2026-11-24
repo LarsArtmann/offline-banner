@@ -1276,7 +1276,8 @@
                   assert_ledger_entries() {
                     local want="$1" msg="$2" f="''${3:-history.jsonl}" i got=""
                     for i in $(seq 1 40); do
-                      got=$(wc -l < "$f" 2>/dev/null || echo "")
+                      # a fresh ledger file is ZERO entries, not a read error
+                      got=$(wc -l < "$f" 2>/dev/null || echo 0)
                       [ "$got" = "$want" ] && return 0
                       sleep 0.25
                     done
@@ -1288,9 +1289,9 @@
                     # a wrong entry is spawned at the transition: settle past two probe
                     # cycles before judging the count
                     sleep 1.5
-                    got=$(wc -l < "$f" 2>/dev/null || echo "")
+                    got=$(wc -l < "$f" 2>/dev/null || echo 0)
                     [ "$got" = "$want" ] && return 0
-                    echo "FAIL: $msg (expected $want ledger entries, got $got): $(cat history.jsonl 2>/dev/null)" >&2
+                    echo "FAIL: $msg (expected $want ledger entries, got $got): $(cat "$f" 2>/dev/null)" >&2
                     exit 1
                   }
 
