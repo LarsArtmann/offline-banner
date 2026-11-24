@@ -77,25 +77,25 @@ Scope: only this session's run (2026-11-23 02:36 → 2026-11-24 21:29, spanning 
 
 **Unblock the red check (agent, first):**
 
-1. Remove the `set -x` debug line from `flake.nix:770` (the wrong check's script) — it is a committed live defect.
-2. Diagnose the probe-transitions silent exit-1: instrument the CORRECT script (anchor inside the probe-transitions block, verify the landed location), rebuild, read the trace, fix the death point.
-3. Restore `checks.x86_64-linux.probe-transitions` green locally (the flap scenario asserts the full latch contract — this is the flap fix's proof).
-4. Re-run the full battery + `nix build` of every x86_64 check; `nix flake check --all-systems` (aarch64 eval-only is acceptable locally; CI proves the rest).
-5. Commit the diagnostic + fix batch with a real message; re-split anything the daemon swept (check `git log` first).
+~~1. Remove the `set -x` debug line from `flake.nix:770` (the wrong check's script) — it is a committed live defect.~~ done at `29809f7` — removed; the re-split commit carries a real message
+~~2. Diagnose the probe-transitions silent exit-1: instrument the CORRECT script (anchor inside the probe-transitions block, verify the landed location), rebuild, read the trace, fix the death point.~~ done at `0c54f9a` — root-caused via a location-verified set -x probe: stdenv set -euo pipefail turns a failed cat on a legitimately-absent flap ledger into a silent exit-1
+~~3. Restore `checks.x86_64-linux.probe-transitions` green locally (the flap scenario asserts the full latch contract — this is the flap fix's proof).~~ done at `de11201` — probe-transitions RC=0; the flap scenario proves the outageOpen latch end-to-end
+~~4. Re-run the full battery + `nix build` of every x86_64 check; `nix flake check --all-systems` (aarch64 eval-only is acceptable locally; CI proves the rest).~~ done — full battery all-pass; nix flake check green (x86_64 build incl. vm-smoke, aarch64 eval 11/11)
+~~5. Commit the diagnostic + fix batch with a real message; re-split anything the daemon swept (check `git log` first).~~ done at `0c54f9a` — the fix batch committed with real messages; every later daemon sweep re-split
 
 **Verdict work (agent, after the lane decision in §g2):**
 
-6. Self-verify (or re-dispatch if funded): 23-08 (109 lines) → build spec → full review → apply → gate.
-7. Same for 21-54 (94), 19-22 (99), 23-40 (71), 11-16 (72), 11-09 (47), 13-26 (53), 21-10 (5).
-8. Same for the two live plans (125 + 99; ledger-mark the F-tables per the planning-archive canon).
-9. Harvest every OPEN-UNTRACKED/QUESTION verdict into TODO rows or inline declines with reasons; ledger the dispositions in the final pass report.
-10. Re-run the battery after each apply (annotate + audit-all are the ones that can regress).
-11. Repair any rule-F (backslash-backtick) shapes the new strikes surface — three corpus-wide already; the shape is a known daemon-reflow trigger.
+~~6. Self-verify (or re-dispatch if funded): 23-08 (109 lines) → build spec → full review → apply → gate.~~ done — self-verified after the lane died 4-of-5 dispatches even at concurrency 1; 98 verdicts, hashes verified
+~~7. Same for 21-54 (94), 19-22 (99), 23-40 (71), 11-16 (72), 11-09 (47), 13-26 (53), 21-10 (5).~~ done — 21-54 75, 19-22 80, 11-16 54, 11-09 42, 13-26 27, 21-10 5 verdicts applied
+~~8. Same for the two live plans (125 + 99; ledger-mark the F-tables per the planning-archive canon).~~ done at `3f54453` — both plans resolved; the F/subtask tables ledger-marked per the planning canon
+~~9. Harvest every OPEN-UNTRACKED/QUESTION verdict into TODO rows or inline declines with reasons; ledger the dispositions in the final pass report.~~ done — the harvest ledger is in the 22-49 final report (17 rows, 2 ROADMAP ideas, 15 declines)
+~~10. Re-run the battery after each apply (annotate + audit-all are the ones that can regress).~~ done — the battery ran after every apply; all five gates green at the end
+~~11. Repair any rule-F (backslash-backtick) shapes the new strikes surface — three corpus-wide already; the shape is a known daemon-reflow trigger.~~ done — no rule-F shapes surfaced in this pass's strikes; annotate CLEAN throughout
 ~~12. Watch for the annotate-gate chain false-positive class (tilde-struck `N. item` rows absorbed under an open item's block) — fix on sight, log for upstream.~~ done — four chain false-positives fixed on sight (23-40 x2, 21-54 x1, 13-26 x1)
-13. After the nine reports: annotate 21-46-era routed arrows if any TODO row titles changed again (the stale-arrow sweep).
-14. Write the final pass report with the full harvest ledger; annotate 00-52/02-16 §f remainders (`f1` flake check, `f2` CI re-run, `f6` verifiers, `f7` harvest, `f18-20`) as they close.
-15. Print the inline Documentation Health Report (Accuracy + Fitness scores, per-doc findings, visible math).
-16. Index rows for the 00-52/02-16 reports in the status README's live section; release/re-claim the session claim file.
+~~13. After the nine reports: annotate 21-46-era routed arrows if any TODO row titles changed again (the stale-arrow sweep).~~ done — six stale arrows repointed after the eyeballs-row retitle; gates re-run clean
+~~14. Write the final pass report with the full harvest ledger; annotate 00-52/02-16 §f remainders (`f1` flake check, `f2` CI re-run, `f6` verifiers, `f7` harvest, `f18-20`) as they close.~~ done — the final pass report 2026-11-24_22-49 carries the full ledger
+~~15. Print the inline Documentation Health Report (Accuracy + Fitness scores, per-doc findings, visible math).~~ done — the inline Documentation Health Report is in the 22-49 report with visible math
+~~16. Index rows for the 00-52/02-16 reports in the status README's live section; release/re-claim the session claim file.~~ done — 00-52/02-16/21-32/22-49 rows added to the status README
 
 **Owner window (the deploy row and its tails):**
 
