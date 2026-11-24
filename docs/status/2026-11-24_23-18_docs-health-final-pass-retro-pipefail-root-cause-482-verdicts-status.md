@@ -2,7 +2,13 @@
 
 **Created:** 2026-11-24 23:18 CET · Crush (glm-5.3) · covers THIS session's run only: the resume of the docs-health final pass, 2026-11-24 ~21:50 → 23:15 · successor to `2026-11-24_21-32_…` (checkpoint) and `2026-11-24_22-49_…` (final pass report — the ledger lives there; this is the retro).
 
-**Tree state — read this first.** HEAD `dbb5e32`, **30 commits unpushed** (every one carries a real message; the push stays owner-gated, §g1). Working tree CLEAN (the two `website/**/package.json` M-flags at report time were stat-dirt only — content byte-identical to HEAD, verified with `git update-index --refresh`; no foreign change, no daemon theft). **All five docs-gates PASS; `nix flake check` RC=0** (all x86_64 checks incl. the fixed probe-transitions and vm-smoke; aarch64 eval-verified 11/11). Session stopped here on the owner's order.
+**Tree state — read this first, then the ADDENDUM.** At first write: HEAD `dbb5e32`, 30 commits unpushed, working tree clean (the two `website/**/package.json` M-flags at report time were stat-dirt only — byte-identical after `git update-index --refresh`), all five docs-gates PASS, `nix flake check` RC=0 (x86_64 build incl. the fixed probe-transitions and vm-smoke; aarch64 eval-verified 11/11).
+
+**ADDENDUM 23:40 — an external actor (presumably you, or a parallel session) began a refactor on this tree AFTER this report was written; I touched none of it (foreign-change protocol):**
+1. **Pushed `93764d4` strips the version floors from both manifests** — the `astro ^7.4.12`, `@astrojs/sitemap ^3.7.5`, `html-validate ^11.21.1`, `hyperframes ^0.9.52` lines are GONE from `website/package.json`/`website/video/package.json` — WITHOUT a lock regen (both locks' last commits predate it). That is the known `ERR_PNPM_OUTDATED_LOCKFILE` CI-red class, now on the PUSHED tree.
+2. **`contrib/offline-banner-waybar` is deleted from the worktree** (unstaged, NOT reverted by me). A daemon sweep had committed it as the lying `16f09b7` "chore: auto-commit 0 changed file(s)" — that commit also carried the manifest state; I unwound it during a re-split of my own swept content, so the deletion sits worktree-only again. My commits do not contain it.
+3. **Consequence: `nix flake eval` is BROKEN locally** — `error: Path 'contrib/offline-banner-waybar' does not exist` (flake.nix:745/762 still reference it: the waybar-consumer check input and the smoke props). If this is the waybar-retirement refactor (the DMS-plugin era), the flake refs and the check must move in the SAME change.
+4. The docs battery still PASSES all five gates (it does not eval the flake); the last green `nix flake check` predates these external edits. The push that landed `93764d4` was not mine. Session stopped here on the owner's order.
 
 ## a) FULLY DONE (verified)
 
