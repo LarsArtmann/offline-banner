@@ -98,7 +98,7 @@
 ~~31. **docs/status index**: the parallel session added its own report row — confirm my row + theirs both indexed (battery routing gate enforces it).~~ done — both rows indexed; the routing gate passes on today's 12 live reports
 ~~32. **Archive the parallel session's 11-09 report + mine when superseded** (cadence threshold 21 days; the 10-29 report is 20 days old — next in line).~~ **Won't implement — governed by the cadence gate (ARCHIVE-HEALTHY, 12 live, oldest 6 d); they archive at the next ritual when due.**
 ~~33. **AGENTS "CI runners" paragraph**: add the zizmor-pin + battery + fetch-depth facts to the runner-drift watchlist.~~ done at `9ed4849` — the zizmor/pin/battery/fetch-depth facts live in the AGENTS CI section
-~~34. **`nix run .#smoke -- --print`** in the runbook as the pre-flight (zero-side-effect preview of the transient argv).~~ done at `180869c` — the --print pre-flight sentence is now in runbook step 1b (this pass)
+~~34. **`nix run .#smoke -- --print`** in the runbook as the pre-flight (zero-side-effect preview of the transient argv).~~ done at `29809f7` — the --print pre-flight sentence is now in runbook step 1b (this pass)
 ~~35. **vm-smoke D1 timing**: if promoted, scope it to x86_64-only in CI first.~~ done at `3c74d56` — aarch64 deliberately excluded (VM under emulation is quadratic)
 ~~36. **G2 §d/§e canon**: pick strike-with-verdicts (recommended — matches corpus history) or bare-behind-banner; apply uniformly.~~ done — strike-with-verdicts is the operating canon — this pass applies it throughout
 ~~37. **G5 release-notes policy**: already recorded curated — mirror it into the runbook's release step text.~~ done at `8a2d0c3` — the NOT-verified step lives in runbook step 5
@@ -108,7 +108,7 @@
 ~~41. **Ledger growth**: 18 entries/week on evo-x2 — the ROADMAP theme-4 growth guard has real numbers now.~~ **→ ROADMAP row "Ledger growth/rotation doc"**
 ~~42. **omarchy-shell claim**: the parallel session's shell-compat page says "expected-untested, plugin route declined" — verify that claim against the repo's own doctrine before the launch posts repeat it.~~ done — the shell-compat page carries the expected-untested wording; re-verified this pass
 ~~43. **Discourse/Reddit drafts**: add the flash-class + live-week findings (1502/13/18) to the incident-honesty section — it's the strongest evidence story the project has.~~ **→ TODO_LIST row "Owner console one-offs"**
-~~44. **TODO row 16/79**: pre-write the DMS kill-unit proof steps so the switch window executes in one pass.~~ done at `180869c` — the bar-side row carries the pre-written busctl kill/restart proof steps
+~~44. **TODO row 16/79**: pre-write the DMS kill-unit proof steps so the switch window executes in one pass.~~ done at `9ef271a` — the bar-side row carries the pre-written busctl kill/restart proof steps
 ~~45. **Session claim protocol** (from e): propose it to the owner before the next two-session day.~~ done — superseded (9a4e969) — the protocol was proposed, adopted, and is ACTIVE
 ~~46. **Retrospective on the inherited-diagnosis failure**: add a lesson to crush-config `references/lessons.md` (cross-project: re-derive, never inherit, root-cause diagnoses in inherited TODO rows).~~ **→ TODO_LIST row "Fleet-run lessons + library-deep-dive amendments"**
 
