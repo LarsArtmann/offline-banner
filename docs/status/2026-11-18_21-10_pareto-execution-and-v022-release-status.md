@@ -38,11 +38,11 @@
 
 ## f. Open items routed (none unharvested)
 
-1. **D1 owner verdict** — fresh numbers in row 80; owner decides blocking vs advisory.
-2. **D3/D4 verdicts** — owner-ready draft text in row 81 / AGENTS.
-3. **Owner windows** — DMS enable + stale-tell (rows 16/82), sound audition (row 22), evening sweep (row 79 recipe), posting the launch drafts (row 19/T19), reboot/second-output/click-dismiss one-sitters (row 34 recipes).
-4. **Upstream BuildFlow skip-feature** — file when convenient (D4 follow-up).
-5. **daemon claim-awareness** — owner-side config (row 87 tail).
+~~1. **D1 owner verdict** — fresh numbers in row 80; owner decides blocking vs advisory.~~ done at `3c74d56` — D1 decided: vm-smoke blocking in checks, aarch64 excluded, cost measured
+~~2. **D3/D4 verdicts** — owner-ready draft text in row 81 / AGENTS.~~ done at `7a4df29`, `8a2d0c3` — D3 accept-the-gap recorded; D4 executed (skip-only .buildflow.yml)
+~~3. **Owner windows** — DMS enable + stale-tell (rows 16/82), sound audition (row 22), evening sweep (row 79 recipe), posting the launch drafts (row 19/T19), reboot/second-output/click-dismiss one-sitters (row 34 recipes).~~ **→ TODO_LIST row "Deploy the 2026-11-22 outage fix to evo-x2 (SystemNix switch)"**
+~~4. **Upstream BuildFlow skip-feature** — file when convenient (D4 follow-up).~~ **→ TODO_LIST row "File the BuildFlow upstream issue: skip non-covered repos by default"**
+~~5. **daemon claim-awareness** — owner-side config (row 87 tail).~~ **→ TODO_LIST row "Session-claim protocol: daemon claim-awareness"**
 
 ## g. Verification state at close
 
