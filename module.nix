@@ -72,28 +72,6 @@
 #      use, so a local-resolver outage shows here and nowhere else.
 #      A private/loopback/unspecified answer counts as DOWN (the
 #      resolver faked it; see the leg list above).
-# The legs deliberately span providers (Quad9 / Cloudflare / whatever
-# the system resolver is): independent legs must not share one
-# provider's filtering mood.
-#
-# SMART DISPLAY — the phase ladder (2026-11-09):
-#   offline  = link down, or tcp+dns BOTH down (internet unusable for
-#              practical purposes), or icmp+tcp BOTH down (dead transport
-#              even when a resolver cache still answers — the 2026-11-22
-#              evo-x2 outage sat 15 min in degraded because the dns leg
-#              read green through the record cache) — the
-#              yellow alarm: sound cue, outage ledger, "last online";
-#   degraded = a leg down while at least one other leg is up (the
-#              policed-ICMP case: browsing is fine) — a slim info-blue
-#              strip naming the down legs, NO sound, NO ledger entry,
-#              auto-fading after degradedDwellSeconds; it re-appears
-#              only when the SET of down legs changes (a flapping leg
-#              must not flash the strip — the old every-7-seconds
-#              banner cycle is exactly what this kills);
-#   online   = all legs up.
-# Everything observable stays additive: the journal/state surfaces the
-# original single-probe contract used keep their tokens.
-#
 # Rendering follows the second-Quickshell-instance pattern, with ONE
 # owner-requested difference (2026-10-16): the strip lives on the TOP layer
 # with ExclusionMode.Auto and an ANIMATED height, so instead of floating
@@ -102,9 +80,10 @@
 # Rendered as a second Quickshell instance by deliberate choice (2026-10-16):
 # zero dependence on any shell/bar plugin API. The stronger claim once
 # considered — that DMS plugins cannot render layer-shell surfaces — was
-# reasoned, never tested; the pattern stands on independence, not on it. DISMISSABLE: clicking anywhere on the strip
-# slides it up for the rest of the outage; the next clean probe re-arms
-# it, so a fresh outage shows again. The strip therefore takes pointer
+# reasoned, never tested; the pattern stands on independence, not on it.
+# DISMISSABLE (2026-10-17): clicking anywhere on the strip slides it up for the rest
+# of the outage; the next clean probe re-arms it.
+# The strip therefore takes pointer
 # input (no click-through mask) — the bar has been pushed below it, so
 # nothing clickable is underneath.
 # STATIC yellow — the "non-flashing yellow" doctrine (2026-09-02):

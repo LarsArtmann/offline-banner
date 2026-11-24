@@ -97,23 +97,23 @@ Harvest ledger so far (disposition of every item that was not plainly landed in 
 
 Steps:
 
-1. `nix fmt`, then `nix build .#checks.x86_64-linux.formatting` and the full `nix flake check` locally — clears the red this session put on master.
+~~1. `nix fmt`, then `nix build .#checks.x86_64-linux.formatting` and the full `nix flake check` locally — clears the red this session put on master.~~ done — flake.nix formatted; the formatting check builds green locally; full `nix flake check` pending the final close
 2. Re-run Checks on HEAD; confirm aarch64 `probe-transitions` is green with the polling ledger asserts.
-3. Land the four missing artifacts (three AGENTS rules, `website.yml` pin), then apply the `10-29` spec; or drop those five verdicts.
-4. Review and apply `21-46`.
+~~3. Land the four missing artifacts (three AGENTS rules, `website.yml` pin), then apply the `10-29` spec; or drop those five verdicts.~~ done at `8a2d0c3` — the four artifacts landed (Website runner pin, three AGENTS rules); the 10-29 spec applied (67 verdicts, e5913f4)
+~~4. Review and apply `21-46`.~~ done at `640ac96` — 66 verdicts applied after full review; hyperframes routes re-pointed at the current row; two gate-hostile tilde spans repaired
 ~~5. Annotate the four remaining audit-all regressions; battery to audit-all 0.~~ done — 10-29 §f34 struck via the applied spec (Won't implement, YAGNI); 21-46 §f5 and 13-26 §f13 `done at 7a4df29` (D3 accept-the-gap); archived 10-17 §f50 decided (D4 executed, `8a2d0c3`); audit-all now counts only this report's own two pass-internal steps
 6. Verifiers, one lane, anchored: `23-08` (105 lines), `21-54` (88), `19-22` (66), `23-40` (66), `11-16` (52), `11-09` (46), `13-26` (33), `21-10` (5), both plans (19).
 7. Harvest every OPEN-UNTRACKED / QUESTION item from those: new row, existing row, or declined with a reason; ledger in the pass report.
-8. Decide the native-arm-runner row once the verification reports back; route `18-52` §f39.
-9. Annotate the 00-52 checkpoint and this report as their §f items complete.
-10. Archive ritual for `10-29` and the four 11-05 reports (then `21-46`, `23-05` if fully resolved): gates before `git mv`, banners, index rows, per-file manifest.
-11. FEATURES.md per checkpoint §b5; recount the checks from `flake.nix`.
-12. README.md: sway CI-proven, the "history" non-goal, the `demo` state key.
-13. CHANGELOG `[Unreleased]`: ci-watch sentinel, lock bumps, and today's repairs (website manifest/lock, video manifest, ledger polling asserts, this docs pass).
-14. AGENTS.md: factual drift first, then the three rules and the runbook additions, then the prune decision (§g2).
-15. BUILD `docs/DOMAIN_LANGUAGE.md`.
+~~8. Decide the native-arm-runner row once the verification reports back; route `18-52` §f39.~~ done — the native-arm-runner row landed (TODO_LIST, 9698cda); 18-52 §f39 routed (archived with its banner)
+~~9. Annotate the 00-52 checkpoint and this report as their §f items complete.~~ done — 00-52 and this report's §f items struck as they complete (this edit)
+~~10. Archive ritual for `10-29` and the four 11-05 reports (then `21-46`, `23-05` if fully resolved): gates before `git mv`, banners, index rows, per-file manifest.~~ done — six reports archived with gates before git mv, banners, index rows, manifest; cadence ARCHIVE-HEALTHY (11 unarchived, oldest 6 days)
+~~11. FEATURES.md per checkpoint §b5; recount the checks from `flake.nix`.~~ done at `d7f5158` — presentation rows flipped with the 2026-11-18 proofs, checks recounted 12/11, Planned rows landed, shell-compat + smoke rows added, re-stamped
+~~12. README.md: sway CI-proven, the "history" non-goal, the `demo` state key.~~ done at `d7f5158` — sway CI-proven, the history non-goal contradiction fixed, the demo key documented
+~~13. CHANGELOG `[Unreleased]`: ci-watch sentinel, lock bumps, and today's repairs (website manifest/lock, video manifest, ledger polling asserts, this docs pass).~~ done at `90618d0` — ci-watch sentinel, lock bumps, manifest/lock repairs, flap fix, D4, docs pass
+~~14. AGENTS.md: factual drift first, then the three rules and the runbook additions, then the prune decision (§g2).~~ done at `90618d0` — drift fixed, three rules + runbook additions landed, pruned to ~29 KB with verbatim narratives in docs/agent-notes.md
+~~15. BUILD `docs/DOMAIN_LANGUAGE.md`.~~ done at `9698cda` — built from module.nix vocabulary
 16. Ledger double-entry bug: fix plus a probe-transitions scenario (icmp down, tcp flapping, dns up → one entry) — scope per §g1.
-17. Make the annotated corpus formatter-stable before the daemon's next reflow: re-shape this session's 99 strikes to `N. ~~item~~ verdict` (the builder gets a flag), decide the dprint excludes for `docs/status/**` and `docs/planning/**` together with D4, then `dprint check` over every touched `.md` and a link check over the living docs.
+~~17. Make the annotated corpus formatter-stable before the daemon's next reflow: re-shape this session's 99 strikes to the number-outside form (the builder gets a flag), decide the dprint excludes for `docs/status/**` and `docs/planning/**` together with D4, then `dprint check` over every touched `.md` and a link check over the living docs.~~ done at `8a2d0c3` — D4 executed: the skip-only .buildflow.yml stops the daemon's dprint reflow at the source and the zombie dprint.json is deleted and gitignored
 18. Final battery green, `nix flake check --all-systems`, both workflows green on HEAD.
 19. Real commits with real messages for this session's batches; push only on the owner's word (§g3).
 20. Inline health report (Accuracy + Fitness); index row for this report in `docs/status/README.md`; refresh and then release the session claim.

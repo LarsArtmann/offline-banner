@@ -66,16 +66,16 @@ Note on the brief: the glob `**/2026-0*` matches zero files (the repo's history 
 
 **Resume the pass (agent, on "go"):**
 
-4. Annotate the seven audit-all regressions named in §b1, then the 15 live reports' unmarked work items from the three reader verdict tables (`annotate.go status-items`, `emit-keys` keys, `--verify` before every write).
-5. Harvest the remaining candidates from §b2 into TODO_LIST rows or inline declines (declines need a reason a later session can re-evaluate).
-6. Archive ritual with gates BEFORE `git mv`: `check-rows --strict` + `bare-rows` + the `~~` completeness grep; `> **Live remainder:**` banners; index rows and a per-file manifest in the status README.
-7. Normalise the 23-40 heading to `## f)`; repair `21-46:16`; remove the backslash-backtick shape from `23-40:55` and `:75`.
-8. FEATURES: flip the proven rows, recount the checks from `flake.nix`, drop the finished Planned rows, add shell-compatibility and smoke-app rows, re-stamp the audit.
-9. README: sway CI-proven wording, the "history" non-goal contradiction, the `demo` state key.
-10. ROADMAP: theme 3 D1 line, the "no history" non-goal, an "Open questions" home for the owner questions.
-11. CHANGELOG `[Unreleased]`: ci-watch sentinel, lock bumps, dependency-refresh bullet.
-12. AGENTS: factual drift first (dprint.json, SystemNix lock, video toolchain), runbook additions (post-switch click-dismiss ritual, audible-cue journal signature, foreign-commit and push-gate rules), then the size decision from §g1.
-13. BUILD `docs/DOMAIN_LANGUAGE.md` from `module.nix` (legs, phases, debounce, dwell, outage, ledger, cue, re-arm, state file, consumer, smoke transient, env contract).
+~~4. Annotate the seven audit-all regressions named in §b1, then the 15 live reports' unmarked work items from the three reader verdict tables (`annotate.go status-items`, `emit-keys` keys, `--verify` before every write).~~ done at `e5913f4`, `640ac96` — the four 11-05 reports annotated by the resumed pass (99 items), 10-29 (67 verdicts) and 21-46 (66 verdicts) this session; gates CLEAN
+~~5. Harvest the remaining candidates from §b2 into TODO_LIST rows or inline declines (declines need a reason a later session can re-evaluate).~~ done — the rebuilt TODO_LIST carries every harvested candidate; declines recorded in the applied verdicts
+~~6. Archive ritual with gates BEFORE `git mv`: `check-rows --strict` + `bare-rows` + the strike-pair completeness grep; `> **Live remainder:**` banners; index rows and a per-file manifest in the status README.~~ done — six reports archived 2026-11-23: gates ran BEFORE git mv, evidence tables ledger-marked, Live-remainder banners, index rows + manifest; cadence ARCHIVE-HEALTHY
+~~7. Normalise the 23-40 heading to `## f)`; repair `21-46:16`; remove the backslash-backtick shape from `23-40:55` and `:75`.~~ done at `e4a5a7a` — 23-40 heading normalised to f), the rule-F backslash-backtick shapes removed (21-46:16, 23-40:55/:75)
+~~8. FEATURES: flip the proven rows, recount the checks from `flake.nix`, drop the finished Planned rows, add shell-compatibility and smoke-app rows, re-stamp the audit.~~ done at `d7f5158` — proven rows flipped, checks recounted (12 x86_64 / 11 aarch64 via nix eval), finished Planned rows removed, shell-compat + smoke rows added, re-stamped
+~~9. README: sway CI-proven wording, the "history" non-goal contradiction, the `demo` state key.~~ done at `d7f5158` — sway CI-proven wording, the history non-goal rewritten, the demo state key documented
+~~10. ROADMAP: theme 3 D1 line, the "no history" non-goal, an "Open questions" home for the owner questions.~~ done at `b8a8fc6` — theme 3 states the decided D1 and the honest compositor register; both non-goals fixed; Open questions added
+~~11. CHANGELOG `[Unreleased]`: ci-watch sentinel, lock bumps, dependency-refresh bullet.~~ done at `90618d0` — ci-watch sentinel, the flap fix, the dependency repairs, D4, and the docs-pass bullets under [Unreleased]
+~~12. AGENTS: factual drift first (dprint.json, SystemNix lock, video toolchain), runbook additions (post-switch click-dismiss ritual, audible-cue journal signature, foreign-commit and push-gate rules), then the size decision from §g1.~~ done at `90618d0` — factual drift fixed, the three postmortem rules landed, runbook additions, pruned to ~29 KB with narratives moved verbatim to docs/agent-notes.md
+~~13. BUILD `docs/DOMAIN_LANGUAGE.md` from `module.nix` (legs, phases, debounce, dwell, outage, ledger, cue, re-arm, state file, consumer, smoke transient, env contract).~~ done at `9698cda` — built from module.nix vocabulary (legs, phases, debounce, dwell, outage, flap, latch, ledger, cue, re-arm, state file, seams, unit-managed env)
 14. Closing gates: docs battery, `nix fmt`, `nix flake check`, then re-split the daemon's sweep if it took the half-done TODO and the commit is still unpushed; push only on green.
 15. Inline health report (Accuracy + Fitness) with the as-found scoring.
 16. Optional cosmetic: collapse the duplicated doctrine block in the `module.nix` header (comment-only).
