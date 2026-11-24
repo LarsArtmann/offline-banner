@@ -69,7 +69,8 @@ systemd, and a whole shell built as a single Quickshell process
 starting a second Quickshell process beside it, exactly the shape proven
 daily with DankMaterialShell. Omarchy's own plugin rules even point the same
 way: plugins share the `omarchy-shell` process, and the official development
-guide says *"never start a second Quickshell process for a plugin"* — which
+guide says *"never start a second Quickshell process for a plugin"*
+([Develop a Plugin](https://plugins.omarchy.org/develop.html)) — which
 is the exact inverse of this module's design rule, and why the banner will
 stay a standalone unit there too. A plugin build would trade away the
 sandbox, the env contract, and the crash isolation for a place in a plugin
