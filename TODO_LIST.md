@@ -3,7 +3,7 @@
 Dispatch queue: open work only. Lifecycle tags: `[ready]` (agent-doable), `[blocked:user]` (needs the owner — a live machine, a console, ears, or a voice), `[watch]` (waiting on an external signal), `[decision]` (owner verdict wanted; a recommendation is attached).
 Cross-repo rows carry `(repo: <name>)`. Sources cite code (`file:line`), the reports under `docs/status/`, and sibling repos via `../<repo>/…`.
 
-_Last verified 2026-11-23 (two docs-health passes): every row was re-checked against the code, the live evo-x2 unit, the CI runs and the status reports. Closed work lives in `CHANGELOG.md` and `docs/status/`, never here._
+_Last verified 2026-11-24 (the docs-health final pass): every row was re-checked against the code and the reports; 10 reports + 2 plans resolved to verdicts; 17 rows added from the verified harvest, 4 decision rows staged for the owner. Closed work lives in `CHANGELOG.md` and `docs/status/`, never here._
 
 ## Verification — live proof and deployment
 
