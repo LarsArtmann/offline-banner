@@ -767,6 +767,7 @@
                   ];
                 }
                 ''
+                  set -x
                   export XDG_RUNTIME_DIR="$PWD/runtime"
                   mkdir -p "$XDG_RUNTIME_DIR/offline-banner"
                   state="$XDG_RUNTIME_DIR/offline-banner/state"
