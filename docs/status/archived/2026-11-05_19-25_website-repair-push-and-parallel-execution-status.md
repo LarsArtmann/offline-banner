@@ -1,5 +1,7 @@
 # Status: website-CI repair, plan shipped, parallel execution in flight
 
+> **Live remainder (2026-11-23 archive banner):** open tails live in the daemon-policy decision row, the (repo: crush-config) lessons row, and Owner console one-offs (launch posts, social preview). §d/§e bare per the G2 canon.
+
 **Scope.** This report covers the session arc AFTER the 18:52 postmortem (planning directive → website repair → push → TS7 research → this report). VERIFIED, with artifacts: the red Website pipeline's root cause (daemon commit `2ccdf6e` diff: five dep bumps + forbidden `typescript ^7.0.2`, no lock regen; failing run 40881107334 died at `pnpm install`); the repair (lock regen under the 24 h gate → `typescript@6.0.3`, `@astrojs/check@0.9.12`, `astro@7.4.5`; `astro check` 0 errors, build 10/10 + CSP 10/10, `html-validate` exit 0); the push (`2ccdf6e..97b8056`) and its CI verdicts (Website **✓ + deployed**, 43 s + 26 s; Checks **✓** 5 m 10 s — master fully green for the first time since 2026-10-29); TS7 upstream state (five primary sources with dates: withastro/astro #17268/#17336/#18053/#17852/#18589 + `@astrojs/check` peer metadata via pnpm); and the unexplained working-tree diffs in `flake.nix`/`module.nix` (read in full, plus one read-only `module-contract` build of the in-flight tree: **green**). NOT verified: the full correctness of the in-flight parallel work (only eyeballed + one fast gate; `nix flake check --all-systems` not run on it), the identity of its author, and CI for anything after `97b8056`.
 
 ---

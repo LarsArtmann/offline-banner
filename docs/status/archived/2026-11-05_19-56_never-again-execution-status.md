@@ -1,10 +1,13 @@
 # Never-Again Execution — hardening stack shipped, queue harvested
 
+> **Live remainder (2026-11-23 archive banner):** the M-stack landed (see the ledger-marked accomplishment table) and every §f item is verdicted; §d/§e stay bare per the G2 canon. Owner console tails: FIREBASE IaC grant apply.
+
 **Written:** 2026-11-05 19:56 CET · **Input state:** `97b8056` (green on both workflows, per the 19-25 report) + the prior session's in-flight M09/M10/M15/M16 tree state.
 **Mission:** execute the never-again pareto plan's non-owner-gated items end-to-end — the 226/NAMESPACE incident class made structurally impossible, the tooling debts closed, the docs truthful — and leave the owner a one-evening path to v0.2.1 + switch.
 
 ## §a What shipped (all verified, all local, nothing pushed)
 
+<!-- check-rows:ledger -->
 | Commit        | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Verified by                                                                                                                                                  |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `825d43b`     | prior session's status report + TS7 watch row (daemon sweep re-split)                                                                                                                                                                                                                                                                                                                                                                                                                    | n/a (docs)                                                                                                                                                   |

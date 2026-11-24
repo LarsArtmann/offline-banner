@@ -1,5 +1,7 @@
 # Hardening-Session Self-Review + Full Status — never-again execution day 1
 
+> **Live remainder (2026-11-23 archive banner):** every M-item struck or routed; open halves ride the Owner ears / Owner console rows. §d/§e stay bare per the G2 canon; the two tables are ledger-marked records.
+
 **Written:** 2026-11-05 20:10 CET · **Scope:** this session only (19:11–20:10), building on the 19-25 website-repair session.
 **VERIFIED in this report:** `nix flake check` all-green (x86_64), `astro check` 0/0 + build 10 pages + CSP 10/10 + html-validate exit 0, zizmor "No findings" + actionlint clean on both workflows, `packages.vm-smoke` green positive AND green-on-failure negative (exact 226 signature), probe-transitions green ×2 (x86_64), shellcheck+shfmt clean ×3 scripts, waybar consumer exercised against 5 fake state files, jq cookbook recipes verified against synthetic data, terraform fmt clean.
 **NOT VERIFIED (and why):** emulated aarch64 — never run anywhere for the new check code (binfmt exists locally; I skipped it, see §d1); CI on any of the 5 commits — nothing is pushed, so no workflow has seen this tree; `nix run .#smoke` end-to-end — built + gated but never executed against a live systemd user session (it execs quickshell; no dry-run mode exists); the nix-pinned firebase deploy step — first real validation is the next website push; sound aesthetics — nobody has heard 10 of 12 cues; the domains Terraform apply — owner-side (GCS backend quota).
@@ -10,6 +12,7 @@
 
 > **RESOLVED (2026-11-18):** every item in this section is verified done in the live tree — M09/M10/M15/M16/M06/M18/M25/M26 shipped and CI-gated; the smoke app gained its first real end-to-end execution + the args/PATH fixes (2026-11-18); the deploy step ran green end-to-end on 2026-11-18. Table kept as history.
 
+<!-- check-rows:ledger -->
 | Item                                                | Evidence                                                                                                                                                                                                                                                                                                        |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M09 — ReadWritePaths derived from provisioned lists | module.nix `provisionedRuntimeDirs`/`provisionedStateDirs`; rendered unit inspected: same 3 holes + 2 provisioners as before (set-identical; %t line order differs, contract pins are per-line)                                                                                                                 |
