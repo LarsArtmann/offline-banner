@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       hyperframes:
-        specifier: ^0.9.52
-        version: 0.9.52
+        specifier: ^0.9.87
+        version: 0.9.87
 
 packages:
 
@@ -173,8 +173,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@hono/node-server@2.1.8':
-    resolution: {integrity: sha512-jdf7FHh6A1lzjpHHQUgxsg2GeER2vMetnAOfeActzcoli6jamlK+NAwL6Dsr5Fl3BS3tYUQzCdtZjU8Qxv7bEA==}
+  '@hono/node-server@2.1.11':
+    resolution: {integrity: sha512-KzKz9vl4vvr1vgLHamj+g5uonbrj5NwAdO3yzOS6cd2HjALVeOgTgeZOyAzNxejbkfOOPIcvuf/Tg8l1pEFLog==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
@@ -469,12 +469,12 @@ packages:
     resolution: {integrity: sha512-r+mvuDjrjMpsdw46Kmeydb8bdHm7wOKw8wNBtTndkjbPjgAp5oUJUxRE76wZFknxIPokfWvep2qSXK37aXE6zg==}
     hasBin: true
 
-  hono@4.13.18:
-    resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
+  hono@4.13.21:
+    resolution: {integrity: sha512-h9UsguqfVk4kjUwLvQpHOmOaJpW10jz9lp8bvKUUa04wJG/fabKFBqXZ06D6LFaeKQZtUZRVeg0gfkTTEsX7Mw==}
     engines: {node: '>=16.9.0'}
 
-  hyperframes@0.9.52:
-    resolution: {integrity: sha512-TGfCsrgUhsKQj7kVXBBi1t4mO2pK9niU6Cu3UHO5HLhuUCQzTWElSSUmu38Z2FXaMt7tllOw/lBX12w/1OdOuw==}
+  hyperframes@0.9.87:
+    resolution: {integrity: sha512-MhR+jmqcQlsTNwZdjdZYPMK3KpcUDOkc/ZNiRykPHrUJKI15AG3tsPd32vBig/re7Ot553M9jw6EeTQgHjgWkA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -531,8 +531,8 @@ packages:
     resolution: {integrity: sha512-RVHEU9/Pp1Fnjr/MpAJsZoADukCKhfIi15OunEYiGktIkYLkPVvC1sioWolGDS7XByMTx9m/IGbro0Js13zhnQ==}
     engines: {node: ^10 || ^12 || >=14}
 
-  puppeteer-core@25.17.0:
-    resolution: {integrity: sha512-YAgBitkd+K9gxRt+wzBAFTTkGjkC8aC2o4OxofsU8JUy2nnK/RflTCJ9bRCvCMNbq9TPhqFk4Phz98otN9FrGg==}
+  puppeteer-core@25.18.1:
+    resolution: {integrity: sha512-C0wHOJHDfAggGBtN5uUfsJGpeSKtPL5jzhgQYDuz4XKeOG1FUkxeZI2M5yK7AUyrdHO+RgDuiCfjmOpcw3PYTA==}
     engines: {node: '>=22.12.0'}
 
   restructure@3.0.2:
@@ -556,9 +556,9 @@ packages:
       '@types/node':
         optional: true
 
-  source-map-js@1.2.2:
-    resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
-    engines: {node: '>=0.10.0'}
+  source-map-js@1.2.4:
+    resolution: {integrity: sha512-J7ZjMvHd9O1fcT/5V09QWaaSl2BbWx3F6O08spde82Namf9UB0GxRVIPiNbVsdKkoizHiSpTodo3vp2bAy91MA==}
+    engines: {node: '>=6.0.0'}
 
   string-width@7.2.0:
     resolution: {integrity: sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==}
@@ -578,8 +578,8 @@ packages:
   tslib@2.9.1:
     resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
 
-  typed-query-selector@2.12.3:
-    resolution: {integrity: sha512-/dtuMZyutHLlrxWhhC1uib00ELUr2dZ8C9B8YzZYsJmeE3V56OxRblrSM2UaF142pcMtak7ehZ6+poWGeehNIg==}
+  typed-query-selector@2.12.4:
+    resolution: {integrity: sha512-lF6/OY655DSWZeuNovde8TZhju6QyC0Xtav57b07oZQ1EQvfSowA3+WfLEhvFJOc9sVfAtW5hie1lGIppOqbpQ==}
 
   undici@7.30.1:
     resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
@@ -718,9 +718,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@hono/node-server@2.1.8(hono@4.13.18)':
+  '@hono/node-server@2.1.11(hono@4.13.21)':
     dependencies:
-      hono: 4.13.18
+      hono: 4.13.21
 
   '@img/colour@1.1.0':
     optional: true
@@ -877,7 +877,7 @@ snapshots:
   css-tree@3.2.1:
     dependencies:
       mdn-data: 2.27.1
-      source-map-js: 1.2.2
+      source-map-js: 1.2.4
 
   debug@4.4.3:
     dependencies:
@@ -952,11 +952,11 @@ snapshots:
 
   giget@3.3.1: {}
 
-  hono@4.13.18: {}
+  hono@4.13.21: {}
 
-  hyperframes@0.9.52:
+  hyperframes@0.9.87:
     dependencies:
-      '@hono/node-server': 2.1.8(hono@4.13.18)
+      '@hono/node-server': 2.1.11(hono@4.13.21)
       '@puppeteer/browsers': 3.2.7(yauzl@3.4.0)
       acorn: 8.19.0
       adm-zip: 0.6.1
@@ -967,11 +967,11 @@ snapshots:
       esbuild: 0.28.2
       fontkit: 2.0.4
       giget: 3.3.1
-      hono: 4.13.18
+      hono: 4.13.21
       ignore: 5.3.2
       open: 10.2.0
       postcss: 8.5.33
-      puppeteer-core: 25.17.0(yauzl@3.4.0)
+      puppeteer-core: 25.18.1(yauzl@3.4.0)
       undici: 7.30.1
       yauzl: 3.4.0
     optionalDependencies:
@@ -1022,14 +1022,14 @@ snapshots:
     dependencies:
       nanoid: 3.3.20
       picocolors: 1.1.1
-      source-map-js: 1.2.2
+      source-map-js: 1.2.4
 
-  puppeteer-core@25.17.0(yauzl@3.4.0):
+  puppeteer-core@25.18.1(yauzl@3.4.0):
     dependencies:
       '@puppeteer/browsers': 3.2.7(yauzl@3.4.0)
       chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1717327)
       devtools-protocol: 0.0.1717327
-      typed-query-selector: 2.12.3
+      typed-query-selector: 2.12.4
       webdriver-bidi-protocol: 1.0.2
       ws: 8.23.0
     transitivePeerDependencies:
@@ -1078,7 +1078,7 @@ snapshots:
       '@img/sharp-win32-x64': 0.35.5
     optional: true
 
-  source-map-js@1.2.2: {}
+  source-map-js@1.2.4: {}
 
   string-width@7.2.0:
     dependencies:
@@ -1100,7 +1100,7 @@ snapshots:
   tslib@2.9.1:
     optional: true
 
-  typed-query-selector@2.12.3: {}
+  typed-query-selector@2.12.4: {}
 
   undici@7.30.1: {}
 
